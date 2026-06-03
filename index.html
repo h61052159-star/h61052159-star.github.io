@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>映画字幕風コラメーカー 改良版</title>
+    <!-- 字幕に近いフォントを読み込み -->
+    <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #eee;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .container { max-width: 1000px; width: 100%; display: flex; flex-direction: column; gap: 20px; }
+        .main-layout { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
+        canvas { max-width: 100%; height: auto; border: 1px solid #444; background-color: #000; }
+        .controls {
+            background: #2c2c2c; padding: 20px; border-radius: 12px; flex: 1; min-width: 320px;
+            display: flex; flex-direction: column; gap: 12px;
+        }
+        .control-group { display: flex; flex-direction: column; gap: 5px; }
+        label { font-size: 0.85rem; color: #bbb; }
+        input[type="text"], select {
+            width: 100%; padding: 10px; background: #333; border: 1px solid #444; color: white; border-radius: 5px; box-sizing: border-box;
+        }
+        input[type="range"] { width: 100%; cursor: pointer; }
+        .val-display { font-family: monospace; float: right; color: #fff; }
+        .btn-save {
+            background: #e50914; color: white; padding: 15px; border: none; border-radius: 5px;
+            cursor: pointer; font-weight: bold; font-size: 1rem; margin-top: 10px;
+        }
+        .btn-save:hover { background: #ff1f2a; }
+        .hint { font-size: 0.75rem; color: #888; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 style="text-align: center; margin-bottom: 10px;">映画字幕風コラメーカー</h1>
+    
+    <div class="main-layout">
+        <div style="flex: 2; text-align: center;">
+            <canvas id="editorCanvas"></canvas>
+            <p class="hint">※画像を選択するとここに表示されます</p>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>1. 画像を選択</label>
+                <input type="file" id="imageInput" accept="image/*">
+            </div>
+
+            <div class="control-group">
+                <label>2. 字幕テキスト</label>
+                <input type="text" id="subtitleText" placeholder="セリフを入力..." value="やはり、そうだったのか…">
+            </div>
+
+            <div class="control-group">
+                <label>フォントの種類</label>
+                <select id="fontFamily">
+                    <option value="'Kosugi Maru', sans-serif">丸ゴシック (字幕用)</option>
+                    <option value="'Noto Sans JP', sans-serif">角ゴシック</option>
+                    <option value="serif">明朝体</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>文字の太さ <span class="val-display" id="fontWeightVal">400</span></label>
+                <input type="range" id="fontWeight" min="100" max="900" step="100" value="400">
+            </div>
+
+            <div class="control-group">
+                <label>文字の大きさ <span class="val-display" id="fontSizeVal">50</span></label>
+                <input type="range" id="fontSize" min="10" max="150" value="50">
+            </div>
+
+            <div class="control-group">
+                <label>縁の太さ <span class="val-display" id="strokeSizeVal">3</span></label>
+                <input type="range" id="strokeSize" min="0" max="15" step="0.5" value="3.5">
+            </div>
+
+            <div class="control-group">
+                <label>上下の位置 <span class="val-display" id="posVal">85</span>%</label>
+                <input type="range" id="textPos" min="0" max="100" value="85">
+            </div>
+
+            <button class="btn-save" id="downloadBtn">完成した画像を保存する</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const imageInput = document.getElementById('imageInput');
+    const subtitleText = document.getElementById('subtitleText');
+    const fontSizeInput = document.getElementById('fontSize');
+    const fontWeightInput = document.getElementById('fontWeight');
+    const strokeSizeInput = document.getElementById('strokeSize');
+    const textPosInput = document.getElementById('textPos');
+    const fontFamilyInput = document.getElementById('fontFamily');
+    const canvas = document.getElementById('editorCanvas');
+    const ctx = canvas.getContext('2d');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    let loadedImage = null;
+
+    // フォント読み込み完了を待ってから描画する関数
+    async function waitAndDraw() {
+        await document.fonts.ready;
+        draw();
+    }
+
+    [subtitleText, fontSizeInput, fontWeightInput, strokeSizeInput, textPosInput, fontFamilyInput].forEach(el => {
+        el.addEventListener('input', () => {
+            updateLabels();
+            draw();
+        });
+    });
+
+    function updateLabels() {
+        document.getElementById('fontSizeVal').innerText = fontSizeInput.value;
+        document.getElementById('fontWeightVal').innerText = fontWeightInput.value;
+        document.getElementById('strokeSizeVal').innerText = strokeSizeInput.value;
+        document.getElementById('posVal').innerText = textPosInput.value;
+    }
+
+    imageInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                loadedImage = img;
+                canvas.width = img.width;
+                canvas.height = img.height;
+                // 画像読み込み後、フォントの準備を待って描画
+                waitAndDraw();
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    function draw() {
+        if (!loadedImage) {
+            canvas.width = 800; canvas.height = 450;
+            ctx.fillStyle = "#333"; ctx.fillRect(0,0, canvas.width, canvas.height);
+            ctx.fillStyle = "#888"; ctx.font = "20px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("画像を選択してください", canvas.width/2, canvas.height/2);
+            return;
+        }
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(loadedImage, 0, 0);
+
+        const text = subtitleText.value;
+        const fSize = parseInt(fontSizeInput.value);
+        const fWeight = fontWeightInput.value;
+        const sSize = parseFloat(strokeSizeInput.value);
+        const vPos = parseInt(textPosInput.value) / 100;
+        const fFamily = fontFamilyInput.value;
+
+        // 映画字幕風：斜体(italic) + 指定ウェイト
+        ctx.font = `italic ${fWeight} ${fSize}px ${fFamily}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        const x = canvas.width / 2;
+        const y = canvas.height * vPos;
+
+        // 1. 黒い縁取り (少し透明度を入れるとよりリアルになりますが、まずは不透明で)
+        if (sSize > 0) {
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.9)';
+            ctx.lineWidth = sSize;
+            ctx.lineJoin = 'round';
+            ctx.strokeText(text, x, y);
+        }
+
+        // 2. 白い文字
+        ctx.fillStyle = 'white';
+        ctx.fillText(text, x, y);
+    }
+
+    downloadBtn.addEventListener('click', () => {
+        if (!loadedImage) return alert('画像を選択してください');
+        const link = document.createElement('a');
+        link.download = 'movie_meme.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    });
+
+    // 初期化
+    updateLabels();
+    draw();
+</script>
+
+</body>
+</html>
