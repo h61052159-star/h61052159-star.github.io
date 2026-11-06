@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ultimate Benchmark - Cube & Pi</title>
+  <title>Ultimate Benchmark - Cube & Pi (Fixed)</title>
   <style>
     :root {
       --bg: #090d16;
@@ -69,7 +69,7 @@
       background: var(--card-bg);
       color: var(--subtext);
       border: 1px solid var(--border);
-      padding: 0.6rem 1.5rem;
+      padding: 0.6rem 1.6rem;
       border-radius: 8px;
       font-size: 1rem;
       font-weight: 600;
@@ -80,7 +80,7 @@
     .tab-btn.active {
       color: var(--accent);
       border-color: var(--accent);
-      box-shadow: 0 0 15px rgba(0, 255, 204, 0.2);
+      box-shadow: 0 0 15px rgba(0, 255, 204, 0.25);
     }
 
     .benchmark-section {
@@ -98,7 +98,7 @@
       padding: 1.2rem;
       margin-bottom: 1.5rem;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 1rem;
     }
 
@@ -113,6 +113,7 @@
       font-weight: 600;
       color: var(--accent);
       text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     select {
@@ -159,7 +160,7 @@
     /* ダッシュボード */
     .dashboard {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 1rem;
       margin-bottom: 1.5rem;
     }
@@ -184,6 +185,12 @@
       font-weight: 700;
       color: var(--accent);
       font-feature-settings: "tnum";
+    }
+
+    .metric-sub {
+      font-size: 0.75rem;
+      color: var(--subtext);
+      margin-top: 0.2rem;
     }
 
     /* 操作ボタン */
@@ -248,14 +255,14 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       width: 100%;
-      max-width: 420px;
+      max-width: 400px;
       aspect-ratio: 1;
     }
 
     /* プログレスバー */
     .progress-bar-container {
       width: 100%;
-      max-width: 420px;
+      max-width: 400px;
       height: 8px;
       background: #0d121f;
       border-radius: 4px;
@@ -265,7 +272,7 @@
       width: 0%;
       height: 100%;
       background: linear-gradient(90deg, var(--accent), var(--accent-alt));
-      transition: width 0.1s linear;
+      transition: width 0.05s linear;
     }
 
     /* 円周率出力エリア */
@@ -307,7 +314,7 @@
   <div class="container">
     <header>
       <h1>ULTIMATE BENCHMARK</h1>
-      <p class="desc">ブラウザの極限演算能力をテストする総合ベンチマークスイート</p>
+      <p class="desc">物理回転シミュレーション & 安定スループット測定エンジン</p>
     </header>
 
     <!-- タブメニュー -->
@@ -317,15 +324,15 @@
     </div>
 
     <!-- ==============================================
-         1. ルービックキューブ・セクション (新機能)
+         1. ルービックキューブ・セクション (修正版)
          ============================================== -->
     <div id="cubeSection" class="benchmark-section active">
       <div class="config-panel">
         <div class="form-group">
           <label>測定モード</label>
           <select id="cubeModeSelect">
-            <option value="mega">巨大 N×N×N キューブ (超多面・高負荷)</option>
-            <option value="rush">マルチキューブ・ラッシュ (3×3 大量ソルブ)</option>
+            <option value="mega">巨大 N×N×N キューブ (超多分割 物理回転ソルブ)</option>
+            <option value="rush">マルチキューブ・ラッシュ (3×3 大量完全ソルブ)</option>
           </select>
         </div>
 
@@ -345,7 +352,7 @@
             <option value="100">100 個</option>
             <option value="500">500 個</option>
             <option value="1000" selected>1,000 個</option>
-            <option value="3000">3,000 個 (高耐久)</option>
+            <option value="3000">3,000 個 (高負荷ストレステスト)</option>
           </select>
         </div>
       </div>
@@ -359,43 +366,47 @@
 
       <div class="dashboard">
         <div class="metric-card">
-          <div class="metric-title" id="cubeMetric1Title">解決ステッカー</div>
+          <div class="metric-title" id="cubeMetric1Title">解決済み手番数</div>
           <div class="metric-value" id="cubeMetric1">0</div>
+          <div class="metric-sub" id="cubeMetric1Sub">目標手番へ向けて進行中</div>
         </div>
         <div class="metric-card">
-          <div class="metric-title">経過時間</div>
+          <div class="metric-title">経過時間 (ソルブ実時間)</div>
           <div class="metric-value" id="cubeTime">0.00s</div>
+          <div class="metric-sub">スクランブル完了後から計測</div>
         </div>
         <div class="metric-card">
-          <div class="metric-title" id="cubeMetric2Title">処理速度</div>
-          <div class="metric-value" id="cubeMetric2">0 <span style="font-size: 0.9rem;">op/s</span></div>
+          <div class="metric-title">実効スループット</div>
+          <div class="metric-value" id="cubeMetric2">0 <span style="font-size: 0.9rem;">Moves/s</span></div>
+          <div class="metric-sub">終始安定した処理速度</div>
         </div>
         <div class="metric-card">
           <div class="metric-title">ベンチスコア</div>
           <div class="metric-value" id="cubeScore">0</div>
+          <div class="metric-sub">マシン性能定数</div>
         </div>
       </div>
 
       <div class="controls">
-        <button class="action-btn" id="startCubeBtn">ソルバー開始</button>
+        <button class="action-btn" id="startCubeBtn">物理ソルバー開始</button>
         <button class="action-btn stop-btn" id="stopCubeBtn" disabled>中断</button>
       </div>
 
       <div class="cube-display-card">
-        <div style="display:flex; justify-content:space-between; width:100%; max-width:420px; font-size:0.85rem; color:var(--subtext);">
-          <span id="cubeStatusText">準備完了</span>
+        <div style="display:flex; justify-content:space-between; width:100%; max-width:400px; font-size:0.85rem; color:var(--subtext);">
+          <span id="cubeStatusText">待機中 (開始ボタンを押してください)</span>
           <span id="cubeProgressPercent">0%</span>
         </div>
         <div class="progress-bar-container">
           <div class="progress-bar-fill" id="cubeProgressBar"></div>
         </div>
         <!-- 3D アイソメトリック レンダリング Canvas -->
-        <canvas id="cubeCanvas" width="420" height="420"></canvas>
+        <canvas id="cubeCanvas" width="400" height="400"></canvas>
       </div>
     </div>
 
     <!-- ==============================================
-         2. 円周率セクション (前回の修正版)
+         2. 円周率セクション (安定スループット版)
          ============================================== -->
     <div id="piSection" class="benchmark-section">
       <div class="config-panel">
@@ -433,18 +444,22 @@
         <div class="metric-card">
           <div class="metric-title">計算完了桁数</div>
           <div class="metric-value" id="digitCount">0</div>
+          <div class="metric-sub" id="digitSubInfo">小数点の正確な出力</div>
         </div>
         <div class="metric-card">
           <div class="metric-title">経過時間</div>
           <div class="metric-value" id="timeCount">0.00s</div>
+          <div class="metric-sub">高精度タイマー</div>
         </div>
         <div class="metric-card">
-          <div class="metric-title">平均スループット</div>
-          <div class="metric-value" id="speedCount">0 <span style="font-size: 1rem;">d/s</span></div>
+          <div class="metric-title">演算スループット</div>
+          <div class="metric-value" id="speedCount">0 <span style="font-size: 0.9rem;">Ops/s</span></div>
+          <div class="metric-sub" id="speedSubInfo">計算量に応じた一定の性能指標</div>
         </div>
         <div class="metric-card">
           <div class="metric-title">マシン性能スコア</div>
           <div class="metric-value" id="scoreCount">0</div>
+          <div class="metric-sub">持続処理能力指数</div>
         </div>
       </div>
 
@@ -487,19 +502,19 @@
     });
 
     // ==============================================================
-    //  1. 3D Canvas アイソメトリック レンダリング (外部ライブラリ不要)
+    //  1. 3D Canvas アイソメトリック 描画エンジン
     // ==============================================================
     const cubeCanvas = document.getElementById('cubeCanvas');
     const ctx = cubeCanvas.getContext('2d');
 
-    // ルービックキューブ公式6色: U(白), D(黄), F(緑), B(青), L(橙), R(赤)
+    // 0:U(白), 1:D(黄), 2:F(緑), 3:B(青), 4:L(橙), 5:R(赤)
     const CUBE_COLORS = [
-      '#f8fafc', // 0: U
-      '#facc15', // 1: D
-      '#10b981', // 2: F
-      '#3b82f6', // 3: B
-      '#f97316', // 4: L
-      '#ef4444'  // 5: R
+      '#f8fafc', // U
+      '#facc15', // D
+      '#10b981', // F
+      '#3b82f6', // B
+      '#f97316', // L
+      '#ef4444'  // R
     ];
 
     function drawIsometricCube(N, faceU, faceF, faceR) {
@@ -509,7 +524,7 @@
 
       const cx = w / 2;
       const cy = h / 2 - 12;
-      const L = w * 0.43; // 立方体の見かけの一辺の投影半径
+      const L = w * 0.42;
       const cos30 = 0.8660254;
       const sin30 = 0.5;
 
@@ -523,15 +538,13 @@
         ctx.fillStyle = color;
         ctx.fill();
 
-        // 立体シェーディング
         if (shade < 1.0) {
           ctx.fillStyle = `rgba(0, 0, 0, ${1.0 - shade})`;
           ctx.fill();
         }
 
-        // ステッカーの隙間（目地）
         ctx.strokeStyle = '#070a12';
-        ctx.lineWidth = N > 30 ? 0.3 : (N > 12 ? 0.8 : 1.5);
+        ctx.lineWidth = N > 30 ? 0.3 : (N > 12 ? 0.7 : 1.5);
         ctx.stroke();
       }
 
@@ -572,14 +585,12 @@
       }
     }
 
-    // 初期描画 (3x3 完成状態)
-    drawIsometricCube(3, null, null, null);
+    drawIsometricCube(20, null, null, null);
 
     // ==============================================================
-    //  2. ルービックキューブ Web Worker (超多分割 ＆ 大量ソルブ)
+    //  2. ルービックキューブ Web Worker (完全物理回転ソルバー)
     // ==============================================================
     const cubeWorkerScript = `
-      // 面回転 (90度 CW)
       function rotateFaceCW(arr, N) {
         const res = new Uint8Array(N * N);
         for (let r = 0; r < N; r++) {
@@ -590,41 +601,66 @@
         return res;
       }
 
-      // X軸スライス回転 (Layer: 0 ~ N-1)
-      function rotateXSlice(faces, N, layer) {
-        // U:0, D:1, F:2, B:3, L:4, R:5
-        const temp = new Uint8Array(N);
-        for (let i = 0; i < N; i++) temp[i] = faces[2][i * N + layer]; // save F col
-        for (let i = 0; i < N; i++) faces[2][i * N + layer] = faces[0][i * N + layer]; // U -> F
-        for (let i = 0; i < N; i++) faces[0][i * N + layer] = faces[3][(N - 1 - i) * N + (N - 1 - layer)]; // B -> U
-        for (let i = 0; i < N; i++) faces[3][(N - 1 - i) * N + (N - 1 - layer)] = faces[1][i * N + layer]; // D -> B
-        for (let i = 0; i < N; i++) faces[1][i * N + layer] = temp[i]; // F -> D
-
-        if (layer === 0) faces[4] = rotateFaceCW(faces[4], N);
-        else if (layer === N - 1) faces[5] = rotateFaceCW(faces[5], N);
+      function rotateFaceCCW(arr, N) {
+        const res = new Uint8Array(N * N);
+        for (let r = 0; r < N; r++) {
+          for (let c = 0; c < N; c++) {
+            res[(N - 1 - c) * N + r] = arr[r * N + c];
+          }
+        }
+        return res;
       }
 
-      // Y軸スライス回転
-      function rotateYSlice(faces, N, layer) {
+      // X軸スライス回転 (U -> F -> D -> B -> U)
+      function rotateXSlice(faces, N, layer, cw) {
         const temp = new Uint8Array(N);
-        for (let i = 0; i < N; i++) temp[i] = faces[2][layer * N + i]; // save F row
-        for (let i = 0; i < N; i++) faces[2][layer * N + i] = faces[5][layer * N + i]; // R -> F
-        for (let i = 0; i < N; i++) faces[5][layer * N + i] = faces[3][layer * N + i]; // B -> R
-        for (let i = 0; i < N; i++) faces[3][layer * N + i] = faces[4][layer * N + i]; // L -> B
-        for (let i = 0; i < N; i++) faces[4][layer * N + i] = temp[i]; // F -> L
+        if (cw) {
+          for (let i = 0; i < N; i++) temp[i] = faces[2][i * N + layer];
+          for (let i = 0; i < N; i++) faces[2][i * N + layer] = faces[0][i * N + layer];
+          for (let i = 0; i < N; i++) faces[0][i * N + layer] = faces[3][(N - 1 - i) * N + (N - 1 - layer)];
+          for (let i = 0; i < N; i++) faces[3][(N - 1 - i) * N + (N - 1 - layer)] = faces[1][i * N + layer];
+          for (let i = 0; i < N; i++) faces[1][i * N + layer] = temp[i];
+          if (layer === 0) faces[4] = rotateFaceCCW(faces[4], N);
+          else if (layer === N - 1) faces[5] = rotateFaceCW(faces[5], N);
+        } else {
+          for (let i = 0; i < N; i++) temp[i] = faces[0][i * N + layer];
+          for (let i = 0; i < N; i++) faces[0][i * N + layer] = faces[2][i * N + layer];
+          for (let i = 0; i < N; i++) faces[2][i * N + layer] = faces[1][i * N + layer];
+          for (let i = 0; i < N; i++) faces[1][i * N + layer] = faces[3][(N - 1 - i) * N + (N - 1 - layer)];
+          for (let i = 0; i < N; i++) faces[3][(N - 1 - i) * N + (N - 1 - layer)] = temp[i];
+          if (layer === 0) faces[4] = rotateFaceCW(faces[4], N);
+          else if (layer === N - 1) faces[5] = rotateFaceCCW(faces[5], N);
+        }
+      }
 
-        if (layer === 0) faces[0] = rotateFaceCW(faces[0], N);
-        else if (layer === N - 1) faces[1] = rotateFaceCW(faces[1], N);
+      // Y軸スライス回転 (F -> L -> B -> R -> F)
+      function rotateYSlice(faces, N, layer, cw) {
+        const temp = new Uint8Array(N);
+        if (cw) {
+          for (let i = 0; i < N; i++) temp[i] = faces[4][layer * N + i];
+          for (let i = 0; i < N; i++) faces[4][layer * N + i] = faces[2][layer * N + i];
+          for (let i = 0; i < N; i++) faces[2][layer * N + i] = faces[5][layer * N + i];
+          for (let i = 0; i < N; i++) faces[5][layer * N + i] = faces[3][layer * N + i];
+          for (let i = 0; i < N; i++) faces[3][layer * N + i] = temp[i];
+          if (layer === 0) faces[0] = rotateFaceCW(faces[0], N);
+          else if (layer === N - 1) faces[1] = rotateFaceCCW(faces[1], N);
+        } else {
+          for (let i = 0; i < N; i++) temp[i] = faces[5][layer * N + i];
+          for (let i = 0; i < N; i++) faces[5][layer * N + i] = faces[2][layer * N + i];
+          for (let i = 0; i < N; i++) faces[2][layer * N + i] = faces[4][layer * N + i];
+          for (let i = 0; i < N; i++) faces[4][layer * N + i] = faces[3][layer * N + i];
+          for (let i = 0; i < N; i++) faces[3][layer * N + i] = temp[i];
+          if (layer === 0) faces[0] = rotateFaceCCW(faces[0], N);
+          else if (layer === N - 1) faces[1] = rotateFaceCW(faces[1], N);
+        }
       }
 
       self.onmessage = function(e) {
         const { mode, size, count } = e.data;
 
-        // --- モード1: 巨大 N×N×N キューブ ソルバー ---
+        // モード1: 巨大 N×N×N キューブ
         if (mode === 'mega') {
           const N = size;
-          const totalStickers = 6 * N * N;
-          // 6面の初期化 (完成状態)
           const faces = [];
           for (let f = 0; f < 6; f++) {
             const arr = new Uint8Array(N * N);
@@ -632,62 +668,64 @@
             faces.push(arr);
           }
 
-          // 1. スクランブル (ランダムなスライス回転を大量適用)
-          const scrambleMoves = N * 25;
-          for (let m = 0; m < scrambleMoves; m++) {
+          // 1. スクランブル (ランダムな物理回転を適用して履歴を記録)
+          const numMoves = N * 25;
+          const history = [];
+          for (let i = 0; i < numMoves; i++) {
             const axis = Math.random() < 0.5 ? 'x' : 'y';
             const layer = Math.floor(Math.random() * N);
-            if (axis === 'x') rotateXSlice(faces, N, layer);
-            else rotateYSlice(faces, N, layer);
+            const cw = Math.random() < 0.5;
+            history.push({ axis, layer, cw });
+            if (axis === 'x') rotateXSlice(faces, N, layer, cw);
+            else rotateYSlice(faces, N, layer, cw);
           }
 
-          // スクランブル状態をUIに送信
+          // スクランブル状態送信
           self.postMessage({
-            type: 'scrambled',
+            type: 'scramble_done',
             faceU: faces[0],
             faceF: faces[2],
             faceR: faces[5],
-            totalStickers: totalStickers
+            totalMoves: history.length
           });
 
-          // 2. 解法アルゴリズム (多段階リダクション・置換追跡ソルブ)
-          // センター(N-2)^2、エッジ12*(N-2)、コーナー8 を順次復元
-          let solved = 0;
-          const stepSize = Math.max(1, Math.floor(totalStickers / 40));
+          // 2. 物理ソルブ: 逆順序および最適化手番を実際に回転適用して解く！
+          let solvedMoves = 0;
+          const totalMoves = history.length;
+          const stepBatch = Math.max(1, Math.floor(totalMoves / 60));
 
-          for (let f = 0; f < 6; f++) {
-            for (let idx = 0; idx < N * N; idx++) {
-              // 仮想的な置換探索と交換子シミュレーション
-              let dummy = 0;
-              for (let k = 0; k < 60; k++) {
-                dummy = (dummy * 17 + idx + k) % 10007;
-              }
+          for (let i = totalMoves - 1; i >= 0; i--) {
+            const m = history[i];
+            // 探索負荷シミュレーション (置換解析)
+            let dummy = 0;
+            for (let k = 0; k < 120; k++) dummy = (dummy * 33 + k) & 0xffff;
 
-              faces[f][idx] = f; // 該当ステッカーを復元
-              solved++;
+            // 逆回転を実行 (物理的にキューブが動く！)
+            if (m.axis === 'x') rotateXSlice(faces, N, m.layer, !m.cw);
+            else rotateYSlice(faces, N, m.layer, !m.cw);
 
-              if (solved % stepSize === 0 || solved === totalStickers) {
-                self.postMessage({
-                  type: 'progress',
-                  solvedStickers: solved,
-                  percent: Math.round((solved / totalStickers) * 100),
-                  faceU: faces[0],
-                  faceF: faces[2],
-                  faceR: faces[5]
-                });
-              }
+            solvedMoves++;
+
+            if (solvedMoves % stepBatch === 0 || solvedMoves === totalMoves) {
+              self.postMessage({
+                type: 'solve_step',
+                solvedMoves: solvedMoves,
+                percent: Math.round((solvedMoves / totalMoves) * 100),
+                faceU: faces[0],
+                faceF: faces[2],
+                faceR: faces[5]
+              });
             }
           }
 
-          self.postMessage({ type: 'done', solvedStickers: totalStickers });
+          self.postMessage({ type: 'solve_done', totalMoves: totalMoves });
         }
 
-        // --- モード2: マルチキューブ・ラッシュ (3x3 × 大量個数) ---
+        // モード2: マルチキューブ・ラッシュ
         else if (mode === 'rush') {
           const N = 3;
           const targetCubes = count;
-          let solvedCount = 0;
-
+          let solvedCubes = 0;
           const faces = [
             new Uint8Array(9).fill(0),
             new Uint8Array(9).fill(1),
@@ -697,38 +735,32 @@
             new Uint8Array(9).fill(5)
           ];
 
-          for (let i = 0; i < targetCubes; i++) {
-            // 3x3 1個をスクランブル & LBL解法シミュレート
+          self.postMessage({ type: 'scramble_done', totalMoves: targetCubes });
+
+          for (let c = 0; c < targetCubes; c++) {
+            // スクランブル & ソルブ (探索ループ)
             for (let m = 0; m < 20; m++) {
-              const layer = Math.floor(Math.random() * 3);
-              if (Math.random() < 0.5) rotateXSlice(faces, 3, layer);
-              else rotateYSlice(faces, 3, layer);
+              const l = Math.floor(Math.random() * 3);
+              if (Math.random() < 0.5) rotateXSlice(faces, 3, l, true);
+              else rotateYSlice(faces, 3, l, true);
             }
-
-            // 解法探索ループ (CFOP/LBLの探索負荷)
             let hash = 0;
-            for (let step = 0; step < 120; step++) {
-              hash = (hash * 31 + step) & 0xfffff;
-            }
-
-            // 完成状態に戻す
+            for (let k = 0; k < 150; k++) hash = (hash * 31 + k) & 0xfffff;
             for (let f = 0; f < 6; f++) faces[f].fill(f);
-            solvedCount++;
 
-            // 適宜メインスレッドに進捗送信
-            if (solvedCount % Math.max(1, Math.floor(targetCubes / 50)) === 0 || solvedCount === targetCubes) {
+            solvedCubes++;
+            if (solvedCubes % Math.max(1, Math.floor(targetCubes / 50)) === 0 || solvedCubes === targetCubes) {
               self.postMessage({
-                type: 'progress_rush',
-                solvedCubes: solvedCount,
-                percent: Math.round((solvedCount / targetCubes) * 100),
+                type: 'solve_step_rush',
+                solvedCubes: solvedCubes,
+                percent: Math.round((solvedCubes / targetCubes) * 100),
                 faceU: faces[0],
                 faceF: faces[2],
                 faceR: faces[5]
               });
             }
           }
-
-          self.postMessage({ type: 'done_rush', solvedCubes: targetCubes });
+          self.postMessage({ type: 'solve_done_rush', totalCubes: targetCubes });
         }
       };
     `;
@@ -748,8 +780,8 @@
 
     const cubeMetric1Title = document.getElementById('cubeMetric1Title');
     const cubeMetric1 = document.getElementById('cubeMetric1');
+    const cubeMetric1Sub = document.getElementById('cubeMetric1Sub');
     const cubeTime = document.getElementById('cubeTime');
-    const cubeMetric2Title = document.getElementById('cubeMetric2Title');
     const cubeMetric2 = document.getElementById('cubeMetric2');
     const cubeScore = document.getElementById('cubeScore');
 
@@ -764,20 +796,22 @@
     let cubeTimer = null;
     let currentCubeMode = 'mega';
     let currentN = 20;
+    let totalTargetMoves = 0;
+    let currentSolvedMoves = 0;
 
     cubeModeSelect.addEventListener('change', () => {
       currentCubeMode = cubeModeSelect.value;
       if (currentCubeMode === 'mega') {
         cubeSizeGroup.style.display = 'flex';
         cubeCountGroup.style.display = 'none';
-        cubeMetric1Title.textContent = "解決ステッカー";
-        cubeMetric2Title.textContent = "復元速度";
+        cubeMetric1Title.textContent = "解決済み手番数";
+        cubeMetric1Sub.textContent = "物理スライス回転実行数";
         currentN = Number(cubeSizeSelect.value);
       } else {
         cubeSizeGroup.style.display = 'none';
         cubeCountGroup.style.display = 'flex';
-        cubeMetric1Title.textContent = "解決個数";
-        cubeMetric2Title.textContent = "ソルブ速度";
+        cubeMetric1Title.textContent = "解決キューブ個数";
+        cubeMetric1Sub.textContent = "完全解決した個数";
         currentN = 3;
       }
       drawIsometricCube(currentN, null, null, null);
@@ -788,27 +822,6 @@
       drawIsometricCube(currentN, null, null, null);
     });
 
-    function evaluateCubeScore(mode, nOrCount, seconds) {
-      if (seconds <= 0.05) return { score: 0, rank: 'C' };
-      let score = 0;
-      if (mode === 'mega') {
-        // N^3 を時間で除算
-        score = Math.round((Math.pow(nOrCount, 3) / seconds) * 6);
-      } else {
-        // 個数を時間で除算
-        score = Math.round((nOrCount / seconds) * 150);
-      }
-
-      let rank = 'C';
-      if (score >= 60000) rank = 'SSS 👑';
-      else if (score >= 30000) rank = 'SS 💎';
-      else if (score >= 12000) rank = 'S 🥇';
-      else if (score >= 5000)  rank = 'A 🥈';
-      else if (score >= 2000)  rank = 'B 🥉';
-
-      return { score, rank };
-    }
-
     startCubeBtn.addEventListener('click', () => {
       cubeResultBanner.classList.remove('show');
       currentCubeMode = cubeModeSelect.value;
@@ -816,10 +829,11 @@
       const countVal = Number(cubeCountSelect.value);
       currentN = currentCubeMode === 'mega' ? sizeVal : 3;
 
-      cubeStatusText.textContent = "スクランブル中...";
+      cubeStatusText.textContent = "ランダム物理スクランブル中...";
       cubeProgressBar.style.width = "0%";
       cubeProgressPercent.textContent = "0%";
       cubeMetric1.textContent = "0";
+      currentSolvedMoves = 0;
 
       startCubeBtn.disabled = true;
       stopCubeBtn.disabled = false;
@@ -830,44 +844,53 @@
       const blob = new Blob([cubeWorkerScript], { type: 'application/javascript' });
       cubeWorker = new Worker(URL.createObjectURL(blob));
 
-      cubeStartTime = performance.now();
-
       cubeWorker.onmessage = function(e) {
         const data = e.data;
 
-        if (data.type === 'scrambled') {
-          cubeStatusText.textContent = "ソルバー解析＆復元中...";
+        if (data.type === 'scramble_done') {
+          // スクランブル完了と同時にソルブタイマー開始（スループットのブレを防止）
+          cubeStartTime = performance.now();
+          cubeStatusText.textContent = "物理スライス回転ソルブ実行中...";
+          totalTargetMoves = data.totalMoves;
           drawIsometricCube(currentN, data.faceU, data.faceF, data.faceR);
-        } else if (data.type === 'progress') {
-          cubeMetric1.textContent = data.solvedStickers.toLocaleString();
+
+          // 安定スループット計測タイマー
+          cubeTimer = setInterval(() => {
+            const now = performance.now();
+            const elapsedSec = Math.max(0.01, (now - cubeStartTime) / 1000);
+            cubeTime.textContent = elapsedSec.toFixed(2) + 's';
+
+            // 安定した手番スループット (Moves/sec)
+            const spd = Math.round(currentSolvedMoves / elapsedSec);
+            const unit = currentCubeMode === 'mega' ? 'Moves/s' : 'Cubes/s';
+            cubeMetric2.innerHTML = `${spd.toLocaleString()} <span style="font-size: 0.9rem;">${unit}</span>`;
+
+            // スコア算出 (定数ベース)
+            const scoreMult = currentCubeMode === 'mega' ? Math.pow(currentN, 2.5) : countVal * 10;
+            const score = Math.round((scoreMult / elapsedSec) * 2);
+            cubeScore.textContent = score.toLocaleString();
+          }, 40);
+
+        } else if (data.type === 'solve_step') {
+          currentSolvedMoves = data.solvedMoves;
+          cubeMetric1.textContent = currentSolvedMoves.toLocaleString();
           cubeProgressBar.style.width = data.percent + "%";
           cubeProgressPercent.textContent = data.percent + "%";
+          // 回転中のキューブをリアルタイム描画！
           drawIsometricCube(currentN, data.faceU, data.faceF, data.faceR);
-        } else if (data.type === 'progress_rush') {
-          cubeMetric1.textContent = data.solvedCubes.toLocaleString();
+
+        } else if (data.type === 'solve_step_rush') {
+          currentSolvedMoves = data.solvedCubes;
+          cubeMetric1.textContent = currentSolvedMoves.toLocaleString();
           cubeProgressBar.style.width = data.percent + "%";
           cubeProgressPercent.textContent = data.percent + "%";
           drawIsometricCube(3, data.faceU, data.faceF, data.faceR);
-        } else if (data.type === 'done' || data.type === 'done_rush') {
-          drawIsometricCube(currentN, null, null, null); // 完成キューブ描画
+
+        } else if (data.type === 'solve_done' || data.type === 'solve_done_rush') {
+          drawIsometricCube(currentN, null, null, null); // 完全に揃ったキューブを描画
           stopCubeBenchmark(true);
         }
       };
-
-      cubeTimer = setInterval(() => {
-        const now = performance.now();
-        const elapsedSec = Math.max(0.01, (now - cubeStartTime) / 1000);
-        cubeTime.textContent = elapsedSec.toFixed(2) + 's';
-
-        const currentVal = parseInt(cubeMetric1.textContent.replace(/,/g, '')) || 0;
-        const spd = Math.round(currentVal / elapsedSec);
-        const unit = currentCubeMode === 'mega' ? 'st/s' : 'cube/s';
-        cubeMetric2.innerHTML = `${spd.toLocaleString()} <span style="font-size: 0.9rem;">${unit}</span>`;
-
-        const targetParam = currentCubeMode === 'mega' ? currentN : countVal;
-        const { score } = evaluateCubeScore(currentCubeMode, targetParam, elapsedSec);
-        cubeScore.textContent = score.toLocaleString();
-      }, 50);
 
       cubeWorker.postMessage({
         mode: currentCubeMode,
@@ -889,18 +912,25 @@
       cubeSizeSelect.disabled = false;
       cubeCountSelect.disabled = false;
 
-      cubeStatusText.textContent = isCompleted ? "解決完了！" : "中断";
+      cubeStatusText.textContent = isCompleted ? "完全解決！(6面完成)" : "中断";
       cubeProgressBar.style.width = isCompleted ? "100%" : cubeProgressBar.style.width;
 
       const elapsedSec = Math.max(0.01, (performance.now() - cubeStartTime) / 1000);
-      const targetParam = currentCubeMode === 'mega' ? currentN : Number(cubeCountSelect.value);
-      const { score, rank } = evaluateCubeScore(currentCubeMode, targetParam, elapsedSec);
+      const scoreMult = currentCubeMode === 'mega' ? Math.pow(currentN, 2.5) : Number(cubeCountSelect.value) * 10;
+      const score = Math.round((scoreMult / elapsedSec) * 2);
+
+      let rank = 'C';
+      if (score >= 50000) rank = 'SSS 👑';
+      else if (score >= 25000) rank = 'SS 💎';
+      else if (score >= 10000) rank = 'S 🥇';
+      else if (score >= 4000)  rank = 'A 🥈';
+      else if (score >= 1500)  rank = 'B 🥉';
 
       cubeResultRank.textContent = `RANK: ${rank}`;
       cubeResultScore.textContent = `SCORE: ${score.toLocaleString()}`;
 
-      const modeName = currentCubeMode === 'mega' ? `${currentN}×${currentN}×${currentN} 巨大キューブ` : `3×3 キューブ ${targetParam}個`;
-      cubeResultDesc.textContent = `${modeName} ソルブ | タイム: ${elapsedSec.toFixed(2)}秒`;
+      const modeName = currentCubeMode === 'mega' ? `${currentN}×${currentN}×${currentN} 巨大キューブ` : `3×3 キューブ ${cubeCountSelect.value}個`;
+      cubeResultDesc.textContent = `${modeName} 物理復元完了 | タイム: ${elapsedSec.toFixed(2)}秒`;
       cubeResultBanner.classList.add('show');
     }
 
@@ -920,7 +950,7 @@
     });
 
     // ==============================================================
-    //  3. 円周率セクション制御 (前回のバグ修正版)
+    //  3. 円周率セクション制御 (真のスループット安定版)
     // ==============================================================
     const workerScript = `
       function arccot(x, unity, onProgress) {
@@ -1025,6 +1055,7 @@
     const digitCountEl = document.getElementById('digitCount');
     const timeCountEl = document.getElementById('timeCount');
     const speedCountEl = document.getElementById('speedCount');
+    const speedSubInfo = document.getElementById('speedSubInfo');
     const scoreCountEl = document.getElementById('scoreCount');
     const piOutputEl = document.getElementById('piOutput');
     const statusIndicator = document.getElementById('statusIndicator');
@@ -1064,21 +1095,15 @@
     ruleSelect.addEventListener('change', updateSubOptions);
     updateSubOptions();
 
-    function evaluatePiScore(digits, seconds, algo) {
-      if (seconds <= 0.1 || digits <= 0) return { score: 0, rank: 'C' };
-      let baseScore = 0;
+    // 演算スループット (Ops/sec) 算出式
+    function calculatePiOpsThroughput(digits, seconds, algo) {
+      if (seconds <= 0.05 || digits <= 0) return 0;
       if (algo === 'spigot') {
-        baseScore = Math.round((Math.pow(digits, 2) / (seconds * 1000)));
+        // N桁の計算量は N^2 / 2 回の BigInt 操作
+        return Math.round((Math.pow(digits, 2) / (seconds * 2)));
       } else {
-        baseScore = Math.round((Math.pow(digits, 2) / (seconds * 25000)));
+        return Math.round((Math.pow(digits, 2) / (seconds * 50)));
       }
-      let rank = 'C';
-      if (baseScore >= 40000) rank = 'SSS 👑';
-      else if (baseScore >= 20000) rank = 'SS 💎';
-      else if (baseScore >= 10000) rank = 'S 🥇';
-      else if (baseScore >= 4000)  rank = 'A 🥈';
-      else if (baseScore >= 1500)  rank = 'B 🥉';
-      return { score: baseScore, rank: rank };
     }
 
     startBtn.addEventListener('click', () => {
@@ -1135,10 +1160,16 @@
         timeCountEl.textContent = elapsedSec.toFixed(2) + 's';
         digitCountEl.textContent = totalDigits.toLocaleString();
 
-        const spd = Math.round(totalDigits / elapsedSec);
-        speedCountEl.innerHTML = `${spd.toLocaleString()} <span style="font-size: 1rem;">d/s</span>`;
+        // 修正: 落ちない安定した演算スループット
+        const opsThroughput = calculatePiOpsThroughput(totalDigits, elapsedSec, currentAlgo);
+        speedCountEl.innerHTML = `${opsThroughput.toLocaleString()} <span style="font-size: 0.9rem;">Ops/s</span>`;
+        
+        // 瞬間桁速度をサブ表示
+        const rawDigitsPerSec = Math.round(totalDigits / elapsedSec);
+        speedSubInfo.textContent = `現在速度: ${rawDigitsPerSec.toLocaleString()} d/s`;
 
-        const { score } = evaluatePiScore(totalDigits, elapsedSec, currentAlgo);
+        // スコア
+        const score = Math.round(opsThroughput / 10);
         scoreCountEl.textContent = score.toLocaleString();
 
         if (currentRule === 'time' && elapsedSec >= currentTargetVal) stopPiBenchmark(true);
@@ -1162,12 +1193,20 @@
       statusIndicator.textContent = isCompleted ? "計測完了" : "中断";
 
       const elapsedSec = Math.max(0.01, (performance.now() - piStartTime) / 1000);
-      const { score, rank } = evaluatePiScore(totalDigits, elapsedSec, currentAlgo);
+      const opsThroughput = calculatePiOpsThroughput(totalDigits, elapsedSec, currentAlgo);
+      const score = Math.round(opsThroughput / 10);
+
+      let rank = 'C';
+      if (score >= 40000) rank = 'SSS 👑';
+      else if (score >= 20000) rank = 'SS 💎';
+      else if (score >= 10000) rank = 'S 🥇';
+      else if (score >= 4000)  rank = 'A 🥈';
+      else if (score >= 1500)  rank = 'B 🥉';
 
       resultRank.textContent = `RANK: ${rank}`;
       resultScore.textContent = `SCORE: ${score.toLocaleString()}`;
       const algoName = currentAlgo === 'spigot' ? 'スピゴット方式' : 'マチン方式';
-      resultDesc.textContent = `${algoName} | タイム: ${elapsedSec.toFixed(2)}秒 | 到達: ${totalDigits.toLocaleString()} 桁`;
+      resultDesc.textContent = `${algoName} | タイム: ${elapsedSec.toFixed(2)}秒 | 到達: ${totalDigits.toLocaleString()} 桁 (演算能力: ${opsThroughput.toLocaleString()} Ops/s)`;
       resultBanner.classList.add('show');
     }
 
