@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pi Benchmark - 円周率マシン性能測定</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #131c2e;
+      --accent: #00ffcc;
+      --accent-alt: #ff007f;
+      --text: #e0e6ed;
+      --subtext: #7e8b9b;
+      --border: #223249;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      background: linear-gradient(45deg, var(--accent), var(--accent-alt));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+      letter-spacing: 1px;
+    }
+
+    p.desc {
+      color: var(--subtext);
+      font-size: 0.95rem;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .metric-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.2rem;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .metric-title {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--subtext);
+      margin-bottom: 0.5rem;
+    }
+
+    .metric-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--accent);
+      font-feature-settings: "tnum";
+    }
+
+    .controls {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    button {
+      background: var(--card-bg);
+      color: var(--text);
+      border: 1px solid var(--accent);
+      padding: 0.8rem 1.8rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    button:hover {
+      background: var(--accent);
+      color: var(--bg);
+      box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
+    }
+
+    button:disabled {
+      border-color: var(--border);
+      color: var(--subtext);
+      cursor: not-allowed;
+      background: var(--card-bg);
+      box-shadow: none;
+    }
+
+    button.stop-btn {
+      border-color: var(--accent-alt);
+    }
+    button.stop-btn:hover {
+      background: var(--accent-alt);
+      color: #fff;
+      box-shadow: 0 0 15px rgba(255, 0, 127, 0.4);
+    }
+
+    .output-section {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.2rem;
+    }
+
+    .output-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.8rem;
+    }
+
+    .output-box {
+      background: #080b12;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      height: 250px;
+      overflow-y: auto;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      color: #a5b4fc;
+      word-break: break-all;
+      user-select: all;
+    }
+
+    .score-banner {
+      display: none;
+      background: linear-gradient(135deg, rgba(0,255,204,0.1), rgba(255,0,127,0.1));
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      padding: 1rem;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .score-banner.show {
+      display: block;
+    }
+    .score-banner h2 {
+      font-size: 1.5rem;
+      color: var(--accent);
+      margin-bottom: 0.3rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>π BENCHMARK</h1>
+      <p class="desc">ブラウザで円周率をストリーミング生成し、マシンの演算限界とスループットを計測します。</p>
+    </header>
+
+    <div id="scoreBanner" class="score-banner">
+      <h2 id="finalScore">SCORE: 0</h2>
+      <p id="scoreDetails">30秒間で ○○ 桁の計算に成功しました！</p>
+    </div>
+
+    <div class="dashboard">
+      <div class="metric-card">
+        <div class="metric-title">計算桁数</div>
+        <div class="metric-value" id="digitCount">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-title">経過時間</div>
+        <div class="metric-value" id="timeCount">0.0s</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-title">速度 (現在)</div>
+        <div class="metric-value" id="speedCount">0 <span style="font-size: 1rem;">d/s</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-title">ベンチスコア</div>
+        <div class="metric-value" id="scoreCount">0</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="start30sBtn">30秒 タイムアタック</button>
+      <button id="startInfiniteBtn">無制限 ストレステスト</button>
+      <button id="stopBtn" class="stop-btn" disabled>ストップ</button>
+    </div>
+
+    <div class="output-section">
+      <div class="output-header">
+        <span>出力ストリーム (リアルタイム)</span>
+        <span style="font-size: 0.8rem; color: var(--subtext);">※負荷軽減のため最新部を中心に描画</span>
+      </div>
+      <div class="output-box" id="piOutput">3.</div>
+    </div>
+  </div>
+
+  <script>
+    // --- Web Worker 用のコード (Blob化してインライン実行) ---
+    const workerScript = `
+      self.onmessage = function(e) {
+        if (e.data === 'start') {
+          // Gibbons' Unbounded Spigot Algorithm
+          let q = 1n, r = 0n, t = 1n, k = 1n, n = 3n, l = 3n;
+          let buffer = "";
+          let lastPost = performance.now();
+          let count = 0;
+
+          while (true) {
+            if (4n * q + r - t < n * t) {
+              buffer += n.toString();
+              count++;
+              let nr = 10n * (r - n * t);
+              n = ((10n * (3n * q + r)) / t) - 10n * n;
+              q *= 10n;
+              r = nr;
+
+              // 30msごとにメインスレッドへバッファをまとめて送信
+              const now = performance.now();
+              if (now - lastPost > 30) {
+                self.postMessage({ type: 'chunk', digits: buffer, count: count });
+                buffer = "";
+                lastPost = now;
+              }
+            } else {
+              let nr = (2n * q + r) * l;
+              let nn = (q * (7n * k + 2n) + r * l) / (t * l);
+              q *= k;
+              t *= l;
+              l += 2n;
+              k += 1n;
+              n = nn;
+              r = nr;
+            }
+          }
+        }
+      };
+    `;
+
+    // --- メインスレッド処理 ---
+    let worker = null;
+    let startTime = 0;
+    let timerInterval = null;
+    let totalDigits = 0;
+    let targetTime = null; // nullなら無制限、秒数が入ればタイムアタック
+    let lastSecondDigits = 0;
+    let lastSecondTime = 0;
+
+    const digitCountEl = document.getElementById('digitCount');
+    const timeCountEl = document.getElementById('timeCount');
+    const speedCountEl = document.getElementById('speedCount');
+    const scoreCountEl = document.getElementById('scoreCount');
+    const piOutputEl = document.getElementById('piOutput');
+    const start30sBtn = document.getElementById('start30sBtn');
+    const startInfiniteBtn = document.getElementById('startInfiniteBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const scoreBanner = document.getElementById('scoreBanner');
+    const finalScore = document.getElementById('finalScore');
+    const scoreDetails = document.getElementById('scoreDetails');
+
+    function calculateScore(digits, seconds) {
+      if (seconds <= 0) return 0;
+      // 桁数が増えるほど計算量が急増するため、桁数の1.2乗をベースにスコア化
+      return Math.round((Math.pow(digits, 1.2) / seconds) * 10);
+    }
+
+    function startBenchmark(limitSeconds = null) {
+      scoreBanner.classList.remove('show');
+      targetTime = limitSeconds;
+      totalDigits = 0;
+      lastSecondDigits = 0;
+      piOutputEl.textContent = "3.";
+      
+      start30sBtn.disabled = true;
+      startInfiniteBtn.disabled = true;
+      stopBtn.disabled = false;
+
+      const blob = new Blob([workerScript], { type: 'application/javascript' });
+      worker = new Worker(URL.createObjectURL(blob));
+
+      startTime = performance.now();
+      lastSecondTime = startTime;
+
+      worker.onmessage = function(e) {
+        if (e.data.type === 'chunk') {
+          totalDigits = e.data.count;
+          
+          // DOM負荷が原因でCPU測定が狂わないよう、一定以上の文字数はカットして末尾のみ維持
+          if (piOutputEl.textContent.length > 5000) {
+            piOutputEl.textContent = "..." + piOutputEl.textContent.slice(-3000) + e.data.digits;
+          } else {
+            piOutputEl.textContent += e.data.digits;
+          }
+          piOutputEl.scrollTop = piOutputEl.scrollHeight;
+        }
+      };
+
+      timerInterval = setInterval(() => {
+        const now = performance.now();
+        const elapsedSec = (now - startTime) / 1000;
+        timeCountEl.textContent = elapsedSec.toFixed(1) + 's';
+        digitCountEl.textContent = totalDigits.toLocaleString();
+
+        // 速度 (d/s) の更新
+        const timeDiff = (now - lastSecondTime) / 1000;
+        if (timeDiff >= 0.5) {
+          const currentSpeed = Math.round((totalDigits - lastSecondDigits) / timeDiff);
+          speedCountEl.innerHTML = `${currentSpeed.toLocaleString()} <span style="font-size: 1rem;">d/s</span>`;
+          lastSecondDigits = totalDigits;
+          lastSecondTime = now;
+        }
+
+        const currentScore = calculateScore(totalDigits, elapsedSec);
+        scoreCountEl.textContent = currentScore.toLocaleString();
+
+        // タイムアタック終了判定
+        if (targetTime && elapsedSec >= targetTime) {
+          stopBenchmark(true);
+        }
+      }, 100);
+
+      worker.postMessage('start');
+    }
+
+    function stopBenchmark(isCompleted = false) {
+      if (worker) {
+        worker.terminate();
+        worker = null;
+      }
+      clearInterval(timerInterval);
+
+      start30sBtn.disabled = false;
+      startInfiniteBtn.disabled = false;
+      stopBtn.disabled = true;
+
+      const elapsedSec = (performance.now() - startTime) / 1000;
+      const finalScoreVal = calculateScore(totalDigits, elapsedSec);
+
+      if (isCompleted || targetTime) {
+        finalScore.textContent = `SCORE: ${finalScoreVal.toLocaleString()}`;
+        scoreDetails.textContent = `${elapsedSec.toFixed(1)} 秒間で ${totalDigits.toLocaleString()} 桁まで到達しました！`;
+        scoreBanner.classList.add('show');
+      }
+    }
+
+    start30sBtn.addEventListener('click', () => startBenchmark(30));
+    startInfiniteBtn.addEventListener('click', () => startBenchmark(null));
+    stopBtn.addEventListener('click', () => stopBenchmark(false));
+  </script>
+</body>
+</html>
