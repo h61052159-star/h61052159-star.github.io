@@ -3,14 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MD3 P2P Mesh Room & Sync</title>
-  <!-- PeerJS -->
+  <title>MD3 P2P Mesh Room & Zundamon Sync</title>
+  <!-- PeerJS (サーバー不要P2Pライブラリ) -->
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <!-- YouTube IFrame API -->
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
-    /* === Material Design 3 (MD3) Dark Theme Design Tokens === */
+    /* ==========================================================================
+       Material Design 3 (MD3) Dark Theme Design Tokens & System
+       ========================================================================== */
     :root {
       --md-sys-color-background: #141218;
       --md-sys-color-surface: #1d1a22;
@@ -51,11 +53,11 @@
 
     body { display: flex; flex-direction: column; }
 
-    /* MD3 Top App Bar */
+    /* Top App Bar */
     header {
       flex-shrink: 0;
       background-color: var(--md-sys-color-surface);
-      padding: 10px 20px;
+      padding: 10px 18px;
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
@@ -93,7 +95,6 @@
     .status-dot.connected { background: var(--md-sys-color-success); box-shadow: 0 0 8px var(--md-sys-color-success); }
     .status-dot.waiting { background: #faa81a; }
 
-    /* MD3 Filled / Outlined Text Fields */
     .md-field {
       display: flex;
       align-items: center;
@@ -108,22 +109,23 @@
       background: transparent;
       border: none;
       color: var(--md-sys-color-on-surface);
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       outline: none;
     }
 
-    /* MD3 Buttons */
+    /* Buttons */
     .btn {
       border: none;
       border-radius: var(--md-shape-corner-full);
-      padding: 8px 18px;
-      font-size: 0.85rem;
+      padding: 8px 16px;
+      font-size: 0.84rem;
       font-weight: 600;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 6px;
       transition: background 0.2s, transform 0.1s;
+      white-space: nowrap;
     }
     .btn:active { transform: scale(0.97); }
     .btn-primary { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); }
@@ -141,14 +143,14 @@
       position: relative;
     }
 
-    /* 左側：ステージ & カメラ一覧 */
+    /* 左側：ステージ & カメラ */
     .stage-section {
       flex: 1;
       min-width: 0;
       min-height: 0;
       display: flex;
       flex-direction: column;
-      background: #0d0c10;
+      background: #0b0a0e;
       position: relative;
     }
 
@@ -160,7 +162,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 12px;
+      padding: 10px;
     }
 
     .aspect-screen {
@@ -176,7 +178,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.8);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.85);
       border: 1px solid var(--md-sys-color-outline-variant);
     }
 
@@ -214,22 +216,22 @@
       z-index: 25;
       display: none;
       box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-      animation: bounce 1.5s infinite;
+      animation: pulse 1.5s infinite;
     }
-    @keyframes bounce {
+    @keyframes pulse {
       0%, 100% { transform: translate(-50%, 0); }
-      50% { transform: translate(-50%, -6px); }
+      50% { transform: translate(-50%, -4px); }
     }
 
     /* 下部：参加者カメラタイルバー */
     .camera-strip {
-      height: 140px;
+      height: 135px;
       flex-shrink: 0;
       background: var(--md-sys-color-surface-container);
       border-top: 1px solid var(--md-sys-color-outline-variant);
-      padding: 8px 16px;
+      padding: 8px 14px;
       display: flex;
-      gap: 12px;
+      gap: 10px;
       overflow-x: auto;
       align-items: center;
     }
@@ -247,7 +249,6 @@
       transition: border-color 0.2s, transform 0.2s;
     }
     .camera-tile:hover { transform: translateY(-2px); }
-    /* 発言中インジケーター（緑色に光る） */
     .camera-tile.speaking {
       border-color: var(--md-sys-color-success) !important;
       box-shadow: 0 0 12px var(--md-sys-color-success);
@@ -269,7 +270,7 @@
       backdrop-filter: blur(4px);
       padding: 2px 8px;
       border-radius: var(--md-shape-corner-full);
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       color: #fff;
       display: flex;
       align-items: center;
@@ -285,14 +286,15 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
       padding: 0 16px;
       z-index: 20;
+      overflow-x: auto;
     }
 
     /* 右側：サイドバー */
     .sidebar {
-      width: 340px;
+      width: 330px;
       flex-shrink: 0;
       background: var(--md-sys-color-surface);
       border-left: 1px solid var(--md-sys-color-outline-variant);
@@ -300,14 +302,14 @@
       flex-direction: column;
     }
 
-    .tabs { display: flex; border-bottom: 1px solid var(--md-sys-color-outline-variant); }
+    .tabs { display: flex; border-bottom: 1px solid var(--md-sys-color-outline-variant); flex-shrink: 0; }
     .tab-btn {
       flex: 1;
       padding: 12px;
       background: transparent;
       border: none;
       color: var(--md-sys-color-on-surface-variant);
-      font-size: 0.85rem;
+      font-size: 0.84rem;
       font-weight: 600;
       cursor: pointer;
       border-bottom: 3px solid transparent;
@@ -326,7 +328,7 @@
     }
     .tab-panel.active { display: flex; }
 
-    /* チャットメッセージ */
+    /* チャット */
     .messages-container {
       flex: 1;
       min-height: 0;
@@ -349,6 +351,7 @@
     .msg-sender { font-size: 0.7rem; color: var(--md-sys-color-primary); margin-bottom: 2px; }
 
     .chat-input-box {
+      flex-shrink: 0;
       padding: 10px;
       border-top: 1px solid var(--md-sys-color-outline-variant);
       display: flex;
@@ -382,10 +385,11 @@
       text-align: center;
       color: var(--md-sys-color-outline);
       cursor: pointer;
+      font-size: 0.85rem;
     }
     .file-drop-area:hover { border-color: var(--md-sys-color-primary); }
 
-    /* モーダル (YouTube検索 & 設定) */
+    /* モーダル (YouTube検索) */
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -397,14 +401,14 @@
       align-items: center;
     }
     .modal-card {
-      width: 90%;
-      max-width: 580px;
+      width: 92%;
+      max-width: 560px;
       background: var(--md-sys-color-surface-container-high);
       border-radius: var(--md-shape-corner-large);
-      padding: 24px;
+      padding: 22px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
       max-height: 80vh;
     }
     .search-results {
@@ -422,13 +426,13 @@
       background: var(--md-sys-color-surface-container);
     }
     .search-item:hover { background: var(--md-sys-color-secondary-container); }
-    .search-item img { width: 110px; height: 62px; object-fit: cover; border-radius: 4px; }
+    .search-item img { width: 100px; height: 58px; object-fit: cover; border-radius: 4px; }
 
-    /* トースト通知 */
+    /* トースト */
     .toast-container {
       position: fixed;
-      bottom: 80px;
-      left: 20px;
+      bottom: 76px;
+      left: 16px;
       z-index: 99;
       display: flex;
       flex-direction: column;
@@ -439,15 +443,13 @@
       color: var(--md-sys-color-on-surface);
       padding: 10px 16px;
       border-radius: var(--md-shape-corner-small);
-      font-size: 0.85rem;
+      font-size: 0.84rem;
       box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-      animation: fadeIn 0.2s;
     }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
     @media (max-width: 768px) {
       .main-container { flex-direction: column; }
-      .sidebar { width: 100%; height: 240px; border-left: none; border-top: 1px solid var(--md-sys-color-outline-variant); }
+      .sidebar { width: 100%; height: 250px; border-left: none; border-top: 1px solid var(--md-sys-color-outline-variant); }
       .camera-strip { height: 100px; }
     }
   </style>
@@ -464,7 +466,7 @@
       </div>
     </div>
 
-    <!-- ルーム・ユーザー操作部 -->
+    <!-- ルーム・ユーザー名入力 -->
     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
       <div class="md-field">
         <span>部屋</span>
@@ -481,18 +483,18 @@
     </div>
   </header>
 
-  <!-- メインエリア -->
+  <!-- メイン画面 -->
   <div class="main-container">
     <!-- ステージ & カメラエリア -->
     <div class="stage-section">
       <!-- 上部：大画面ステージ -->
       <div class="main-stage">
-        <!-- タップしてミュート解除バナー (ブラウザ自動再生対策) -->
+        <!-- 自動再生ブロック解除バナー -->
         <div id="unmuteBanner" class="unmute-banner" onclick="forceUnmuteYouTube()">
           🔊 タップして音声を再生
         </div>
 
-        <div class="aspect-screen" id="aspectScreen">
+        <div class="aspect-screen">
           <video id="stageVideo" autoplay playsinline></video>
           <div id="ytContainer">
             <div id="player"></div>
@@ -500,7 +502,7 @@
         </div>
       </div>
 
-      <!-- 下部：参加者カメラタイルが並ぶバー -->
+      <!-- 下部：カメラタイルバー -->
       <div class="camera-strip" id="cameraStrip">
         <!-- 自分のカメラ -->
         <div class="camera-tile local focused" id="tile-local" onclick="focusVideo('local')">
@@ -512,13 +514,13 @@
         </div>
       </div>
 
-      <!-- コントロールバー -->
+      <!-- 下部コントロールバー -->
       <div class="controls-bar">
         <button id="micBtn" class="btn btn-tonal" onclick="toggleMic()">🎤 マイクON</button>
         <button id="camBtn" class="btn btn-tonal" onclick="toggleCam()">📷 カメラON</button>
         <button id="shareScreenBtn" class="btn btn-tonal" onclick="toggleScreenShare()">🖥 画面共有</button>
         <button id="ytModalBtn" class="btn btn-tonal" onclick="openYouTubeModal()">▶ YouTube検索</button>
-        <button id="ttsToggleBtn" class="btn btn-tonal" onclick="cycleTtsMode()">🗣 読み上げ: ずんだもん</button>
+        <button id="ttsToggleBtn" class="btn btn-tonal" onclick="cycleTtsMode()">🗣 読み上げ: ずんだもん(本物)</button>
         <button id="fullscreenBtn" class="btn btn-tonal" onclick="toggleFullScreen()">⛶ 全画面</button>
       </div>
     </div>
@@ -534,7 +536,7 @@
       <!-- チャットタブ -->
       <div id="tabChat" class="tab-panel active">
         <div class="messages-container" id="messagesContainer">
-          <div class="msg system">ルーム名と名前を入力して参加してください</div>
+          <div class="msg system">ルーム名と名前を入力して「参加」してください</div>
         </div>
         <div class="chat-input-box">
           <input type="text" id="chatInput" class="md-field" style="flex:1;" placeholder="メッセージ..." onkeydown="if(event.key==='Enter') sendChatMessage()">
@@ -562,11 +564,11 @@
   <div class="modal-overlay" id="ytModal">
     <div class="modal-card">
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3 style="font-size:1.1rem; color:var(--md-sys-color-primary);">YouTube 動画検索・再生</h3>
+        <h3 style="font-size:1.05rem; color:var(--md-sys-color-primary);">YouTube 動画検索・URL指定</h3>
         <button class="btn btn-tonal" style="padding:4px 10px;" onclick="closeYouTubeModal()">✕</button>
       </div>
       <div style="display:flex; gap:8px;">
-        <input type="text" id="ytSearchInput" class="md-field" style="flex:1;" placeholder="検索キーワード または YouTubeのURL" onkeydown="if(event.key==='Enter') searchYouTube()">
+        <input type="text" id="ytSearchInput" class="md-field" style="flex:1;" placeholder="キーワード または YouTubeのURL" onkeydown="if(event.key==='Enter') searchYouTube()">
         <button class="btn btn-primary" onclick="searchYouTube()">検索</button>
       </div>
       <div class="search-results" id="ytSearchResults">
@@ -577,12 +579,15 @@
     </div>
   </div>
 
+  <!-- トースト通知 -->
   <div class="toast-container" id="toastContainer"></div>
 
   <script>
-    // --- グローバル状態 ---
+    // ==========================================================================
+    // グローバル状態管理
+    // ==========================================================================
     let myPeerId = null;
-    let myUserName = '名無し';
+    let myUserName = 'ゲスト';
     let currentRoomName = '';
     let isHost = false;
     let peer = null;
@@ -596,9 +601,6 @@
     let isCamOn = true;
     let isScreenSharing = false;
 
-    // TTS設定 ('zundamon', 'standard', 'off')
-    let ttsMode = 'zundamon';
-
     // YouTube同時視聴
     let ytPlayer = null;
     let isYtReady = false;
@@ -608,26 +610,34 @@
     // 発話検知 AudioContext
     let audioContext = null;
 
-    // --- 起動初期化 ---
+    // --- チャット読み上げ (本物ずんだもんAPI + 再生キュー) ---
+    let ttsMode = 'zundamon'; // 'zundamon', 'standard', 'off'
+    const ttsQueue = [];
+    let isSpeaking = false;
+
+    // ==========================================================================
+    // 起動初期化
+    // ==========================================================================
     window.addEventListener('DOMContentLoaded', async () => {
       await setupMedia();
+
+      // URLパラメータのルーム名を自動入力
       const params = new URLSearchParams(window.location.search);
       if (params.get('room')) document.getElementById('roomNameInput').value = params.get('room');
 
-      // ユーザー名の初期ランダム設定
+      // ランダムユーザー名初期化
       document.getElementById('userNameInput').value = 'ゲスト' + Math.floor(Math.random() * 900 + 100);
 
-      // ネットワーク切断自動復帰リスナー
+      // ネットワーク切断自動復帰
       window.addEventListener('online', handleNetworkReconnected);
       window.addEventListener('offline', () => showToast('ネットワークが切断されました', 'error'));
     });
 
-    // 1. ローカルメディア（カメラ・マイク）初期化
     async function setupMedia() {
       try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       } catch (err) {
-        console.warn('カメラ・マイクの同時取得に失敗。音声のみ試行:', err);
+        console.warn('カメラ・マイク取得エラー。音声のみ試行:', err);
         try {
           localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
         } catch (e) {
@@ -642,7 +652,9 @@
       setupSpeakingDetector('local', localStream);
     }
 
-    // --- セキュリティ＆ルームハッシュ生成 ---
+    // ==========================================================================
+    // ルームIDハッシュ生成 ＆ フルメッシュ接続
+    // ==========================================================================
     async function getRoomHostId(roomName) {
       const enc = new TextEncoder();
       const data = enc.encode(`p2p_mesh_room_v2:${roomName.trim()}`);
@@ -652,7 +664,6 @@
       return `room-${key}-host`;
     }
 
-    // --- フルメッシュ参加ロジック ---
     async function joinMeshRoom() {
       const room = document.getElementById('roomNameInput').value.trim();
       const name = document.getElementById('userNameInput').value.trim();
@@ -667,7 +678,6 @@
       const hostId = await getRoomHostId(room);
       showToast(`ルーム [${room}] に接続中...`);
 
-      // まずホストとしてPeer作成を試みる
       tryAsHost(hostId);
     }
 
@@ -687,7 +697,6 @@
 
       peer.on('error', (err) => {
         if (err.type === 'unavailable-id') {
-          // すでにホストが存在するのでゲストとして入室
           joinAsGuest(hostId);
         } else {
           showToast(`エラー: ${err.type}`, 'error');
@@ -698,7 +707,7 @@
 
     function joinAsGuest(hostId) {
       if (peer) peer.destroy();
-      peer = new Peer(); // ゲストはランダムID
+      peer = new Peer();
 
       peer.on('open', (id) => {
         isHost = false;
@@ -706,7 +715,6 @@
         setupPeerCommon();
         setUIState('waiting', `部屋: ${currentRoomName} (接続中...)`);
 
-        // ホストへ接続
         connectToSinglePeer(hostId, true);
         speakText(`${myUserName}さんが入室しました`);
       });
@@ -718,26 +726,22 @@
     }
 
     function setupPeerCommon() {
-      // ネットワーク切断時の自動再接続
       peer.on('disconnected', () => {
         showToast('シグナリングが切断されました。再接続しています...', 'error');
         peer.reconnect();
       });
 
-      // 通話着信 (他のピアから)
       peer.on('call', (call) => {
         call.answer(localStream);
         setupCallEvents(call);
       });
 
-      // データチャネル着信
       peer.on('connection', (conn) => {
         setupConnEvents(conn);
       });
     }
 
-    // 単一ピアへの接続
-    function connectToSinglePeer(targetPeerId, isConnectingToHost = false) {
+    function connectToSinglePeer(targetPeerId) {
       if (peers[targetPeerId] && peers[targetPeerId].conn) return;
 
       const conn = peer.connect(targetPeerId, { reliable: true });
@@ -759,9 +763,7 @@
         setUIState('connected', `通話中: ${currentRoomName}`);
       });
 
-      call.on('close', () => {
-        removePeer(pId);
-      });
+      call.on('close', () => removePeer(pId));
     }
 
     function setupConnEvents(conn) {
@@ -770,7 +772,6 @@
       peers[pId].conn = conn;
 
       conn.on('open', () => {
-        // 自分の名前・状態を自己紹介
         conn.send({
           type: 'intro',
           userName: myUserName,
@@ -778,7 +779,7 @@
           isCamOff: !isCamOn
         });
 
-        // もしホストなら、新参加者に「既存の全員のPeerIDリスト」を共有し、YouTubeの現在状態も教える
+        // ホストの場合：新参加者に現在の全員のリストとYouTubeの状態を共有
         if (isHost) {
           const peerIds = Object.keys(peers).filter(id => id !== pId);
           conn.send({ type: 'mesh-members', members: peerIds });
@@ -795,11 +796,9 @@
       });
 
       conn.on('data', (data) => handlePeerData(pId, data));
-
       conn.on('close', () => removePeer(pId));
     }
 
-    // --- メッシュデータ受信ルーティング ---
     function handlePeerData(fromPeerId, data) {
       switch (data.type) {
         case 'intro':
@@ -811,7 +810,6 @@
           break;
 
         case 'mesh-members':
-          // ホストから教えてもらった既存の全ピアに自分から接続してメッシュを完成させる
           data.members.forEach(otherId => {
             if (otherId !== myPeerId) connectToSinglePeer(otherId);
           });
@@ -843,7 +841,6 @@
           break;
 
         case 'yt-state':
-          // 途中参加時
           openYouTubeScreen(data.videoId);
           setTimeout(() => {
             if (ytPlayer && ytPlayer.seekTo) {
@@ -885,7 +882,9 @@
       });
     }
 
-    // --- カメラタイル ＆ 大画面フォーカス管理 ---
+    // ==========================================================================
+    // カメラタイル ＆ 大画面フォーカス
+    // ==========================================================================
     function addCameraTile(id, stream, name) {
       if (document.getElementById(`tile-${id}`)) return;
       const strip = document.getElementById('cameraStrip');
@@ -905,7 +904,6 @@
       strip.appendChild(tile);
       document.getElementById(`vid-${id}`).srcObject = stream;
 
-      // 最初のリモートユーザーをメインステージにフォーカス
       if (strip.children.length === 2) focusVideo(id);
       updateUserListUI();
     }
@@ -947,7 +945,9 @@
       }
     }
 
-    // --- 発話検知（喋っている人の枠が緑色に光る） ---
+    // ==========================================================================
+    // 発話検知 (Voice Activity Detection)
+    // ==========================================================================
     function setupSpeakingDetector(id, stream) {
       try {
         if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -976,7 +976,9 @@
       } catch (e) { console.warn('発話検知初期化失敗:', e); }
     }
 
-    // --- YouTube 同時視聴 ＆ 自動再生ブロック対策 ---
+    // ==========================================================================
+    // YouTube 同時視聴 ＆ 自動再生ブロック対策
+    // ==========================================================================
     function onYouTubeIframeAPIReady() {
       ytPlayer = new YT.Player('player', {
         height: '100%',
@@ -1023,9 +1025,9 @@
 
       if (data.action === 'play') {
         const playPromise = ytPlayer.playVideo();
-        // 自動再生ポリシーに引っかかって再生できない時のリカバリー
         if (playPromise && playPromise.catch) {
           playPromise.catch(() => {
+            // 自動再生がブロックされた場合はミュートにして再生し、解除バナーを表示
             ytPlayer.mute();
             ytPlayer.playVideo();
             document.getElementById('unmuteBanner').style.display = 'block';
@@ -1045,13 +1047,11 @@
       document.getElementById('unmuteBanner').style.display = 'none';
     }
 
-    // --- YouTube 検索モーダル ---
-    function openYouTubeModal() {
-      document.getElementById('ytModal').style.display = 'flex';
-    }
-    function closeYouTubeModal() {
-      document.getElementById('ytModal').style.display = 'none';
-    }
+    // ==========================================================================
+    // YouTube 検索モーダル
+    // ==========================================================================
+    function openYouTubeModal() { document.getElementById('ytModal').style.display = 'flex'; }
+    function closeYouTubeModal() { document.getElementById('ytModal').style.display = 'none'; }
 
     function parseYouTubeId(input) {
       const match = input.match(/(youtu\.be\/|youtube\.com\/(watch\?(.*&)?v=|(embed|v)\/))([^?&"'>]+)/);
@@ -1064,7 +1064,7 @@
 
       const directId = parseYouTubeId(q);
       if (directId.length === 11) {
-        selectAndBroadcastVideo(directId, '指定された動画');
+        selectAndBroadcastVideo(directId, '指定動画');
         closeYouTubeModal();
         return;
       }
@@ -1073,7 +1073,6 @@
       resultsBox.innerHTML = '<div style="text-align:center; padding:20px;">検索中...</div>';
 
       try {
-        // 公開Invidious APIインスタンスを利用したCORS対応検索
         const res = await fetch(`https://inv.nadeko.net/api/v1/search?q=${encodeURIComponent(q)}&type=video`);
         const items = await res.json();
 
@@ -1097,7 +1096,7 @@
       } catch (err) {
         resultsBox.innerHTML = `
           <div style="text-align:center; padding:10px; color:var(--md-sys-color-error);">
-            検索APIが一時的に混雑しています。上部に直接動画URLを貼り付けて「検索」を押してください。
+            検索APIが混雑しています。上部に直接動画URLを貼り付けて「検索」を押してください。
           </div>
         `;
       }
@@ -1110,97 +1109,90 @@
       speakText(`ユーチューブが読み込まれました`);
     }
 
-// --- チャット読み上げ (本物ずんだもんAPI + 再生キュー) ---
-let ttsMode = 'zundamon'; // 'zundamon' (本物API), 'standard' (ブラウザ標準), 'off'
-const ttsQueue = [];
-let isSpeaking = false;
-
-// 読み上げモード切り替え
-function cycleTtsMode() {
-  const btn = document.getElementById('ttsToggleBtn');
-  if (ttsMode === 'zundamon') {
-    ttsMode = 'standard';
-    btn.textContent = '🗣 読み上げ: 標準';
-  } else if (ttsMode === 'standard') {
-    ttsMode = 'off';
-    btn.textContent = '🔇 読み上げ: OFF';
-  } else {
-    ttsMode = 'zundamon';
-    btn.textContent = '🗣 読み上げ: ずんだもん(本物)';
-  }
-  showToast(`読み上げモード: ${ttsMode}`);
-}
-
-// 読み上げキューに追加
-function speakText(text) {
-  if (ttsMode === 'off') return;
-  // 長すぎる文章はAPI制限防止のため60文字にカット
-  const cleanText = text.slice(0, 60);
-  ttsQueue.push(cleanText);
-  processTtsQueue();
-}
-
-// キューを順次再生（重複・音被り防止）
-async function processTtsQueue() {
-  if (isSpeaking || ttsQueue.length === 0) return;
-  isSpeaking = true;
-  const text = ttsQueue.shift();
-
-  if (ttsMode === 'zundamon') {
-    try {
-      // 本物のVOICEVOXずんだもんAPI (speaker: 3 = ノーマル)
-      const res = await fetch(`https://api.tts.quest/v3/voicevox/synthesis?speaker=3&text=${encodeURIComponent(text)}`);
-      const data = await res.json();
-
-      if (data.success && data.mp3StreamingUrl) {
-        const audio = new Audio(data.mp3StreamingUrl);
-        await new Promise((resolve) => {
-          audio.onended = resolve;
-          audio.onerror = () => {
-            // 音声ロード失敗時はブラウザTTSで喋らせて次へ
-            speakBrowserTTS(text, true);
-            resolve();
-          };
-          audio.play().catch(resolve);
-        });
+    // ==========================================================================
+    // チャット読み上げ (本物のずんだもんAPI + 再生キュー + 自動フォールバック)
+    // ==========================================================================
+    function cycleTtsMode() {
+      const btn = document.getElementById('ttsToggleBtn');
+      if (ttsMode === 'zundamon') {
+        ttsMode = 'standard';
+        btn.textContent = '🗣 読み上げ: 標準';
+      } else if (ttsMode === 'standard') {
+        ttsMode = 'off';
+        btn.textContent = '🔇 読み上げ: OFF';
       } else {
-        throw new Error(data.errorMessage || 'API制限');
+        ttsMode = 'zundamon';
+        btn.textContent = '🗣 読み上げ: ずんだもん(本物)';
       }
-    } catch (err) {
-      console.warn('ずんだもんAPIが混雑中のため、ブラウザ音声にフォールバックします:', err);
-      await speakBrowserTTS(text, true);
+      showToast(`読み上げモード: ${ttsMode}`);
     }
-  } else {
-    // 標準ブラウザTTS
-    await speakBrowserTTS(text, false);
-  }
 
-  isSpeaking = false;
-  processTtsQueue(); // 次の音声を処理
-}
+    function speakText(text) {
+      if (ttsMode === 'off') return;
+      // 長すぎる文章はカットしてキューへ
+      ttsQueue.push(text.slice(0, 60));
+      processTtsQueue();
+    }
 
-// ブラウザ標準Web Speech APIでの発声
-function speakBrowserTTS(text, isZundaPitch) {
-  return new Promise((resolve) => {
-    if (!window.speechSynthesis) return resolve();
-    window.speechSynthesis.cancel();
+    async function processTtsQueue() {
+      if (isSpeaking || ttsQueue.length === 0) return;
+      isSpeaking = true;
+      const text = ttsQueue.shift();
 
-    const uttr = new SpeechSynthesisUtterance(text);
-    uttr.lang = 'ja-JP';
-    uttr.pitch = isZundaPitch ? 1.75 : 1.0;
-    uttr.rate = isZundaPitch ? 1.25 : 1.0;
+      if (ttsMode === 'zundamon') {
+        try {
+          // TTS Quest V3 VOICEVOX API (ずんだもん ノーマル: speaker=3)
+          const res = await fetch(`https://api.tts.quest/v3/voicevox/synthesis?speaker=3&text=${encodeURIComponent(text)}`);
+          const data = await res.json();
 
-    const voices = window.speechSynthesis.getVoices();
-    const jaVoice = voices.find(v => v.lang.includes('ja') || v.lang.includes('JP'));
-    if (jaVoice) uttr.voice = jaVoice;
+          if (data.success && data.mp3StreamingUrl) {
+            const audio = new Audio(data.mp3StreamingUrl);
+            await new Promise((resolve) => {
+              audio.onended = resolve;
+              audio.onerror = () => {
+                speakBrowserTTS(text, true);
+                resolve();
+              };
+              audio.play().catch(resolve);
+            });
+          } else {
+            throw new Error(data.errorMessage || 'API制限');
+          }
+        } catch (err) {
+          console.warn('ずんだもんAPIエラー、ブラウザTTSへフォールバック:', err);
+          await speakBrowserTTS(text, true);
+        }
+      } else {
+        await speakBrowserTTS(text, false);
+      }
 
-    uttr.onend = resolve;
-    uttr.onerror = resolve;
-    window.speechSynthesis.speak(uttr);
-  });
-}
+      isSpeaking = false;
+      processTtsQueue();
+    }
 
-    // --- メディアコントロール (ミュート・画面共有) ---
+    function speakBrowserTTS(text, isZundaPitch) {
+      return new Promise((resolve) => {
+        if (!window.speechSynthesis) return resolve();
+        window.speechSynthesis.cancel();
+
+        const uttr = new SpeechSynthesisUtterance(text);
+        uttr.lang = 'ja-JP';
+        uttr.pitch = isZundaPitch ? 1.75 : 1.0;
+        uttr.rate = isZundaPitch ? 1.25 : 1.0;
+
+        const voices = window.speechSynthesis.getVoices();
+        const jaVoice = voices.find(v => v.lang.includes('ja') || v.lang.includes('JP'));
+        if (jaVoice) uttr.voice = jaVoice;
+
+        uttr.onend = resolve;
+        uttr.onerror = resolve;
+        window.speechSynthesis.speak(uttr);
+      });
+    }
+
+    // ==========================================================================
+    // メディアコントロール (マイク・カメラ・画面共有)
+    // ==========================================================================
     function toggleMic() {
       if (!localStream) return;
       isMicOn = !isMicOn;
@@ -1230,7 +1222,7 @@ function speakBrowserTTS(text, isZundaPitch) {
     async function toggleScreenShare() {
       // Android / iPad などの非対応ブラウザ判定
       if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-        showToast('お使いの端末（スマホ/タブレット等）はブラウザの仕様により画面共有に非対応です', 'error');
+        showToast('お使いの端末（スマホ/タブレット等）は画面共有に非対応です', 'error');
         return;
       }
 
@@ -1239,7 +1231,6 @@ function speakBrowserTTS(text, isZundaPitch) {
           screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
           const screenTrack = screenStream.getVideoTracks()[0];
 
-          // 全ピアの映像トラックを画面共有に差し替え
           Object.values(peers).forEach(p => {
             if (p.call && p.call.peerConnection) {
               const sender = p.call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
@@ -1277,7 +1268,9 @@ function speakBrowserTTS(text, isZundaPitch) {
       document.getElementById('shareScreenBtn').classList.remove('btn-active');
     }
 
-    // --- チャット ---
+    // ==========================================================================
+    // チャット
+    // ==========================================================================
     function sendChatMessage() {
       const input = document.getElementById('chatInput');
       const text = input.value.trim();
@@ -1300,7 +1293,9 @@ function speakBrowserTTS(text, isZundaPitch) {
       box.scrollTop = box.scrollHeight;
     }
 
-    // --- ファイル共有 (16KB Chunk分割P2P) ---
+    // ==========================================================================
+    // ファイル共有 (16KB Chunk分割P2P)
+    // ==========================================================================
     const receivedFiles = {};
     function handleFileSelect(e) {
       const f = e.target.files[0];
@@ -1365,12 +1360,13 @@ function speakBrowserTTS(text, isZundaPitch) {
       switchSidebarTab('file');
     }
 
-    // --- 参加者一覧UI更新 ---
+    // ==========================================================================
+    // 参加者一覧UI ＆ ユーティリティ
+    // ==========================================================================
     function updateUserListUI() {
       const container = document.getElementById('userListContainer');
       container.innerHTML = '';
 
-      // 自分
       container.innerHTML += `
         <div class="user-item">
           <span>${myUserName} (自分) ${isHost ? '👑' : ''}</span>
@@ -1378,7 +1374,6 @@ function speakBrowserTTS(text, isZundaPitch) {
         </div>
       `;
 
-      // 他のピア
       Object.keys(peers).forEach(id => {
         const p = peers[id];
         container.innerHTML += `
@@ -1392,13 +1387,11 @@ function speakBrowserTTS(text, isZundaPitch) {
       document.getElementById('userCount').textContent = Object.keys(peers).length + 1;
     }
 
-    // --- ネットワーク再接続ハンドラ ---
     function handleNetworkReconnected() {
-      showToast('ネットワークが復旧しました。接続を再同期中...', 'success');
+      showToast('ネットワークが復旧しました。再接続を試みています...', 'success');
       if (peer && peer.disconnected) peer.reconnect();
     }
 
-    // --- UI切り替え ＆ ユーティリティ ---
     function setUIState(state, text) {
       document.getElementById('statusDot').className = 'status-dot ' + state;
       document.getElementById('roomStatusText').textContent = text;
