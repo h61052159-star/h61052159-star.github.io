@@ -615,6 +615,7 @@
         </button>
         <button id="shareScreenBtn" class="btn btn-tonal" onclick="toggleScreenShare()" title="画面共有">
           <span class="material-symbols-outlined">screen_share</span>
+          <span class="btn-text-mobile">共有</span>
         </button>
         <button id="ttsToggleBtn" class="btn btn-tonal" onclick="cycleTtsMode()" title="ずんだもん読み上げ">
           <span class="material-symbols-outlined">record_voice_over</span>
@@ -672,7 +673,7 @@
     </div>
   </div>
 
-  <!-- YouTube検索 モーダル (公式API利用) -->
+  <!-- YouTube検索 モーダル -->
   <div class="modal-overlay" id="ytModal">
     <div class="modal-card">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -699,10 +700,45 @@
     </div>
   </div>
 
+  <!-- スマホ用 画面共有代替メニュー モーダル -->
+  <div class="modal-overlay" id="mobileShareModal">
+    <div class="modal-card" style="max-width:380px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="font-size:1rem; color:var(--md-primary); display:flex; align-items:center; gap:6px;">
+          <span class="material-symbols-outlined">screen_share</span>スマホ画面共有メニュー
+        </h3>
+        <button class="btn btn-tonal btn-icon-only" onclick="closeMobileShareModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <p style="font-size:0.78rem; color:var(--md-outline); line-height:1.4;">
+        ブラウザの制限で直接の画面共有ができないため、以下の方法で相手の大画面に配信できます：
+      </p>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <button class="btn btn-primary" style="justify-content:flex-start; padding:12px 16px;" onclick="triggerScreenShotShare()">
+          <span class="material-symbols-outlined">photo_library</span>
+          <div style="text-align:left; margin-left:6px;">
+            <div style="font-size:0.85rem;">スクショ・画像を画面として配信</div>
+            <div style="font-size:0.7rem; opacity:0.8;">スマホで撮ったスクショを動画として相手に表示</div>
+          </div>
+        </button>
+        <button class="btn btn-tonal" style="justify-content:flex-start; padding:12px 16px;" onclick="triggerEnvironmentCameraShare()">
+          <span class="material-symbols-outlined">flip_camera_ios</span>
+          <div style="text-align:left; margin-left:6px;">
+            <div style="font-size:0.85rem;">外カメラで手元・別画面を配信</div>
+            <div style="font-size:0.7rem; opacity:0.8;">背面カメラで書類や画面を大画面に写す</div>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- スクショ擬似画面共有用 隠しファイル入力 -->
+  <input type="file" id="screenShotInput" accept="image/*" style="display:none;" onchange="handleScreenShotSelected(event)">
+
   <div class="toast-container" id="toastContainer"></div>
 
   <script>
-    // YouTube Data API v3 Key (提供キー)
     const YT_API_KEY = "AIzaSyBBZjIxmoP0ep6QgT1a4440dczYwqV278I";
 
     let myPeerId = null;
@@ -720,6 +756,10 @@
     let isCamOn = true;
     let isScreenSharing = false;
 
+    // 擬似画面共有 (Canvas Stream) 用
+    let mockScreenCanvas = null;
+    let mockScreenTimer = null;
+
     // YouTube / ステージ状態管理
     let ytPlayer = null;
     let isYtReady = false;
@@ -729,13 +769,11 @@
 
     let audioContext = null;
 
-    // ずんだもん高速化 (メモリキャッシュ)
     let isTtsOn = true;
     const ttsQueue = [];
     let isSpeaking = false;
     const ttsAudioCache = new Map();
 
-    // 投票キック
     let currentVote = null;
     let voteTimerInterval = null;
 
@@ -777,7 +815,7 @@
 
     async function getRoomHostId(roomName) {
       const enc = new TextEncoder();
-      const data = enc.encode(`p2p_mesh_room_v7:${roomName.trim()}`);
+      const data = enc.encode(`p2p_mesh_room_v8:${roomName.trim()}`);
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const key = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
@@ -831,7 +869,6 @@
         setUIState('waiting', `部屋: ${currentRoomName}`);
         connectToSinglePeer(hostId);
 
-        // ホスト未応答（ゾンビID）時の自動昇格フォールバック
         setTimeout(() => {
           if (Object.keys(peers).length === 0 && !isHost) {
             tryAsHost(hostId);
@@ -993,13 +1030,12 @@
       }
     }
 
-    // --- ホスト自動繰り上げ (リーダー自動選出) ---
     function checkAndElectNewHost(removedPeerId) {
       const wasHost = (peers[removedPeerId] && peers[removedPeerId].isHost) || removedPeerId.endsWith('-host');
       if (!wasHost && !isHost) return;
 
       const remainingPeerIds = [myPeerId, ...Object.keys(peers).filter(id => id !== removedPeerId && !kickedPeers.has(id))];
-      remainingPeerIds.sort(); // 決定論的ソート（全員が同一の参加者を新ホストとして選定）
+      remainingPeerIds.sort();
 
       const newHostId = remainingPeerIds[0];
 
@@ -1028,7 +1064,6 @@
       updateUserListUI();
     }
 
-    // --- 投票キック ---
     function startKickVote(targetId) {
       if (currentVote) return showToast('すでに投票が進行中です', 'error');
       const target = peers[targetId];
@@ -1166,7 +1201,6 @@
       });
     }
 
-    // --- カメラタイル表示 & 画面切り替え ---
     function addCameraTile(id, stream, name) {
       if (document.getElementById(`tile-${id}`)) return;
       const strip = document.getElementById('cameraStrip');
@@ -1220,8 +1254,8 @@
       stageVideo.style.display = 'block';
 
       if (id === 'local') {
-        stageVideo.srcObject = localStream;
-        stageVideo.style.transform = 'scaleX(-1)';
+        stageVideo.srcObject = isScreenSharing && screenStream ? screenStream : localStream;
+        stageVideo.style.transform = isScreenSharing ? 'none' : 'scaleX(-1)';
       } else if (peers[id] && peers[id].stream) {
         stageVideo.srcObject = peers[id].stream;
         stageVideo.style.transform = 'none';
@@ -1350,7 +1384,6 @@
       return match ? match[5] : input;
     }
 
-    // Google公式 YouTube Data API v3 による直接検索
     async function searchYouTube() {
       const q = document.getElementById('ytSearchInput').value.trim();
       if (!q) return;
@@ -1404,8 +1437,8 @@
       } catch (err) {
         resultsBox.innerHTML = `
           <div style="text-align:center; padding:14px;">
-            <p style="color:var(--md-error); font-size:0.82rem; margin-bottom:8px;">検索に失敗しました (${err.message})</p>
-            <p style="font-size:0.75rem; color:var(--md-outline);">YouTube動画のURLを直接貼り付けて検索してください。</p>
+            <p style="color:var(--md-error); font-size:0.82rem; margin-bottom:8px;">検索に失敗しました</p>
+            <p style="font-size:0.75rem; color:var(--md-outline);">動画URLを直接貼り付けて検索してください。</p>
           </div>
         `;
       }
@@ -1493,39 +1526,126 @@
       broadcast({ type: 'status-update', isMuted: !isMicOn, isCamOff: !isCamOn });
     }
 
+    // ==========================================================================
+    // スマホ対応 ハイブリッド画面共有 (ネイティブ + Canvasストリーム + 外カメラ)
+    // ==========================================================================
     async function toggleScreenShare() {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-        return showToast('端末が画面共有に非対応です', 'error');
+      if (isScreenSharing) {
+        stopScreenShare();
+        return;
       }
 
-      if (!isScreenSharing) {
+      // 1. 標準 getDisplayMedia を試みる (PC / 対応Android)
+      if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
         try {
           screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+          applyCustomVideoStream(screenStream);
           const screenTrack = screenStream.getVideoTracks()[0];
-
-          Object.values(peers).forEach(p => {
-            if (p.call && p.call.peerConnection) {
-              const sender = p.call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-              if (sender) sender.replaceTrack(screenTrack);
-            }
-          });
-
-          document.getElementById('localVideo').srcObject = screenStream;
-          focusVideo('local');
-
           screenTrack.onended = stopScreenShare;
-          isScreenSharing = true;
-          document.getElementById('shareScreenBtn').classList.add('btn-active');
-        } catch (e) {}
-      } else {
-        stopScreenShare();
+          return;
+        } catch (e) {
+          // ユーザーが手動キャンセルした場合はメニューを出さない
+          if (e.name === 'NotAllowedError') return;
+        }
+      }
+
+      // 2. 非対応端末（iPhone等）の場合はスマホ画面共有メニューを表示
+      openMobileShareModal();
+    }
+
+    function openMobileShareModal() {
+      document.getElementById('mobileShareModal').style.display = 'flex';
+    }
+    function closeMobileShareModal() {
+      document.getElementById('mobileShareModal').style.display = 'none';
+    }
+
+    // A: スクショ・画像を動画ストリームに変換して配信 (擬似画面共有)
+    function triggerScreenShotShare() {
+      closeMobileShareModal();
+      document.getElementById('screenShotInput').click();
+    }
+
+    function handleScreenShotSelected(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const img = new Image();
+      const reader = new FileReader();
+
+      reader.onload = (event) => {
+        img.onload = () => {
+          if (!mockScreenCanvas) {
+            mockScreenCanvas = document.createElement('canvas');
+          }
+          mockScreenCanvas.width = img.width;
+          mockScreenCanvas.height = img.height;
+          const ctx = mockScreenCanvas.getContext('2d');
+
+          function draw() {
+            ctx.drawImage(img, 0, 0);
+          }
+          draw();
+
+          clearInterval(mockScreenTimer);
+          mockScreenTimer = setInterval(draw, 200); // 5fpsでCanvasを継続更新
+
+          // CanvasからVideoトラックを生成
+          screenStream = mockScreenCanvas.captureStream(10);
+          applyCustomVideoStream(screenStream);
+          showToast('画像を画面共有として配信中');
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+      e.target.value = '';
+    }
+
+    // B: 外カメラ (背面カメラ) で手元・別画面を配信
+    async function triggerEnvironmentCameraShare() {
+      closeMobileShareModal();
+      try {
+        screenStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false
+        });
+        applyCustomVideoStream(screenStream);
+        showToast('外カメラで画面を配信中');
+      } catch (err) {
+        showToast('外カメラを起動できませんでした', 'error');
       }
     }
 
-    function stopScreenShare() {
-      if (screenStream) screenStream.getTracks().forEach(t => t.stop());
-      const localVideoTrack = localStream.getVideoTracks()[0];
+    // ストリームのトラック差し替え処理
+    function applyCustomVideoStream(stream) {
+      const videoTrack = stream.getVideoTracks()[0];
 
+      Object.values(peers).forEach(p => {
+        if (p.call && p.call.peerConnection) {
+          const sender = p.call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+          if (sender) sender.replaceTrack(videoTrack);
+        }
+      });
+
+      document.getElementById('localVideo').srcObject = stream;
+      focusVideo('local');
+
+      isScreenSharing = true;
+      document.getElementById('shareScreenBtn').classList.add('btn-active');
+      document.getElementById('shareScreenBtn').innerHTML = `<span class="material-symbols-outlined">stop_screen_share</span><span class="btn-text-mobile">停止</span>`;
+    }
+
+    function stopScreenShare() {
+      if (mockScreenTimer) {
+        clearInterval(mockScreenTimer);
+        mockScreenTimer = null;
+      }
+      if (screenStream) {
+        screenStream.getTracks().forEach(t => t.stop());
+        screenStream = null;
+      }
+
+      const localVideoTrack = localStream.getVideoTracks()[0];
       Object.values(peers).forEach(p => {
         if (p.call && p.call.peerConnection && localVideoTrack) {
           const sender = p.call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
@@ -1536,6 +1656,8 @@
       document.getElementById('localVideo').srcObject = localStream;
       isScreenSharing = false;
       document.getElementById('shareScreenBtn').classList.remove('btn-active');
+      document.getElementById('shareScreenBtn').innerHTML = `<span class="material-symbols-outlined">screen_share</span><span class="btn-text-mobile">共有</span>`;
+      showToast('画面共有を終了しました');
     }
 
     // --- チャット・ファイル ---
