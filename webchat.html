@@ -161,8 +161,21 @@
       min-height: 0;
       display: flex;
       flex-direction: column;
-      background: #0b0a0e;
+      background: #08070b;
       position: relative;
+      overflow: hidden;
+    }
+
+    /* 画面全体の周波数スペクトラム Canvas */
+    #freqVisualizerCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0.85;
     }
 
     .main-stage {
@@ -174,28 +187,7 @@
       align-items: center;
       padding: 8px;
       overflow: hidden;
-    }
-
-    /* 音連動アンビエント・リアクティブ背景 */
-    .ambient-glow {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) scale(1);
-      width: 85%;
-      height: 85%;
-      border-radius: 50%;
-      filter: blur(65px);
-      opacity: 0;
-      pointer-events: none;
-      z-index: 1;
-      transition: opacity 0.4s ease;
-    }
-    .ambient-glow.rainbow {
-      background: conic-gradient(from 0deg, #ff007f, #7f00ff, #007fff, #00ff7f, #ffff00, #ff7f00, #ff007f);
-    }
-    .ambient-glow.material {
-      background: radial-gradient(circle, var(--md-primary) 0%, var(--md-primary-cnt) 40%, var(--md-sec-cnt) 80%, transparent 100%);
+      z-index: 2;
     }
 
     .aspect-screen {
@@ -211,9 +203,9 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.85);
       border: 1px solid var(--md-outline-var);
-      z-index: 2;
+      z-index: 3;
     }
 
     #stageVideo { width: 100%; height: 100%; object-fit: contain; }
@@ -279,7 +271,8 @@
     .camera-strip {
       height: 110px;
       flex-shrink: 0;
-      background: var(--md-surface-cnt);
+      background: rgba(33, 31, 38, 0.85);
+      backdrop-filter: blur(10px);
       border-top: 1px solid var(--md-outline-var);
       padding: 6px 12px;
       display: flex;
@@ -287,7 +280,7 @@
       overflow-x: auto;
       align-items: center;
       -webkit-overflow-scrolling: touch;
-      z-index: 2;
+      z-index: 3;
     }
 
     .camera-tile {
@@ -327,7 +320,8 @@
 
     .volume-toolbar {
       flex-shrink: 0;
-      background: var(--md-surface-cnt);
+      background: rgba(33, 31, 38, 0.9);
+      backdrop-filter: blur(10px);
       border-top: 1px solid var(--md-outline-var);
       padding: 4px 14px;
       display: flex;
@@ -336,7 +330,7 @@
       gap: 16px;
       font-size: 0.75rem;
       color: var(--md-on-surface-var);
-      z-index: 2;
+      z-index: 3;
     }
     .vol-item {
       display: flex;
@@ -389,13 +383,13 @@
       background: transparent;
       border: none;
       color: var(--md-on-surface-var);
-      font-size: 0.78rem;
+      font-size: 0.76rem;
       font-weight: 600;
       cursor: pointer;
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 4px;
+      gap: 3px;
       border-bottom: 3px solid transparent;
     }
     .tab-btn.active {
@@ -618,7 +612,10 @@
   </header>
 
   <div class="main-container">
-    <div class="stage-section">
+    <div class="stage-section" id="stageSection">
+      <!-- 画面全体の周波数アナライザー Canvas -->
+      <canvas id="freqVisualizerCanvas"></canvas>
+
       <div id="voteKickBanner" class="vote-kick-banner">
         <div style="font-size:0.85rem; font-weight:bold; display:flex; align-items:center; justify-content:center; gap:4px;">
           <span class="material-symbols-outlined" style="color:var(--md-error);">how_to_vote</span>
@@ -636,9 +633,6 @@
       </div>
 
       <div class="main-stage">
-        <!-- 音量連動アンビエント照明 -->
-        <div id="ambientGlow" class="ambient-glow rainbow"></div>
-
         <div id="unmuteBanner" class="unmute-banner" onclick="forceUnmuteYouTube()">
           <span class="material-symbols-outlined">volume_up</span> タップで音声再生
         </div>
@@ -729,7 +723,7 @@
           <span class="material-symbols-outlined">folder</span>ファイル
         </button>
         <button id="tabOptBtn" class="tab-btn" onclick="switchSidebarTab('opt')">
-          <span class="material-symbols-outlined">settings</span>設定
+          <span class="material-symbols-outlined">equalizer</span>演出
         </button>
       </div>
 
@@ -760,15 +754,15 @@
 
       <div id="tabOpt" class="tab-panel" style="padding:14px; gap:12px; overflow-y:auto;">
         <div style="font-size:0.85rem; color:var(--md-primary); font-weight:bold; display:flex; align-items:center; gap:6px;">
-          <span class="material-symbols-outlined">palette</span>演出・エフェクト設定
+          <span class="material-symbols-outlined">equalizer</span>周波数アナライザー設定
         </div>
         <div style="background:var(--md-surface-cnt); padding:10px; border-radius:var(--r-sm); display:flex; flex-direction:column; gap:8px;">
-          <div style="font-size:0.8rem; font-weight:bold;">動画連動アンビエント照明</div>
-          <div style="font-size:0.72rem; color:var(--md-outline);">YouTubeの音量・リズムに合わせて背景が呼吸するように発光します。</div>
+          <div style="font-size:0.8rem; font-weight:bold;">画面全体の周波数スペクトラム</div>
+          <div style="font-size:0.72rem; color:var(--md-outline);">低音から高音までの出力を画面全体でリアルタイム表示します。</div>
           <div style="display:flex; gap:6px; margin-top:4px;">
-            <button id="ambRainbowBtn" class="btn btn-primary btn-xs" onclick="setAmbientMode('rainbow')">🌈 レインボー</button>
-            <button id="ambMaterialBtn" class="btn btn-tonal btn-xs" onclick="setAmbientMode('material')">🔮 マテリアル</button>
-            <button id="ambOffBtn" class="btn btn-tonal btn-xs" onclick="setAmbientMode('off')">OFF</button>
+            <button id="visRainbowBtn" class="btn btn-primary btn-xs" onclick="setVisualizerMode('rainbow')">🌈 レインボー</button>
+            <button id="visNeonBtn" class="btn btn-tonal btn-xs" onclick="setVisualizerMode('neon')">⚡ ネオン</button>
+            <button id="visOffBtn" class="btn btn-tonal btn-xs" onclick="setVisualizerMode('off')">OFF</button>
           </div>
         </div>
       </div>
@@ -864,7 +858,6 @@
     let isCamOn = true;
     let isScreenSharing = false;
 
-    // 離脱・バックグラウンド管理（全員の動画停止バグを防ぐ最重要フラグ）
     let isUnloading = false;
     let isTabHidden = false;
 
@@ -878,10 +871,12 @@
     let currentStageMode = 'camera';
     let currentYtVolume = 40;
 
-    // 音量連動アンビエント照明
-    let ambientMode = 'rainbow'; // 'rainbow', 'material', 'off'
-    let ambientAnimId = null;
-    let ambientAngle = 0;
+    // --- 周波数スペクトラム ビジュアライザー状態 ---
+    let visualizerMode = 'rainbow'; // 'rainbow', 'neon', 'off'
+    let visualizerCanvas, visualizerCtx;
+    let freqAnalyserNode = null;
+    let freqDataArray = null;
+    let peakValues = new Array(64).fill(0);
 
     let audioContext = null;
     let currentCallGain = 1.2;
@@ -896,12 +891,12 @@
     let isReconnecting = false;
 
     window.addEventListener('DOMContentLoaded', async () => {
+      initVisualizerCanvas();
       await setupMedia();
       const params = new URLSearchParams(window.location.search);
       if (params.get('room')) document.getElementById('roomNameInput').value = params.get('room');
       document.getElementById('userNameInput').value = 'ゲスト' + Math.floor(Math.random() * 900 + 100);
 
-      // バックグラウンド切り替え監視（誤爆停止を防止）
       document.addEventListener('visibilitychange', () => {
         isTabHidden = (document.visibilityState === 'hidden');
         if (!isTabHidden) {
@@ -919,8 +914,127 @@
         initYouTubePlayer();
       }
 
-      startAmbientAnimation();
+      requestAnimationFrame(renderVisualizer);
     });
+
+    // ==========================================================================
+    // 画面全体の周波数スペクトラム・アナライザー (Canvas描画)
+    // ==========================================================================
+    function initVisualizerCanvas() {
+      visualizerCanvas = document.getElementById('freqVisualizerCanvas');
+      visualizerCtx = visualizerCanvas.getContext('2d');
+      resizeVisualizer();
+      window.addEventListener('resize', resizeVisualizer);
+    }
+
+    function resizeVisualizer() {
+      if (!visualizerCanvas) return;
+      const section = document.getElementById('stageSection');
+      visualizerCanvas.width = section.clientWidth;
+      visualizerCanvas.height = section.clientHeight;
+    }
+
+    function setupVisualizerAudio() {
+      if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      if (!freqAnalyserNode) {
+        freqAnalyserNode = audioContext.createAnalyser();
+        freqAnalyserNode.fftSize = 128; // 64バンド
+        freqAnalyserNode.smoothingTimeConstant = 0.72;
+        freqDataArray = new Uint8Array(freqAnalyserNode.frequencyBinCount);
+      }
+    }
+
+    function setVisualizerMode(mode) {
+      visualizerMode = mode;
+      document.getElementById('visRainbowBtn').className = `btn btn-xs ${mode === 'rainbow' ? 'btn-primary' : 'btn-tonal'}`;
+      document.getElementById('visNeonBtn').className = `btn btn-xs ${mode === 'neon' ? 'btn-primary' : 'btn-tonal'}`;
+      document.getElementById('visOffBtn').className = `btn btn-xs ${mode === 'off' ? 'btn-primary' : 'btn-tonal'}`;
+      if (mode === 'off' && visualizerCtx) {
+        visualizerCtx.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
+      }
+    }
+
+    function renderVisualizer() {
+      if (visualizerMode !== 'off' && visualizerCanvas && visualizerCtx) {
+        const w = visualizerCanvas.width;
+        const h = visualizerCanvas.height;
+        visualizerCtx.clearRect(0, 0, w, h);
+
+        const numBars = 64;
+        const data = new Uint8Array(numBars);
+
+        // 1. 通話音声のリアルタイム周波数取得
+        if (freqAnalyserNode && freqDataArray) {
+          freqAnalyserNode.getByteFrequencyData(freqDataArray);
+          for (let i = 0; i < numBars; i++) data[i] = freqDataArray[i] || 0;
+        }
+
+        // 2. YouTube同時視聴のリズム・周波数連動
+        const isPlaying = ytPlayer && ytPlayer.getPlayerState && ytPlayer.getPlayerState() === YT.PlayerState.PLAYING;
+        if (isPlaying) {
+          const vol = currentYtVolume / 100;
+          const t = performance.now() / 1000;
+          const bass = (Math.sin(t * Math.PI * 4) > 0.3 ? 190 : 35) + Math.sin(t * 12) * 25;
+
+          for (let i = 0; i < numBars; i++) {
+            let sim = 0;
+            if (i < 8) { // 低音帯域（バスドラム・ベース）
+              sim = bass * (1 - i / 8);
+            } else if (i < 30) { // 中音帯域（ボーカル・メロディ）
+              sim = (Math.sin(t * 5 + i * 0.45) * 0.5 + 0.5) * 140;
+            } else { // 高音帯域（ハイハット・シンバル）
+              sim = (Math.sin(t * 16 + i * 0.8) > 0.35 ? 125 : 15) * (Math.random() * 0.35 + 0.85);
+            }
+            data[i] = Math.min(255, data[i] + sim * vol);
+          }
+        }
+
+        const barWidth = w / numBars;
+        const gap = Math.max(1, barWidth * 0.15);
+        const actualBarWidth = barWidth - gap;
+
+        for (let i = 0; i < numBars; i++) {
+          const val = data[i] / 255;
+          const barHeight = val * (h * 0.55); // 画面高さの55%まで跳ねる
+
+          // ピークドット（重力落下）
+          if (barHeight > peakValues[i]) {
+            peakValues[i] = barHeight;
+          } else {
+            peakValues[i] = Math.max(0, peakValues[i] - 3.0);
+          }
+
+          const x = i * barWidth;
+          const y = h - barHeight;
+
+          // カラースタイル
+          if (visualizerMode === 'rainbow') {
+            const hue = (i / numBars) * 310; // 赤〜紫のグラデーション
+            visualizerCtx.fillStyle = `hsla(${hue}, 95%, 62%, 0.82)`;
+          } else {
+            // ネオン・マテリアルグラデーション
+            const grad = visualizerCtx.createLinearGradient(0, h, 0, y);
+            grad.addColorStop(0, 'rgba(127, 0, 255, 0.2)');
+            grad.addColorStop(0.5, 'rgba(208, 188, 255, 0.7)');
+            grad.addColorStop(1, 'rgba(0, 255, 255, 0.95)');
+            visualizerCtx.fillStyle = grad;
+          }
+
+          // 周波数バー描画
+          if (barHeight > 1) {
+            visualizerCtx.fillRect(x, y, actualBarWidth, barHeight);
+          }
+
+          // ピークドット描画
+          if (peakValues[i] > 3) {
+            visualizerCtx.fillStyle = '#ffffff';
+            visualizerCtx.fillRect(x, h - peakValues[i] - 3, actualBarWidth, 2);
+          }
+        }
+      }
+
+      requestAnimationFrame(renderVisualizer);
+    }
 
     function createDummyMediaStream() {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -950,6 +1064,7 @@
     }
 
     async function setupMedia() {
+      setupVisualizerAudio();
       try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       } catch (err) {
@@ -965,11 +1080,19 @@
       }
       document.getElementById('localVideo').srcObject = localStream;
       setupSpeakingDetector('local', localStream);
+
+      // マイク音声を周波数アナライザーに接続
+      if (localStream.getAudioTracks().length > 0 && freqAnalyserNode) {
+        try {
+          const src = audioContext.createMediaStreamSource(localStream);
+          src.connect(freqAnalyserNode);
+        } catch (e) {}
+      }
     }
 
     async function getRoomHostId(roomName) {
       const enc = new TextEncoder();
-      const data = enc.encode(`p2p_mesh_room_v11:${roomName.trim()}`);
+      const data = enc.encode(`p2p_mesh_room_v12:${roomName.trim()}`);
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const key = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
@@ -1083,6 +1206,15 @@
         addCameraTile(pId, remoteStream, peers[pId].userName || '参加者');
         setupSpeakingDetector(pId, remoteStream);
         setupAudioBoost(pId, remoteStream);
+
+        // 通話相手の音声を周波数アナライザーに接続
+        if (remoteStream.getAudioTracks().length > 0 && freqAnalyserNode) {
+          try {
+            const src = audioContext.createMediaStreamSource(remoteStream);
+            src.connect(freqAnalyserNode);
+          } catch (e) {}
+        }
+
         setUIState('connected', `通話中: ${currentRoomName}`);
       });
 
@@ -1490,7 +1622,6 @@
       } catch (e) {}
     }
 
-    // --- 音量調整ロジック ---
     function changeYouTubeVolume(val) {
       currentYtVolume = val;
       document.getElementById('ytVolVal').textContent = `${val}%`;
@@ -1507,56 +1638,6 @@
           p.gainNode.gain.value = currentCallGain;
         }
       });
-    }
-
-    // --- 音連動アンビエント照明 ---
-    function setAmbientMode(mode) {
-      ambientMode = mode;
-      const glow = document.getElementById('ambientGlow');
-      glow.className = `ambient-glow ${mode}`;
-
-      document.getElementById('ambRainbowBtn').className = `btn btn-xs ${mode === 'rainbow' ? 'btn-primary' : 'btn-tonal'}`;
-      document.getElementById('ambMaterialBtn').className = `btn btn-xs ${mode === 'material' ? 'btn-primary' : 'btn-tonal'}`;
-      document.getElementById('ambOffBtn').className = `btn btn-xs ${mode === 'off' ? 'btn-primary' : 'btn-tonal'}`;
-
-      if (mode === 'off') {
-        glow.style.opacity = '0';
-      }
-    }
-
-    function startAmbientAnimation() {
-      function render() {
-        const glow = document.getElementById('ambientGlow');
-        if (ambientMode === 'off' || !isYtLoaded || !ytPlayer || !glow) {
-          if (glow) glow.style.opacity = '0';
-          ambientAnimId = requestAnimationFrame(render);
-          return;
-        }
-
-        const isPlaying = ytPlayer.getPlayerState && ytPlayer.getPlayerState() === YT.PlayerState.PLAYING;
-        if (!isPlaying || currentStageMode !== 'youtube') {
-          glow.style.opacity = '0';
-          ambientAnimId = requestAnimationFrame(render);
-          return;
-        }
-
-        // ビートパルス波形（音量に応じた脈動）
-        const now = performance.now() / 1000;
-        const beat = Math.sin(now * Math.PI * 2.2) * 0.45 + Math.sin(now * Math.PI * 4.4) * 0.25;
-        const intensity = Math.max(0, beat + 0.4);
-
-        const volRatio = currentYtVolume / 100;
-        const scale = 1.0 + (intensity * 0.28 * volRatio);
-        const opacity = (0.2 + intensity * 0.55) * volRatio;
-
-        ambientAngle = (ambientAngle + 0.75) % 360;
-
-        glow.style.opacity = opacity.toFixed(2);
-        glow.style.transform = `translate(-50%, -50%) scale(${scale.toFixed(2)}) rotate(${ambientAngle.toFixed(1)}deg)`;
-
-        ambientAnimId = requestAnimationFrame(render);
-      }
-      render();
     }
 
     // --- YouTube 同時視聴 ---
@@ -1610,7 +1691,6 @@
     }
 
     function onPlayerStateChange(event) {
-      // 最重要: 退室中、タブがバックグラウンド、リモート指示中は一切ブロードキャストしない！
       if (isUnloading || isTabHidden || document.hidden || isRemoteAction || Object.keys(peers).length === 0) return;
       const time = ytPlayer.getCurrentTime();
 
