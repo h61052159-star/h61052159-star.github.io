@@ -166,16 +166,17 @@
       overflow: hidden;
     }
 
-    /* 画面全体の周波数スペクトラム Canvas */
+    /* 画面全体の周波数アナライザー Canvas: 初期設定で動画の上（前面）に半透明加算合成 */
     #freqVisualizerCanvas {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      pointer-events: none;
-      z-index: 1;
-      opacity: 0.85;
+      pointer-events: none; /* 下の動画やボタンのクリック・タップを邪魔しない */
+      z-index: 10;          /* 動画の手前に配置 */
+      mix-blend-mode: screen; /* 黒を透明化し、光るバーだけを綺麗に透過ブレンド */
+      opacity: 0.9;
     }
 
     .main-stage {
@@ -280,7 +281,7 @@
       overflow-x: auto;
       align-items: center;
       -webkit-overflow-scrolling: touch;
-      z-index: 3;
+      z-index: 12;
     }
 
     .camera-tile {
@@ -330,7 +331,7 @@
       gap: 16px;
       font-size: 0.75rem;
       color: var(--md-on-surface-var);
-      z-index: 3;
+      z-index: 12;
     }
     .vol-item {
       display: flex;
@@ -613,7 +614,7 @@
 
   <div class="main-container">
     <div class="stage-section" id="stageSection">
-      <!-- 画面全体の周波数アナライザー Canvas -->
+      <!-- 画面全体の周波数アナライザー Canvas (初期状態で前面オーバーレイ) -->
       <canvas id="freqVisualizerCanvas"></canvas>
 
       <div id="voteKickBanner" class="vote-kick-banner">
@@ -752,17 +753,28 @@
         <div id="fileItemsList" style="padding:10px; display:flex; flex-direction:column; gap:6px;"></div>
       </div>
 
+      <!-- 演出設定タブ (スタイル ＆ 前面/背面レイヤー切り替え) -->
       <div id="tabOpt" class="tab-panel" style="padding:14px; gap:12px; overflow-y:auto;">
         <div style="font-size:0.85rem; color:var(--md-primary); font-weight:bold; display:flex; align-items:center; gap:6px;">
           <span class="material-symbols-outlined">equalizer</span>周波数アナライザー設定
         </div>
-        <div style="background:var(--md-surface-cnt); padding:10px; border-radius:var(--r-sm); display:flex; flex-direction:column; gap:8px;">
-          <div style="font-size:0.8rem; font-weight:bold;">画面全体の周波数スペクトラム</div>
-          <div style="font-size:0.72rem; color:var(--md-outline);">低音から高音までの出力を画面全体でリアルタイム表示します。</div>
-          <div style="display:flex; gap:6px; margin-top:4px;">
-            <button id="visRainbowBtn" class="btn btn-primary btn-xs" onclick="setVisualizerMode('rainbow')">🌈 レインボー</button>
-            <button id="visNeonBtn" class="btn btn-tonal btn-xs" onclick="setVisualizerMode('neon')">⚡ ネオン</button>
-            <button id="visOffBtn" class="btn btn-tonal btn-xs" onclick="setVisualizerMode('off')">OFF</button>
+        <div style="background:var(--md-surface-cnt); padding:10px; border-radius:var(--r-sm); display:flex; flex-direction:column; gap:10px;">
+          <div>
+            <div style="font-size:0.8rem; font-weight:bold;">カラースタイル</div>
+            <div style="display:flex; gap:6px; margin-top:6px;">
+              <button id="visRainbowBtn" class="btn btn-primary btn-xs" onclick="setVisualizerMode('rainbow')">🌈 レインボー</button>
+              <button id="visNeonBtn" class="btn btn-tonal btn-xs" onclick="setVisualizerMode('neon')">⚡ ネオン</button>
+              <button id="visOffBtn" class="btn btn-tonal btn-xs" onclick="setVisualizerMode('off')">OFF</button>
+            </div>
+          </div>
+
+          <div style="border-top:1px solid var(--md-outline-var); padding-top:8px;">
+            <div style="font-size:0.8rem; font-weight:bold;">表示レイヤー</div>
+            <div style="font-size:0.72rem; color:var(--md-outline); margin-bottom:6px;">動画の上に透かして重ねるか、背後に隠すかを選択できます。</div>
+            <div style="display:flex; gap:6px;">
+              <button id="visLayerFrontBtn" class="btn btn-primary btn-xs" onclick="setVisualizerLayer('front')">前面 (動画の上)</button>
+              <button id="visLayerBackBtn" class="btn btn-tonal btn-xs" onclick="setVisualizerLayer('back')">背面 (背景)</button>
+            </div>
           </div>
         </div>
       </div>
@@ -871,8 +883,9 @@
     let currentStageMode = 'camera';
     let currentYtVolume = 40;
 
-    // --- 周波数スペクトラム ビジュアライザー状態 ---
+    // --- 周波数スペクトラム ビジュアライザー設定 ---
     let visualizerMode = 'rainbow'; // 'rainbow', 'neon', 'off'
+    let visualizerLayer = 'front';   // 'front' (前面オーバーレイ), 'back' (背面)
     let visualizerCanvas, visualizerCtx;
     let freqAnalyserNode = null;
     let freqDataArray = null;
@@ -918,13 +931,14 @@
     });
 
     // ==========================================================================
-    // 画面全体の周波数スペクトラム・アナライザー (Canvas描画)
+    // 周波数アナライザー (Canvas描画 & 前面/背面レイヤー切り替え)
     // ==========================================================================
     function initVisualizerCanvas() {
       visualizerCanvas = document.getElementById('freqVisualizerCanvas');
       visualizerCtx = visualizerCanvas.getContext('2d');
       resizeVisualizer();
       window.addEventListener('resize', resizeVisualizer);
+      setVisualizerLayer('front'); // 初期状態で前面オーバーレイ
     }
 
     function resizeVisualizer() {
@@ -938,7 +952,7 @@
       if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
       if (!freqAnalyserNode) {
         freqAnalyserNode = audioContext.createAnalyser();
-        freqAnalyserNode.fftSize = 128; // 64バンド
+        freqAnalyserNode.fftSize = 128;
         freqAnalyserNode.smoothingTimeConstant = 0.72;
         freqDataArray = new Uint8Array(freqAnalyserNode.frequencyBinCount);
       }
@@ -954,6 +968,26 @@
       }
     }
 
+    // 前面（動画の上）と背面（背景）の切り替え
+    function setVisualizerLayer(layer) {
+      visualizerLayer = layer;
+      const canvas = document.getElementById('freqVisualizerCanvas');
+      const frontBtn = document.getElementById('visLayerFrontBtn');
+      const backBtn = document.getElementById('visLayerBackBtn');
+
+      if (layer === 'front') {
+        canvas.style.zIndex = '10'; // 前面レイヤー (動画・カメラの上)
+        canvas.style.mixBlendMode = 'screen'; // 加算合成で光のみ透過
+        frontBtn.className = 'btn btn-xs btn-primary';
+        backBtn.className = 'btn btn-xs btn-tonal';
+      } else {
+        canvas.style.zIndex = '1';  // 最背面レイヤー (背景)
+        canvas.style.mixBlendMode = 'normal';
+        frontBtn.className = 'btn btn-xs btn-tonal';
+        backBtn.className = 'btn btn-xs btn-primary';
+      }
+    }
+
     function renderVisualizer() {
       if (visualizerMode !== 'off' && visualizerCanvas && visualizerCtx) {
         const w = visualizerCanvas.width;
@@ -963,13 +997,13 @@
         const numBars = 64;
         const data = new Uint8Array(numBars);
 
-        // 1. 通話音声のリアルタイム周波数取得
+        // 1. 通話音声の周波数データ
         if (freqAnalyserNode && freqDataArray) {
           freqAnalyserNode.getByteFrequencyData(freqDataArray);
           for (let i = 0; i < numBars; i++) data[i] = freqDataArray[i] || 0;
         }
 
-        // 2. YouTube同時視聴のリズム・周波数連動
+        // 2. YouTube再生連動
         const isPlaying = ytPlayer && ytPlayer.getPlayerState && ytPlayer.getPlayerState() === YT.PlayerState.PLAYING;
         if (isPlaying) {
           const vol = currentYtVolume / 100;
@@ -978,11 +1012,11 @@
 
           for (let i = 0; i < numBars; i++) {
             let sim = 0;
-            if (i < 8) { // 低音帯域（バスドラム・ベース）
+            if (i < 8) {
               sim = bass * (1 - i / 8);
-            } else if (i < 30) { // 中音帯域（ボーカル・メロディ）
+            } else if (i < 30) {
               sim = (Math.sin(t * 5 + i * 0.45) * 0.5 + 0.5) * 140;
-            } else { // 高音帯域（ハイハット・シンバル）
+            } else {
               sim = (Math.sin(t * 16 + i * 0.8) > 0.35 ? 125 : 15) * (Math.random() * 0.35 + 0.85);
             }
             data[i] = Math.min(255, data[i] + sim * vol);
@@ -995,9 +1029,8 @@
 
         for (let i = 0; i < numBars; i++) {
           const val = data[i] / 255;
-          const barHeight = val * (h * 0.55); // 画面高さの55%まで跳ねる
+          const barHeight = val * (h * 0.6); // 画面高さの60%まで跳ねる
 
-          // ピークドット（重力落下）
           if (barHeight > peakValues[i]) {
             peakValues[i] = barHeight;
           } else {
@@ -1007,25 +1040,26 @@
           const x = i * barWidth;
           const y = h - barHeight;
 
-          // カラースタイル
+          // 前面オーバーレイ時でも動画が透けて見える美しい透明度グラデーション
           if (visualizerMode === 'rainbow') {
-            const hue = (i / numBars) * 310; // 赤〜紫のグラデーション
-            visualizerCtx.fillStyle = `hsla(${hue}, 95%, 62%, 0.82)`;
-          } else {
-            // ネオン・マテリアルグラデーション
+            const hue = (i / numBars) * 310;
             const grad = visualizerCtx.createLinearGradient(0, h, 0, y);
-            grad.addColorStop(0, 'rgba(127, 0, 255, 0.2)');
-            grad.addColorStop(0.5, 'rgba(208, 188, 255, 0.7)');
+            grad.addColorStop(0, `hsla(${hue}, 95%, 60%, 0.2)`);
+            grad.addColorStop(1, `hsla(${hue}, 95%, 65%, 0.85)`);
+            visualizerCtx.fillStyle = grad;
+          } else {
+            const grad = visualizerCtx.createLinearGradient(0, h, 0, y);
+            grad.addColorStop(0, 'rgba(127, 0, 255, 0.15)');
+            grad.addColorStop(0.5, 'rgba(208, 188, 255, 0.6)');
             grad.addColorStop(1, 'rgba(0, 255, 255, 0.95)');
             visualizerCtx.fillStyle = grad;
           }
 
-          // 周波数バー描画
           if (barHeight > 1) {
             visualizerCtx.fillRect(x, y, actualBarWidth, barHeight);
           }
 
-          // ピークドット描画
+          // ピークドット
           if (peakValues[i] > 3) {
             visualizerCtx.fillStyle = '#ffffff';
             visualizerCtx.fillRect(x, h - peakValues[i] - 3, actualBarWidth, 2);
@@ -1081,7 +1115,6 @@
       document.getElementById('localVideo').srcObject = localStream;
       setupSpeakingDetector('local', localStream);
 
-      // マイク音声を周波数アナライザーに接続
       if (localStream.getAudioTracks().length > 0 && freqAnalyserNode) {
         try {
           const src = audioContext.createMediaStreamSource(localStream);
@@ -1092,7 +1125,7 @@
 
     async function getRoomHostId(roomName) {
       const enc = new TextEncoder();
-      const data = enc.encode(`p2p_mesh_room_v12:${roomName.trim()}`);
+      const data = enc.encode(`p2p_mesh_room_v13:${roomName.trim()}`);
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const key = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
@@ -1207,7 +1240,6 @@
         setupSpeakingDetector(pId, remoteStream);
         setupAudioBoost(pId, remoteStream);
 
-        // 通話相手の音声を周波数アナライザーに接続
         if (remoteStream.getAudioTracks().length > 0 && freqAnalyserNode) {
           try {
             const src = audioContext.createMediaStreamSource(remoteStream);
