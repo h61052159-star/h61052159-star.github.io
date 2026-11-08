@@ -3,287 +3,330 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>P2P Voice, Video & Sync Room</title>
-  <!-- PeerJS (サーバーレスP2P接続ライブラリ) -->
+  <title>MD3 P2P Mesh Room & Sync</title>
+  <!-- PeerJS -->
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <!-- YouTube IFrame API -->
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
+    /* === Material Design 3 (MD3) Dark Theme Design Tokens === */
     :root {
-      --bg-dark: #12141a;
-      --panel-bg: #1e222d;
-      --accent: #5865f2;
-      --accent-hover: #4752c4;
-      --danger: #ed4245;
-      --success: #57f287;
-      --text-main: #f2f3f5;
-      --text-sub: #949ba4;
-      --border: #2e3444;
+      --md-sys-color-background: #141218;
+      --md-sys-color-surface: #1d1a22;
+      --md-sys-color-surface-container: #211f26;
+      --md-sys-color-surface-container-high: #2b2930;
+      --md-sys-color-surface-container-highest: #36343b;
+      --md-sys-color-primary: #d0bcff;
+      --md-sys-color-on-primary: #381e72;
+      --md-sys-color-primary-container: #4f378b;
+      --md-sys-color-on-primary-container: #eaddff;
+      --md-sys-color-secondary-container: #4a4458;
+      --md-sys-color-on-secondary-container: #e8def8;
+      --md-sys-color-outline: #938f99;
+      --md-sys-color-outline-variant: #49454f;
+      --md-sys-color-error: #f2b8b5;
+      --md-sys-color-on-error: #601410;
+      --md-sys-color-error-container: #8c1d18;
+      --md-sys-color-success: #a8f5a2;
+      --md-sys-color-on-surface: #e6e1e5;
+      --md-sys-color-on-surface-variant: #cac4d0;
+      --md-shape-corner-small: 8px;
+      --md-shape-corner-medium: 12px;
+      --md-shape-corner-large: 16px;
+      --md-shape-corner-full: 9999px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* 画面全体の高さを100%に固定し、はみ出しスクロールを防ぐ */
     html, body {
       width: 100%;
       height: 100%;
       height: 100dvh;
       overflow: hidden;
-      background-color: var(--bg-dark);
-      color: var(--text-main);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--md-sys-color-background);
+      color: var(--md-sys-color-on-surface);
+      font-family: Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
-    body {
-      display: flex;
-      flex-direction: column;
-    }
+    body { display: flex; flex-direction: column; }
 
-    /* ヘッダー (縮まないように固定) */
+    /* MD3 Top App Bar */
     header {
       flex-shrink: 0;
-      background-color: var(--panel-bg);
-      border-bottom: 1px solid var(--border);
-      padding: 8px 16px;
+      background-color: var(--md-sys-color-surface);
+      padding: 10px 20px;
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
-      gap: 10px;
-      z-index: 20;
+      gap: 12px;
+      border-bottom: 1px solid var(--md-sys-color-outline-variant);
+      z-index: 30;
     }
 
-    .brand {
-      font-weight: bold;
-      font-size: 1.05rem;
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 600;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+      color: var(--md-sys-color-primary);
     }
 
-    .status-badge {
-      display: inline-block;
-      width: 10px;
-      height: 10px;
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: var(--md-shape-corner-full);
+      background: var(--md-sys-color-surface-container-high);
+      font-size: 0.8rem;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
       background: #747f8d;
     }
-    .status-badge.waiting { background: #faa81a; }
-    .status-badge.connected { background: var(--success); }
+    .status-dot.connected { background: var(--md-sys-color-success); box-shadow: 0 0 8px var(--md-sys-color-success); }
+    .status-dot.waiting { background: #faa81a; }
 
-    .room-controls {
+    /* MD3 Filled / Outlined Text Fields */
+    .md-field {
       display: flex;
       align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
+      background: var(--md-sys-color-surface-container);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: var(--md-shape-corner-small);
+      padding: 6px 12px;
+      gap: 6px;
     }
-
-    .input-box {
-      display: flex;
-      align-items: center;
-      background: var(--bg-dark);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 4px 8px;
-      font-size: 0.85rem;
-    }
-    .input-box input {
+    .md-field span { font-size: 0.75rem; color: var(--md-sys-color-outline); }
+    .md-field input {
       background: transparent;
       border: none;
-      color: var(--text-main);
+      color: var(--md-sys-color-on-surface);
+      font-size: 0.9rem;
       outline: none;
     }
 
-    button {
-      background: var(--accent);
-      color: #fff;
+    /* MD3 Buttons */
+    .btn {
       border: none;
-      border-radius: 6px;
-      padding: 6px 14px;
+      border-radius: var(--md-shape-corner-full);
+      padding: 8px 18px;
       font-size: 0.85rem;
-      font-weight: 500;
+      font-weight: 600;
       cursor: pointer;
-      transition: background 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s, transform 0.1s;
     }
-    button:hover { background: var(--accent-hover); }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
-    button.btn-danger { background: var(--danger); }
-    button.btn-active { background: #3ba55d; }
-    button.btn-sub { background: #36393f; border: 1px solid var(--border); }
-    button.btn-sub:hover { background: #4f545c; }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); }
+    .btn-primary:hover { background: #e8def8; }
+    .btn-tonal { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
+    .btn-tonal:hover { background: #5c556b; }
+    .btn-danger { background: var(--md-sys-color-error-container); color: var(--md-sys-color-error); }
+    .btn-active { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
 
-    /* メインコンテナ：余った縦幅をすべて使い、絶対に画面外にはみ出さない */
+    /* メインレイアウト */
     .main-container {
       display: flex;
       flex: 1;
       min-height: 0;
-      width: 100%;
       position: relative;
     }
 
-    /* 左側：メディア表示エリア */
-    .media-section {
+    /* 左側：ステージ & カメラ一覧 */
+    .stage-section {
       flex: 1;
       min-width: 0;
       min-height: 0;
       display: flex;
       flex-direction: column;
-      background: #08090c;
+      background: #0d0c10;
       position: relative;
     }
 
-    /* 映像ラッパー：枠のサイズに完全に追従 */
-    .viewers-wrapper {
+    /* 上部：メインステージ (YouTube または 選択映像) */
+    .main-stage {
       flex: 1;
       min-height: 0;
       position: relative;
       display: flex;
       justify-content: center;
       align-items: center;
-      overflow: hidden;
-      padding: 10px;
+      padding: 12px;
     }
 
-    /* 16:9の比率を維持したまま、枠（縦横の小さい方）にピッタリ自動収縮するボックス */
-    .aspect-fit-box {
+    .aspect-screen {
       width: 100%;
       height: 100%;
       max-width: 100%;
       max-height: 100%;
       aspect-ratio: 16 / 9;
+      background: #000;
+      border-radius: var(--md-shape-corner-medium);
+      overflow: hidden;
       position: relative;
       display: flex;
       justify-content: center;
       align-items: center;
-      background: #000;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.7);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.8);
+      border: 1px solid var(--md-sys-color-outline-variant);
     }
 
-    .video-grid {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    #remoteVideo {
+    #stageVideo {
       width: 100%;
       height: 100%;
       object-fit: contain;
     }
 
-    /* 自分のカメラ（ピクチャー・イン・ピクチャー小窓） */
-    #localVideo {
-      position: absolute;
-      bottom: 14px;
-      right: 14px;
-      width: 160px;
-      aspect-ratio: 16 / 9;
-      border: 2px solid var(--border);
-      border-radius: 6px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-      z-index: 10;
-      object-fit: cover;
-      transform: scaleX(-1);
-    }
-
-    /* YouTube コンテナ */
-    #yt-container {
+    #ytContainer {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
       display: none;
-      background: #000;
       z-index: 5;
+      background: #000;
     }
+    #player { width: 100%; height: 100%; }
 
-    .yt-bar {
+    /* 自動再生ブロック解除バナー */
+    .unmute-banner {
       position: absolute;
-      top: 10px;
+      top: 14px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(30, 34, 45, 0.92);
-      padding: 6px 12px;
-      border-radius: 8px;
-      display: flex;
-      gap: 8px;
-      z-index: 15;
-      backdrop-filter: blur(6px);
-      border: 1px solid var(--border);
+      background: var(--md-sys-color-primary);
+      color: var(--md-sys-color-on-primary);
+      padding: 8px 18px;
+      border-radius: var(--md-shape-corner-full);
+      font-size: 0.85rem;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 25;
+      display: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      animation: bounce 1.5s infinite;
     }
-    .yt-bar input {
-      background: var(--bg-dark);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      color: #fff;
-      padding: 4px 8px;
-      width: 240px;
+    @keyframes bounce {
+      0%, 100% { transform: translate(-50%, 0); }
+      50% { transform: translate(-50%, -6px); }
     }
 
-    #player {
+    /* 下部：参加者カメラタイルバー */
+    .camera-strip {
+      height: 140px;
+      flex-shrink: 0;
+      background: var(--md-sys-color-surface-container);
+      border-top: 1px solid var(--md-sys-color-outline-variant);
+      padding: 8px 16px;
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      align-items: center;
+    }
+
+    .camera-tile {
+      height: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border-radius: var(--md-shape-corner-small);
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .camera-tile:hover { transform: translateY(-2px); }
+    /* 発言中インジケーター（緑色に光る） */
+    .camera-tile.speaking {
+      border-color: var(--md-sys-color-success) !important;
+      box-shadow: 0 0 12px var(--md-sys-color-success);
+    }
+    .camera-tile.focused { border-color: var(--md-sys-color-primary); }
+
+    .camera-tile video {
       width: 100%;
       height: 100%;
+      object-fit: cover;
+    }
+    .camera-tile.local video { transform: scaleX(-1); }
+
+    .tile-badge {
+      position: absolute;
+      bottom: 6px;
+      left: 6px;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(4px);
+      padding: 2px 8px;
+      border-radius: var(--md-shape-corner-full);
+      font-size: 0.75rem;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
 
-    /* 下部コントロールバー (絶対に縮まず、隠れない) */
+    /* コントロールバー */
     .controls-bar {
+      height: 64px;
       flex-shrink: 0;
-      height: 60px;
-      background: var(--panel-bg);
-      border-top: 1px solid var(--border);
+      background: var(--md-sys-color-surface);
+      border-top: 1px solid var(--md-sys-color-outline-variant);
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 10px;
-      padding: 0 10px;
-      z-index: 15;
-    }
-
-    .ctrl-btn {
-      padding: 8px 14px;
-      border-radius: 20px;
-      font-size: 0.82rem;
-      white-space: nowrap;
+      gap: 12px;
+      padding: 0 16px;
+      z-index: 20;
     }
 
     /* 右側：サイドバー */
     .sidebar {
-      width: 320px;
+      width: 340px;
       flex-shrink: 0;
-      background: var(--panel-bg);
-      border-left: 1px solid var(--border);
+      background: var(--md-sys-color-surface);
+      border-left: 1px solid var(--md-sys-color-outline-variant);
       display: flex;
       flex-direction: column;
     }
 
-    .tabs { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .tabs { display: flex; border-bottom: 1px solid var(--md-sys-color-outline-variant); }
     .tab-btn {
       flex: 1;
       padding: 12px;
       background: transparent;
-      border-radius: 0;
-      color: var(--text-sub);
-      border-bottom: 2px solid transparent;
+      border: none;
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
     }
     .tab-btn.active {
-      color: var(--text-main);
-      border-bottom-color: var(--accent);
-      background: rgba(255, 255, 255, 0.03);
+      color: var(--md-sys-color-primary);
+      border-bottom-color: var(--md-sys-color-primary);
+      background: rgba(208, 188, 255, 0.05);
     }
 
-    .tab-content {
+    .tab-panel {
       flex: 1;
       min-height: 0;
-      display: flex;
+      display: none;
       flex-direction: column;
     }
+    .tab-panel.active { display: flex; }
 
+    /* チャットメッセージ */
     .messages-container {
       flex: 1;
       min-height: 0;
@@ -291,195 +334,300 @@
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
     }
-
-    .message {
-      padding: 8px 12px;
-      border-radius: 8px;
+    .msg {
+      padding: 8px 14px;
+      border-radius: var(--md-shape-corner-medium);
       font-size: 0.88rem;
       max-width: 85%;
       word-break: break-all;
     }
-    .message.remote { background: #2b2f3d; align-self: flex-start; }
-    .message.local { background: var(--accent); align-self: flex-end; }
-    .message.system { background: transparent; color: var(--text-sub); font-size: 0.75rem; align-self: center; text-align: center; }
+    .msg.remote { background: var(--md-sys-color-surface-container-high); align-self: flex-start; }
+    .msg.local { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); align-self: flex-end; }
+    .msg.system { background: transparent; color: var(--md-sys-color-outline); font-size: 0.75rem; align-self: center; text-align: center; }
+    .msg-sender { font-size: 0.7rem; color: var(--md-sys-color-primary); margin-bottom: 2px; }
 
-    .chat-input-bar {
-      flex-shrink: 0;
+    .chat-input-box {
       padding: 10px;
-      border-top: 1px solid var(--border);
+      border-top: 1px solid var(--md-sys-color-outline-variant);
       display: flex;
       gap: 8px;
     }
-    .chat-input-bar input {
-      flex: 1;
-      background: var(--bg-dark);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 8px;
-      color: #fff;
-    }
 
-    .file-tab {
-      display: none;
-      flex: 1;
-      min-height: 0;
-      padding: 16px;
-      flex-direction: column;
-      gap: 14px;
+    /* 参加者一覧 */
+    .user-list {
+      padding: 12px;
       overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .user-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: var(--md-sys-color-surface-container);
+      border-radius: var(--md-shape-corner-small);
+      font-size: 0.88rem;
     }
 
-    .drop-zone {
-      border: 2px dashed var(--border);
-      border-radius: 8px;
-      padding: 20px;
+    /* ファイル転送 */
+    .file-drop-area {
+      margin: 14px;
+      border: 2px dashed var(--md-sys-color-outline-variant);
+      border-radius: var(--md-shape-corner-medium);
+      padding: 24px;
       text-align: center;
+      color: var(--md-sys-color-outline);
       cursor: pointer;
-      color: var(--text-sub);
-      font-size: 0.85rem;
     }
-    .drop-zone:hover { border-color: var(--accent); }
+    .file-drop-area:hover { border-color: var(--md-sys-color-primary); }
 
-    .file-list { display: flex; flex-direction: column; gap: 8px; }
-    .file-item {
-      background: var(--bg-dark);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 10px;
-      font-size: 0.85rem;
+    /* モーダル (YouTube検索 & 設定) */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      display: none;
+      justify-content: center;
+      align-items: center;
     }
-    .progress-bar-bg {
-      background: #333;
-      height: 6px;
-      border-radius: 3px;
-      overflow: hidden;
-      margin-top: 6px;
+    .modal-card {
+      width: 90%;
+      max-width: 580px;
+      background: var(--md-sys-color-surface-container-high);
+      border-radius: var(--md-shape-corner-large);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-height: 80vh;
     }
-    .progress-bar { background: var(--success); height: 100%; width: 0%; transition: width 0.1s; }
+    .search-results {
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .search-item {
+      display: flex;
+      gap: 10px;
+      padding: 8px;
+      border-radius: var(--md-shape-corner-small);
+      cursor: pointer;
+      background: var(--md-sys-color-surface-container);
+    }
+    .search-item:hover { background: var(--md-sys-color-secondary-container); }
+    .search-item img { width: 110px; height: 62px; object-fit: cover; border-radius: 4px; }
 
-    /* レスポンシブ (スマホ表示時) */
+    /* トースト通知 */
+    .toast-container {
+      position: fixed;
+      bottom: 80px;
+      left: 20px;
+      z-index: 99;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast {
+      background: var(--md-sys-color-surface-container-highest);
+      color: var(--md-sys-color-on-surface);
+      padding: 10px 16px;
+      border-radius: var(--md-shape-corner-small);
+      font-size: 0.85rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      animation: fadeIn 0.2s;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
     @media (max-width: 768px) {
       .main-container { flex-direction: column; }
-      .sidebar { width: 100%; height: 260px; border-left: none; border-top: 1px solid var(--border); }
-      #localVideo { width: 110px; bottom: 8px; right: 8px; }
+      .sidebar { width: 100%; height: 240px; border-left: none; border-top: 1px solid var(--md-sys-color-outline-variant); }
+      .camera-strip { height: 100px; }
     }
   </style>
 </head>
 <body>
 
+  <!-- トップバー -->
   <header>
-    <div class="brand">
-      <span id="statusBadge" class="status-badge"></span>
-      <span id="roomStatusText">未接続</span>
+    <div class="brand-title">
+      <span>● P2P Mesh Room</span>
+      <div class="status-chip">
+        <span id="statusDot" class="status-dot"></span>
+        <span id="roomStatusText">未接続</span>
+      </div>
     </div>
 
-    <div class="room-controls" id="roomControlsArea">
-      <div class="input-box">
-        <span style="color:var(--text-sub); margin-right:4px;">部屋:</span>
-        <input type="text" id="roomNameInput" placeholder="ルーム名" size="10">
+    <!-- ルーム・ユーザー操作部 -->
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <div class="md-field">
+        <span>部屋</span>
+        <input type="text" id="roomNameInput" placeholder="ルーム名" size="8">
+      </div>
+      <div class="md-field">
+        <span>名前</span>
+        <input type="text" id="userNameInput" placeholder="あなたの名前" size="8">
       </div>
 
-      <div class="input-box">
-        <span style="color:var(--text-sub); margin-right:4px;">合言葉:</span>
-        <input type="password" id="roomPassInput" placeholder="パスワード(任意)" size="10">
-      </div>
-
-      <button id="joinBtn" onclick="handleJoinRoom()">参加</button>
-      <button class="btn-sub" onclick="copyInviteUrl()" title="この部屋のURLをコピー">🔗 招待リンク</button>
-      <button id="leaveBtn" class="btn-danger" style="display:none;" onclick="leaveRoom()">退室</button>
+      <button id="joinBtn" class="btn btn-primary" onclick="joinMeshRoom()">参加</button>
+      <button class="btn btn-tonal" onclick="copyInviteUrl()">🔗 招待URL</button>
+      <button id="leaveBtn" class="btn btn-danger" style="display:none;" onclick="leaveMeshRoom()">退室</button>
     </div>
   </header>
 
-  <div class="main-container" id="appMainContainer">
-    <div class="media-section">
-      <div class="viewers-wrapper">
-        <!-- 枠にピッタリ自動フィットするアスペクト比コンテナ -->
-        <div class="aspect-fit-box">
-          <div class="video-grid">
-            <video id="remoteVideo" autoplay playsinline></video>
-            <video id="localVideo" autoplay playsinline muted></video>
-          </div>
+  <!-- メインエリア -->
+  <div class="main-container">
+    <!-- ステージ & カメラエリア -->
+    <div class="stage-section">
+      <!-- 上部：大画面ステージ -->
+      <div class="main-stage">
+        <!-- タップしてミュート解除バナー (ブラウザ自動再生対策) -->
+        <div id="unmuteBanner" class="unmute-banner" onclick="forceUnmuteYouTube()">
+          🔊 タップして音声を再生
+        </div>
 
-          <div id="yt-container">
-            <div class="yt-bar">
-              <input type="text" id="ytVideoUrl" placeholder="YouTube URL または 動画ID">
-              <button onclick="loadAndSyncVideo()">読み込み</button>
-              <button onclick="forceSyncVideoTime()" style="background:#555;">同期</button>
-            </div>
+        <div class="aspect-screen" id="aspectScreen">
+          <video id="stageVideo" autoplay playsinline></video>
+          <div id="ytContainer">
             <div id="player"></div>
           </div>
         </div>
       </div>
 
-      <!-- コントロールバー（ボタン群） -->
+      <!-- 下部：参加者カメラタイルが並ぶバー -->
+      <div class="camera-strip" id="cameraStrip">
+        <!-- 自分のカメラ -->
+        <div class="camera-tile local focused" id="tile-local" onclick="focusVideo('local')">
+          <video id="localVideo" autoplay playsinline muted></video>
+          <div class="tile-badge">
+            <span id="localTileName">自分</span>
+            <span id="localTileMic">🎤</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- コントロールバー -->
       <div class="controls-bar">
-        <button id="micBtn" class="ctrl-btn" onclick="toggleMic()">🎤 マイクON</button>
-        <button id="camBtn" class="ctrl-btn" onclick="toggleCam()">📷 カメラON</button>
-        <button id="shareScreenBtn" class="ctrl-btn" onclick="toggleScreenShare()">🖥 画面共有</button>
-        <button id="ytToggleBtn" class="ctrl-btn" onclick="toggleYouTubeMode()">▶ YouTube同時視聴</button>
-        <button id="fullscreenBtn" class="ctrl-btn btn-sub" onclick="toggleFullScreen()">⛶ 全画面</button>
+        <button id="micBtn" class="btn btn-tonal" onclick="toggleMic()">🎤 マイクON</button>
+        <button id="camBtn" class="btn btn-tonal" onclick="toggleCam()">📷 カメラON</button>
+        <button id="shareScreenBtn" class="btn btn-tonal" onclick="toggleScreenShare()">🖥 画面共有</button>
+        <button id="ytModalBtn" class="btn btn-tonal" onclick="openYouTubeModal()">▶ YouTube検索</button>
+        <button id="ttsToggleBtn" class="btn btn-tonal" onclick="cycleTtsMode()">🗣 読み上げ: ずんだもん</button>
+        <button id="fullscreenBtn" class="btn btn-tonal" onclick="toggleFullScreen()">⛶ 全画面</button>
       </div>
     </div>
 
-    <!-- サイドバー -->
+    <!-- 右側：サイドバー -->
     <div class="sidebar">
       <div class="tabs">
-        <button id="tabChatBtn" class="tab-btn active" onclick="switchTab('chat')">チャット</button>
-        <button id="tabFileBtn" class="tab-btn" onclick="switchTab('file')">ファイル共有</button>
+        <button id="tabChatBtn" class="tab-btn active" onclick="switchSidebarTab('chat')">チャット</button>
+        <button id="tabUsersBtn" class="tab-btn" onclick="switchSidebarTab('users')">参加者 (<span id="userCount">1</span>)</button>
+        <button id="tabFileBtn" class="tab-btn" onclick="switchSidebarTab('file')">ファイル</button>
       </div>
 
-      <div id="chatContent" class="tab-content">
-        <div id="messagesContainer" class="messages-container">
-          <div class="message system">ルーム名を入力して「参加」してください</div>
+      <!-- チャットタブ -->
+      <div id="tabChat" class="tab-panel active">
+        <div class="messages-container" id="messagesContainer">
+          <div class="msg system">ルーム名と名前を入力して参加してください</div>
         </div>
-        <div class="chat-input-bar">
-          <input type="text" id="chatInput" placeholder="メッセージを入力..." onkeydown="if(event.key==='Enter') sendChatMessage()">
-          <button onclick="sendChatMessage()">送信</button>
+        <div class="chat-input-box">
+          <input type="text" id="chatInput" class="md-field" style="flex:1;" placeholder="メッセージ..." onkeydown="if(event.key==='Enter') sendChatMessage()">
+          <button class="btn btn-primary" onclick="sendChatMessage()">送信</button>
         </div>
       </div>
 
-      <div id="fileContent" class="file-tab">
-        <div class="drop-zone" onclick="document.getElementById('fileInput').click()" ondragover="event.preventDefault()" ondrop="handleDropFile(event)">
-          ファイルをドロップ または クリック
-          <input type="file" id="fileInput" style="display:none" onchange="handleFileSelect(event)">
+      <!-- 参加者タブ -->
+      <div id="tabUsers" class="tab-panel">
+        <div class="user-list" id="userListContainer"></div>
+      </div>
+
+      <!-- ファイルタブ -->
+      <div id="tabFile" class="tab-panel">
+        <div class="file-drop-area" onclick="document.getElementById('fileInput').click()" ondragover="event.preventDefault()" ondrop="handleDropFile(event)">
+          ファイルをドロップ または クリックして転送
+          <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)">
         </div>
-        <div id="fileList" class="file-list"></div>
+        <div id="fileItemsList" style="padding:12px; display:flex; flex-direction:column; gap:8px;"></div>
       </div>
     </div>
   </div>
 
+  <!-- YouTube検索 / URLモーダル -->
+  <div class="modal-overlay" id="ytModal">
+    <div class="modal-card">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="font-size:1.1rem; color:var(--md-sys-color-primary);">YouTube 動画検索・再生</h3>
+        <button class="btn btn-tonal" style="padding:4px 10px;" onclick="closeYouTubeModal()">✕</button>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="ytSearchInput" class="md-field" style="flex:1;" placeholder="検索キーワード または YouTubeのURL" onkeydown="if(event.key==='Enter') searchYouTube()">
+        <button class="btn btn-primary" onclick="searchYouTube()">検索</button>
+      </div>
+      <div class="search-results" id="ytSearchResults">
+        <div style="font-size:0.85rem; color:var(--md-sys-color-outline); text-align:center; padding:20px;">
+          キーワードを入力して検索するか、直接URLを貼り付けてください。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
   <script>
+    // --- グローバル状態 ---
+    let myPeerId = null;
+    let myUserName = '名無し';
+    let currentRoomName = '';
+    let isHost = false;
     let peer = null;
-    let currentCall = null;
-    let currentConn = null;
+
+    // フルメッシュピア管理: { [peerId]: { conn, call, stream, userName, isMuted, isCamOff } }
+    const peers = {};
+
     let localStream = null;
     let screenStream = null;
-
     let isMicOn = true;
     let isCamOn = true;
     let isScreenSharing = false;
 
-    // YouTube 関連
+    // TTS設定 ('zundamon', 'standard', 'off')
+    let ttsMode = 'zundamon';
+
+    // YouTube同時視聴
     let ytPlayer = null;
     let isYtReady = false;
     let isRemoteAction = false;
     let isYtActive = false;
 
+    // 発話検知 AudioContext
+    let audioContext = null;
+
+    // --- 起動初期化 ---
     window.addEventListener('DOMContentLoaded', async () => {
       await setupMedia();
       const params = new URLSearchParams(window.location.search);
-      if (params.get('room')) {
-        document.getElementById('roomNameInput').value = params.get('room');
-      }
+      if (params.get('room')) document.getElementById('roomNameInput').value = params.get('room');
+
+      // ユーザー名の初期ランダム設定
+      document.getElementById('userNameInput').value = 'ゲスト' + Math.floor(Math.random() * 900 + 100);
+
+      // ネットワーク切断自動復帰リスナー
+      window.addEventListener('online', handleNetworkReconnected);
+      window.addEventListener('offline', () => showToast('ネットワークが切断されました', 'error'));
     });
 
+    // 1. ローカルメディア（カメラ・マイク）初期化
     async function setupMedia() {
       try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       } catch (err) {
-        console.warn('カメラ・マイク取得エラー。音声のみ試行:', err);
+        console.warn('カメラ・マイクの同時取得に失敗。音声のみ試行:', err);
         try {
           localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
         } catch (e) {
@@ -491,229 +639,350 @@
         }
       }
       document.getElementById('localVideo').srcObject = localStream;
+      setupSpeakingDetector('local', localStream);
     }
 
-    async function generateRoomHash(roomName, password) {
+    // --- セキュリティ＆ルームハッシュ生成 ---
+    async function getRoomHostId(roomName) {
       const enc = new TextEncoder();
-      const data = enc.encode(`p2p_room:${roomName.trim()}::${password.trim()}`);
+      const data = enc.encode(`p2p_mesh_room_v2:${roomName.trim()}`);
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
+      const key = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
+      return `room-${key}-host`;
     }
 
-    async function handleJoinRoom() {
-      const roomName = document.getElementById('roomNameInput').value.trim();
-      const pass = document.getElementById('roomPassInput').value.trim();
+    // --- フルメッシュ参加ロジック ---
+    async function joinMeshRoom() {
+      const room = document.getElementById('roomNameInput').value.trim();
+      const name = document.getElementById('userNameInput').value.trim();
+      if (!room) return alert('ルーム名を入力してください');
+      if (!name) return alert('ユーザー名を入力してください');
 
-      if (!roomName) return alert('ルーム名を入力してください');
-
+      myUserName = name;
+      currentRoomName = room;
+      document.getElementById('localTileName').textContent = myUserName + ' (自分)';
       document.getElementById('joinBtn').disabled = true;
-      appendSystemMessage(`ルーム [${roomName}] の参加キーを照合中...`);
 
-      const roomKey = await generateRoomHash(roomName, pass);
-      const hostId = `room-${roomKey}-host`;
+      const hostId = await getRoomHostId(room);
+      showToast(`ルーム [${room}] に接続中...`);
 
-      tryAsHost(hostId, roomName);
+      // まずホストとしてPeer作成を試みる
+      tryAsHost(hostId);
     }
 
-    function tryAsHost(hostId, roomName) {
+    function tryAsHost(hostId) {
       if (peer) peer.destroy();
       peer = new Peer(hostId);
 
-      peer.on('open', () => {
-        setUIState('waiting', `部屋: ${roomName} (相手の参加待ち)`);
-        appendSystemMessage('部屋を作成しました。相手が同じ部屋名で入室するのを待機しています...');
-        setupCommonPeerEvents();
+      peer.on('open', (id) => {
+        isHost = true;
+        myPeerId = id;
+        setupPeerCommon();
+        setUIState('waiting', `部屋: ${currentRoomName} (ホスト待機中)`);
+        showToast('部屋を作成しました（あなたがホストです）');
+        speakText(`${myUserName}さんが入室しました`);
+        updateUserListUI();
       });
 
       peer.on('error', (err) => {
         if (err.type === 'unavailable-id') {
-          joinAsGuest(hostId, roomName);
+          // すでにホストが存在するのでゲストとして入室
+          joinAsGuest(hostId);
         } else {
-          console.error('Peer error:', err);
-          appendSystemMessage(`エラー: ${err.type}`);
+          showToast(`エラー: ${err.type}`, 'error');
           document.getElementById('joinBtn').disabled = false;
         }
       });
     }
 
-    function joinAsGuest(hostId, roomName) {
+    function joinAsGuest(hostId) {
       if (peer) peer.destroy();
-      peer = new Peer();
+      peer = new Peer(); // ゲストはランダムID
 
-      peer.on('open', () => {
-        setUIState('waiting', `部屋: ${roomName} (接続中...)`);
-        appendSystemMessage('ホストを発見しました。P2P接続を確立中...');
-        setupCommonPeerEvents();
+      peer.on('open', (id) => {
+        isHost = false;
+        myPeerId = id;
+        setupPeerCommon();
+        setUIState('waiting', `部屋: ${currentRoomName} (接続中...)`);
 
-        const conn = peer.connect(hostId, { reliable: true });
-        currentConn = conn;
-        setupConnEvents(conn);
-
-        const call = peer.call(hostId, localStream);
-        currentCall = call;
-        setupCallEvents(call);
+        // ホストへ接続
+        connectToSinglePeer(hostId, true);
+        speakText(`${myUserName}さんが入室しました`);
       });
 
       peer.on('error', (err) => {
-        console.error('Guest error:', err);
-        appendSystemMessage(`接続失敗: ${err.type}`);
+        showToast(`接続エラー: ${err.type}`, 'error');
         document.getElementById('joinBtn').disabled = false;
       });
     }
 
-    function setupCommonPeerEvents() {
+    function setupPeerCommon() {
+      // ネットワーク切断時の自動再接続
+      peer.on('disconnected', () => {
+        showToast('シグナリングが切断されました。再接続しています...', 'error');
+        peer.reconnect();
+      });
+
+      // 通話着信 (他のピアから)
       peer.on('call', (call) => {
-        currentCall = call;
         call.answer(localStream);
         setupCallEvents(call);
       });
+
+      // データチャネル着信
       peer.on('connection', (conn) => {
-        currentConn = conn;
         setupConnEvents(conn);
       });
     }
 
+    // 単一ピアへの接続
+    function connectToSinglePeer(targetPeerId, isConnectingToHost = false) {
+      if (peers[targetPeerId] && peers[targetPeerId].conn) return;
+
+      const conn = peer.connect(targetPeerId, { reliable: true });
+      setupConnEvents(conn);
+
+      const call = peer.call(targetPeerId, localStream);
+      setupCallEvents(call);
+    }
+
     function setupCallEvents(call) {
+      const pId = call.peer;
+      if (!peers[pId]) peers[pId] = {};
+      peers[pId].call = call;
+
       call.on('stream', (remoteStream) => {
-        document.getElementById('remoteVideo').srcObject = remoteStream;
-        setUIState('connected', '通話中');
+        peers[pId].stream = remoteStream;
+        addCameraTile(pId, remoteStream, peers[pId].userName || '参加者');
+        setupSpeakingDetector(pId, remoteStream);
+        setUIState('connected', `通話中: ${currentRoomName}`);
       });
+
       call.on('close', () => {
-        document.getElementById('remoteVideo').srcObject = null;
-        setUIState('waiting', '相手が切断しました (待機中)');
+        removePeer(pId);
       });
     }
 
     function setupConnEvents(conn) {
+      const pId = conn.peer;
+      if (!peers[pId]) peers[pId] = {};
+      peers[pId].conn = conn;
+
       conn.on('open', () => {
-        setUIState('connected', '通話中');
-        appendSystemMessage('相手と直接暗号化接続されました！');
-      });
-      conn.on('data', handleIncomingData);
-      conn.on('close', () => setUIState('waiting', '相手が退室しました'));
-    }
-
-    function setUIState(state, text) {
-      const badge = document.getElementById('statusBadge');
-      const statusText = document.getElementById('roomStatusText');
-      const joinBtn = document.getElementById('joinBtn');
-      const leaveBtn = document.getElementById('leaveBtn');
-
-      statusText.textContent = text;
-      badge.className = 'status-badge ' + state;
-
-      if (state === 'connected' || state === 'waiting') {
-        joinBtn.style.display = 'none';
-        leaveBtn.style.display = 'inline-block';
-        document.getElementById('roomNameInput').disabled = true;
-        document.getElementById('roomPassInput').disabled = true;
-      } else {
-        joinBtn.style.display = 'inline-block';
-        joinBtn.disabled = false;
-        leaveBtn.style.display = 'none';
-        document.getElementById('roomNameInput').disabled = false;
-        document.getElementById('roomPassInput').disabled = false;
-      }
-    }
-
-    function leaveRoom() {
-      if (currentCall) currentCall.close();
-      if (currentConn) currentConn.close();
-      if (peer) peer.destroy();
-
-      document.getElementById('remoteVideo').srcObject = null;
-      setUIState('', '未接続');
-      appendSystemMessage('退室しました。');
-    }
-
-    function copyInviteUrl() {
-      const room = document.getElementById('roomNameInput').value.trim();
-      const url = new URL(window.location.href);
-      if (room) url.searchParams.set('room', room);
-      navigator.clipboard.writeText(url.href).then(() => {
-        alert('招待URLをコピーしました！相手に送信してください。');
-      });
-    }
-
-    // --- 全画面（フルスクリーン）制御 ---
-    function toggleFullScreen() {
-      // main-containerごと全画面化することで、ボタン群もチャットも枠内に綺麗に残す
-      const target = document.documentElement;
-      if (!document.fullscreenElement) {
-        target.requestFullscreen().catch(err => {
-          alert(`全画面化エラー: ${err.message}`);
+        // 自分の名前・状態を自己紹介
+        conn.send({
+          type: 'intro',
+          userName: myUserName,
+          isMuted: !isMicOn,
+          isCamOff: !isCamOn
         });
-      } else {
-        document.exitFullscreen();
+
+        // もしホストなら、新参加者に「既存の全員のPeerIDリスト」を共有し、YouTubeの現在状態も教える
+        if (isHost) {
+          const peerIds = Object.keys(peers).filter(id => id !== pId);
+          conn.send({ type: 'mesh-members', members: peerIds });
+
+          if (isYtActive && ytPlayer && ytPlayer.getVideoData) {
+            conn.send({
+              type: 'yt-state',
+              videoId: ytPlayer.getVideoData().video_id,
+              time: ytPlayer.getCurrentTime(),
+              isPlaying: ytPlayer.getPlayerState() === YT.PlayerState.PLAYING
+            });
+          }
+        }
+      });
+
+      conn.on('data', (data) => handlePeerData(pId, data));
+
+      conn.on('close', () => removePeer(pId));
+    }
+
+    // --- メッシュデータ受信ルーティング ---
+    function handlePeerData(fromPeerId, data) {
+      switch (data.type) {
+        case 'intro':
+          peers[fromPeerId].userName = data.userName;
+          updateTileName(fromPeerId, data.userName);
+          updateUserListUI();
+          showToast(`${data.userName} さんが参加しました`);
+          speakText(`${data.userName}さんが参加しました`);
+          break;
+
+        case 'mesh-members':
+          // ホストから教えてもらった既存の全ピアに自分から接続してメッシュを完成させる
+          data.members.forEach(otherId => {
+            if (otherId !== myPeerId) connectToSinglePeer(otherId);
+          });
+          break;
+
+        case 'chat':
+          appendChatMessage(data.text, 'remote', data.userName);
+          speakText(`${data.userName}さん、${data.text}`);
+          break;
+
+        case 'status-update':
+          if (peers[fromPeerId]) {
+            peers[fromPeerId].isMuted = data.isMuted;
+            peers[fromPeerId].isCamOff = data.isCamOff;
+            updateTileIcons(fromPeerId, data.isMuted, data.isCamOff);
+            updateUserListUI();
+            if (data.muteChanged) {
+              speakText(`${peers[fromPeerId].userName}さんがマイクを${data.isMuted ? 'ミュート' : '解除'}しました`);
+            }
+          }
+          break;
+
+        case 'yt-load':
+          openYouTubeScreen(data.videoId);
+          break;
+
+        case 'yt-action':
+          handleRemoteYouTubeAction(data);
+          break;
+
+        case 'yt-state':
+          // 途中参加時
+          openYouTubeScreen(data.videoId);
+          setTimeout(() => {
+            if (ytPlayer && ytPlayer.seekTo) {
+              ytPlayer.seekTo(data.time, true);
+              if (data.isPlaying) ytPlayer.playVideo();
+            }
+          }, 1200);
+          break;
+
+        case 'file-meta':
+          handleFileMeta(data);
+          break;
+
+        case 'file-chunk':
+          handleFileChunk(data);
+          break;
       }
     }
 
-    document.addEventListener('fullscreenchange', () => {
-      const btn = document.getElementById('fullscreenBtn');
-      if (btn) {
-        const isFS = !!document.fullscreenElement;
-        btn.textContent = isFS ? '🗗 全画面解除' : '⛶ 全画面';
-        btn.classList.toggle('btn-active', isFS);
+    function removePeer(peerId) {
+      if (peers[peerId]) {
+        const name = peers[peerId].userName || '誰か';
+        showToast(`${name} さんが退室しました`);
+        speakText(`${name}さんが退出しました`);
+        delete peers[peerId];
       }
-    });
-
-    // --- メディアコントロール ---
-    function toggleMic() {
-      if (!localStream) return;
-      isMicOn = !isMicOn;
-      localStream.getAudioTracks().forEach(t => t.enabled = isMicOn);
-      const btn = document.getElementById('micBtn');
-      btn.textContent = isMicOn ? '🎤 マイクON' : '🔇 マイクOFF';
-      btn.classList.toggle('btn-danger', !isMicOn);
-    }
-
-    function toggleCam() {
-      if (!localStream) return;
-      isCamOn = !isCamOn;
-      localStream.getVideoTracks().forEach(t => t.enabled = isCamOn);
-      const btn = document.getElementById('camBtn');
-      btn.textContent = isCamOn ? '📷 カメラON' : '🚫 カメラOFF';
-      btn.classList.toggle('btn-danger', !isCamOn);
-    }
-
-    async function toggleScreenShare() {
-      if (!currentCall || !currentCall.peerConnection) return alert('通話中である必要があります');
-      const videoSender = currentCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-
-      if (!isScreenSharing) {
-        try {
-          screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-          const screenTrack = screenStream.getVideoTracks()[0];
-          if (videoSender) videoSender.replaceTrack(screenTrack);
-          document.getElementById('localVideo').srcObject = screenStream;
-
-          screenTrack.onended = () => stopScreenShare(videoSender);
-          isScreenSharing = true;
-          document.getElementById('shareScreenBtn').classList.add('btn-active');
-        } catch (e) { console.error(e); }
-      } else {
-        stopScreenShare(videoSender);
+      removeCameraTile(peerId);
+      updateUserListUI();
+      if (Object.keys(peers).length === 0 && !isHost) {
+        setUIState('waiting', '待機中');
       }
     }
 
-    function stopScreenShare(videoSender) {
-      if (screenStream) screenStream.getTracks().forEach(t => t.stop());
-      if (videoSender && localStream.getVideoTracks().length > 0) {
-        videoSender.replaceTrack(localStream.getVideoTracks()[0]);
-      }
-      document.getElementById('localVideo').srcObject = localStream;
-      isScreenSharing = false;
-      document.getElementById('shareScreenBtn').classList.remove('btn-active');
+    function broadcast(data) {
+      Object.keys(peers).forEach(id => {
+        if (peers[id].conn && peers[id].conn.open) {
+          peers[id].conn.send(data);
+        }
+      });
     }
 
-    // --- YouTube 同時視聴 ---
+    // --- カメラタイル ＆ 大画面フォーカス管理 ---
+    function addCameraTile(id, stream, name) {
+      if (document.getElementById(`tile-${id}`)) return;
+      const strip = document.getElementById('cameraStrip');
+
+      const tile = document.createElement('div');
+      tile.className = 'camera-tile';
+      tile.id = `tile-${id}`;
+      tile.onclick = () => focusVideo(id);
+
+      tile.innerHTML = `
+        <video id="vid-${id}" autoplay playsinline></video>
+        <div class="tile-badge">
+          <span id="name-${id}">${name}</span>
+          <span id="mic-${id}">🎤</span>
+        </div>
+      `;
+      strip.appendChild(tile);
+      document.getElementById(`vid-${id}`).srcObject = stream;
+
+      // 最初のリモートユーザーをメインステージにフォーカス
+      if (strip.children.length === 2) focusVideo(id);
+      updateUserListUI();
+    }
+
+    function removeCameraTile(id) {
+      const tile = document.getElementById(`tile-${id}`);
+      if (tile) tile.remove();
+    }
+
+    function updateTileName(id, name) {
+      const el = document.getElementById(`name-${id}`);
+      if (el) el.textContent = name;
+    }
+
+    function updateTileIcons(id, isMuted, isCamOff) {
+      const mic = document.getElementById(`mic-${id}`);
+      if (mic) mic.textContent = isMuted ? '🔇' : '🎤';
+      const vid = document.getElementById(`vid-${id}`);
+      if (vid) vid.style.opacity = isCamOff ? '0' : '1';
+    }
+
+    function focusVideo(id) {
+      document.querySelectorAll('.camera-tile').forEach(t => t.classList.remove('focused'));
+      const targetTile = document.getElementById(`tile-${id}`);
+      if (targetTile) targetTile.classList.add('focused');
+
+      const stageVideo = document.getElementById('stageVideo');
+      const ytContainer = document.getElementById('ytContainer');
+
+      ytContainer.style.display = 'none';
+      stageVideo.style.display = 'block';
+
+      if (id === 'local') {
+        stageVideo.srcObject = localStream;
+        stageVideo.style.transform = 'scaleX(-1)';
+      } else if (peers[id] && peers[id].stream) {
+        stageVideo.srcObject = peers[id].stream;
+        stageVideo.style.transform = 'none';
+      }
+    }
+
+    // --- 発話検知（喋っている人の枠が緑色に光る） ---
+    function setupSpeakingDetector(id, stream) {
+      try {
+        if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        if (stream.getAudioTracks().length === 0) return;
+
+        const src = audioContext.createMediaStreamSource(stream);
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        src.connect(analyser);
+
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+        function checkVolume() {
+          analyser.getByteFrequencyData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+          const avg = sum / dataArray.length;
+
+          const tile = document.getElementById(`tile-${id}`);
+          if (tile) {
+            tile.classList.toggle('speaking', avg > 22);
+          }
+          requestAnimationFrame(checkVolume);
+        }
+        checkVolume();
+      } catch (e) { console.warn('発話検知初期化失敗:', e); }
+    }
+
+    // --- YouTube 同時視聴 ＆ 自動再生ブロック対策 ---
     function onYouTubeIframeAPIReady() {
       ytPlayer = new YT.Player('player', {
         height: '100%',
         width: '100%',
         videoId: 'dQw4w9WgXcQ',
-        playerVars: { 'playsinline': 1, 'controls': 1 },
+        playerVars: { playsinline: 1, controls: 1, rel: 0 },
         events: {
           onReady: () => { isYtReady = true; },
           onStateChange: onPlayerStateChange
@@ -721,43 +990,240 @@
       });
     }
 
-    function toggleYouTubeMode() {
-      isYtActive = !isYtActive;
-      document.getElementById('yt-container').style.display = isYtActive ? 'block' : 'none';
-      document.getElementById('ytToggleBtn').classList.toggle('btn-active', isYtActive);
-    }
+    function openYouTubeScreen(videoId) {
+      isYtActive = true;
+      document.getElementById('stageVideo').style.display = 'none';
+      document.getElementById('ytContainer').style.display = 'block';
 
-    function parseYouTubeId(url) {
-      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-      const match = url.match(regExp);
-      return (match && match[2].length === 11) ? match[2] : url;
-    }
-
-    function loadAndSyncVideo() {
-      const url = document.getElementById('ytVideoUrl').value.trim();
-      const videoId = parseYouTubeId(url);
-      if (!videoId) return;
-
-      if (!isYtActive) toggleYouTubeMode();
-      if (isYtReady && ytPlayer.loadVideoById) {
+      if (isYtReady && ytPlayer && ytPlayer.loadVideoById) {
+        isRemoteAction = true;
         ytPlayer.loadVideoById(videoId);
-        sendData({ type: 'yt-load', videoId: videoId });
+        setTimeout(() => { isRemoteAction = false; }, 1000);
       }
-    }
-
-    function forceSyncVideoTime() {
-      if (!isYtReady || !ytPlayer) return;
-      sendData({ type: 'yt-action', action: 'seek', time: ytPlayer.getCurrentTime() });
     }
 
     function onPlayerStateChange(event) {
-      if (isRemoteAction || !currentConn || !currentConn.open) return;
+      if (isRemoteAction || Object.keys(peers).length === 0) return;
       const time = ytPlayer.getCurrentTime();
+
       if (event.data === YT.PlayerState.PLAYING) {
-        sendData({ type: 'yt-action', action: 'play', time: time });
+        broadcast({ type: 'yt-action', action: 'play', time: time });
       } else if (event.data === YT.PlayerState.PAUSED) {
-        sendData({ type: 'yt-action', action: 'pause', time: time });
+        broadcast({ type: 'yt-action', action: 'pause', time: time });
       }
+    }
+
+    function handleRemoteYouTubeAction(data) {
+      if (!isYtReady || !ytPlayer) return;
+      isRemoteAction = true;
+
+      if (Math.abs(ytPlayer.getCurrentTime() - data.time) > 1.5) {
+        ytPlayer.seekTo(data.time, true);
+      }
+
+      if (data.action === 'play') {
+        const playPromise = ytPlayer.playVideo();
+        // 自動再生ポリシーに引っかかって再生できない時のリカバリー
+        if (playPromise && playPromise.catch) {
+          playPromise.catch(() => {
+            ytPlayer.mute();
+            ytPlayer.playVideo();
+            document.getElementById('unmuteBanner').style.display = 'block';
+          });
+        }
+      } else if (data.action === 'pause') {
+        ytPlayer.pauseVideo();
+      }
+      setTimeout(() => { isRemoteAction = false; }, 800);
+    }
+
+    function forceUnmuteYouTube() {
+      if (ytPlayer) {
+        ytPlayer.unMute();
+        ytPlayer.setVolume(100);
+      }
+      document.getElementById('unmuteBanner').style.display = 'none';
+    }
+
+    // --- YouTube 検索モーダル ---
+    function openYouTubeModal() {
+      document.getElementById('ytModal').style.display = 'flex';
+    }
+    function closeYouTubeModal() {
+      document.getElementById('ytModal').style.display = 'none';
+    }
+
+    function parseYouTubeId(input) {
+      const match = input.match(/(youtu\.be\/|youtube\.com\/(watch\?(.*&)?v=|(embed|v)\/))([^?&"'>]+)/);
+      return match ? match[5] : input;
+    }
+
+    async function searchYouTube() {
+      const q = document.getElementById('ytSearchInput').value.trim();
+      if (!q) return;
+
+      const directId = parseYouTubeId(q);
+      if (directId.length === 11) {
+        selectAndBroadcastVideo(directId, '指定された動画');
+        closeYouTubeModal();
+        return;
+      }
+
+      const resultsBox = document.getElementById('ytSearchResults');
+      resultsBox.innerHTML = '<div style="text-align:center; padding:20px;">検索中...</div>';
+
+      try {
+        // 公開Invidious APIインスタンスを利用したCORS対応検索
+        const res = await fetch(`https://inv.nadeko.net/api/v1/search?q=${encodeURIComponent(q)}&type=video`);
+        const items = await res.json();
+
+        resultsBox.innerHTML = '';
+        items.slice(0, 10).forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'search-item';
+          div.innerHTML = `
+            <img src="${item.videoThumbnails ? item.videoThumbnails[0].url : ''}">
+            <div style="flex:1; overflow:hidden;">
+              <div style="font-size:0.85rem; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.title}</div>
+              <div style="font-size:0.75rem; color:var(--md-sys-color-outline);">${item.author}</div>
+            </div>
+          `;
+          div.onclick = () => {
+            selectAndBroadcastVideo(item.videoId, item.title);
+            closeYouTubeModal();
+          };
+          resultsBox.appendChild(div);
+        });
+      } catch (err) {
+        resultsBox.innerHTML = `
+          <div style="text-align:center; padding:10px; color:var(--md-sys-color-error);">
+            検索APIが一時的に混雑しています。上部に直接動画URLを貼り付けて「検索」を押してください。
+          </div>
+        `;
+      }
+    }
+
+    function selectAndBroadcastVideo(videoId, title) {
+      openYouTubeScreen(videoId);
+      broadcast({ type: 'yt-load', videoId: videoId });
+      showToast(`YouTube: 「${title}」を同期再生`);
+      speakText(`ユーチューブが読み込まれました`);
+    }
+
+    // --- チャット読み上げ (ずんだもん風 / 標準 / OFF) ---
+    function cycleTtsMode() {
+      const btn = document.getElementById('ttsToggleBtn');
+      if (ttsMode === 'zundamon') {
+        ttsMode = 'standard';
+        btn.textContent = '🗣 読み上げ: 標準';
+      } else if (ttsMode === 'standard') {
+        ttsMode = 'off';
+        btn.textContent = '🔇 読み上げ: OFF';
+      } else {
+        ttsMode = 'zundamon';
+        btn.textContent = '🗣 読み上げ: ずんだもん';
+      }
+      showToast(`読み上げモード: ${ttsMode}`);
+    }
+
+    function speakText(text) {
+      if (ttsMode === 'off' || !window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+
+      const uttr = new SpeechSynthesisUtterance(text);
+      uttr.lang = 'ja-JP';
+
+      if (ttsMode === 'zundamon') {
+        // ずんだもん風（高ピッチ・やや早口）
+        uttr.pitch = 1.75;
+        uttr.rate = 1.25;
+      } else {
+        uttr.pitch = 1.0;
+        uttr.rate = 1.0;
+      }
+
+      const voices = window.speechSynthesis.getVoices();
+      const jaVoice = voices.find(v => v.lang.includes('ja') || v.lang.includes('JP'));
+      if (jaVoice) uttr.voice = jaVoice;
+
+      window.speechSynthesis.speak(uttr);
+    }
+
+    // --- メディアコントロール (ミュート・画面共有) ---
+    function toggleMic() {
+      if (!localStream) return;
+      isMicOn = !isMicOn;
+      localStream.getAudioTracks().forEach(t => t.enabled = isMicOn);
+
+      const btn = document.getElementById('micBtn');
+      btn.textContent = isMicOn ? '🎤 マイクON' : '🔇 マイクOFF';
+      btn.classList.toggle('btn-danger', !isMicOn);
+      document.getElementById('localTileMic').textContent = isMicOn ? '🎤' : '🔇';
+
+      broadcast({ type: 'status-update', isMuted: !isMicOn, isCamOff: !isCamOn, muteChanged: true });
+    }
+
+    function toggleCam() {
+      if (!localStream) return;
+      isCamOn = !isCamOn;
+      localStream.getVideoTracks().forEach(t => t.enabled = isCamOn);
+
+      const btn = document.getElementById('camBtn');
+      btn.textContent = isCamOn ? '📷 カメラON' : '🚫 カメラOFF';
+      btn.classList.toggle('btn-danger', !isCamOn);
+      document.getElementById('localVideo').style.opacity = isCamOn ? '1' : '0';
+
+      broadcast({ type: 'status-update', isMuted: !isMicOn, isCamOff: !isCamOn, muteChanged: false });
+    }
+
+    async function toggleScreenShare() {
+      // Android / iPad などの非対応ブラウザ判定
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        showToast('お使いの端末（スマホ/タブレット等）はブラウザの仕様により画面共有に非対応です', 'error');
+        return;
+      }
+
+      if (!isScreenSharing) {
+        try {
+          screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+          const screenTrack = screenStream.getVideoTracks()[0];
+
+          // 全ピアの映像トラックを画面共有に差し替え
+          Object.values(peers).forEach(p => {
+            if (p.call && p.call.peerConnection) {
+              const sender = p.call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+              if (sender) sender.replaceTrack(screenTrack);
+            }
+          });
+
+          document.getElementById('localVideo').srcObject = screenStream;
+          focusVideo('local');
+
+          screenTrack.onended = stopScreenShare;
+          isScreenSharing = true;
+          document.getElementById('shareScreenBtn').classList.add('btn-active');
+        } catch (e) {
+          if (e.name !== 'NotAllowedError') showToast('画面共有に失敗しました: ' + e.message, 'error');
+        }
+      } else {
+        stopScreenShare();
+      }
+    }
+
+    function stopScreenShare() {
+      if (screenStream) screenStream.getTracks().forEach(t => t.stop());
+      const localVideoTrack = localStream.getVideoTracks()[0];
+
+      Object.values(peers).forEach(p => {
+        if (p.call && p.call.peerConnection && localVideoTrack) {
+          const sender = p.call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+          if (sender) sender.replaceTrack(localVideoTrack);
+        }
+      });
+
+      document.getElementById('localVideo').srcObject = localStream;
+      isScreenSharing = false;
+      document.getElementById('shareScreenBtn').classList.remove('btn-active');
     }
 
     // --- チャット ---
@@ -765,187 +1231,168 @@
       const input = document.getElementById('chatInput');
       const text = input.value.trim();
       if (!text) return;
-      sendData({ type: 'chat', text: text });
-      appendMessage(text, 'local');
+
+      broadcast({ type: 'chat', text: text, userName: myUserName });
+      appendChatMessage(text, 'local', myUserName);
       input.value = '';
     }
 
-    function appendMessage(text, sender) {
+    function appendChatMessage(text, senderType, senderName) {
       const box = document.getElementById('messagesContainer');
       const msg = document.createElement('div');
-      msg.className = `message ${sender}`;
-      msg.textContent = text;
+      msg.className = `msg ${senderType}`;
+      msg.innerHTML = `
+        ${senderType === 'remote' ? `<div class="msg-sender">${senderName}</div>` : ''}
+        <div>${text}</div>
+      `;
       box.appendChild(msg);
       box.scrollTop = box.scrollHeight;
     }
 
-    function appendSystemMessage(text) {
-      appendMessage(text, 'system');
-    }
-
-    // --- ファイル転送 ---
-    const CHUNK_SIZE = 16 * 1024;
+    // --- ファイル共有 (16KB Chunk分割P2P) ---
     const receivedFiles = {};
-
     function handleFileSelect(e) {
-      const file = e.target.files[0];
-      if (file) startSendFile(file);
+      const f = e.target.files[0];
+      if (f) sendFileToPeers(f);
     }
-
     function handleDropFile(e) {
       e.preventDefault();
-      const file = e.dataTransfer.files[0];
-      if (file) startSendFile(file);
+      const f = e.dataTransfer.files[0];
+      if (f) sendFileToPeers(f);
     }
 
-    function startSendFile(file) {
-      if (!currentConn || !currentConn.open) return alert('相手と接続されていません');
+    function sendFileToPeers(file) {
+      if (Object.keys(peers).length === 0) return alert('接続中の相手がいません');
+      const fileId = Math.random().toString(36).substring(2, 8);
+      const CHUNK = 16 * 1024;
+      const total = Math.ceil(file.size / CHUNK);
 
-      const fileId = Math.random().toString(36).substring(2, 9);
-      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-      addFileUI(fileId, file.name, file.size, '送信中');
+      broadcast({ type: 'file-meta', id: fileId, name: file.name, size: file.size, mime: file.type, total: total });
+      let current = 0;
+      const reader = new FileReader();
 
-      sendData({
-        type: 'file-meta',
-        id: fileId,
-        name: file.name,
-        size: file.size,
-        mime: file.type,
-        totalChunks: totalChunks
+      function readSlice() {
+        const slice = file.slice(current * CHUNK, Math.min((current + 1) * CHUNK, file.size));
+        reader.readAsArrayBuffer(slice);
+      }
+      reader.onload = (e) => {
+        broadcast({ type: 'file-chunk', id: fileId, index: current, data: e.target.result });
+        current++;
+        if (current < total) setTimeout(readSlice, 2);
+        else showToast(`ファイル送信完了: ${file.name}`);
+      };
+      readSlice();
+    }
+
+    function handleFileMeta(data) {
+      receivedFiles[data.id] = { name: data.name, size: data.size, mime: data.mime, total: data.total, count: 0, chunks: [] };
+      showToast(`ファイル受信中: ${data.name}`);
+    }
+
+    function handleFileChunk(data) {
+      const f = receivedFiles[data.id];
+      if (!f) return;
+      f.chunks[data.index] = data.data;
+      f.count++;
+      if (f.count === f.total) {
+        const blob = new Blob(f.chunks, { type: f.mime || 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        addDownloadItem(f.name, url);
+        delete receivedFiles[data.id];
+      }
+    }
+
+    function addDownloadItem(name, url) {
+      const container = document.getElementById('fileItemsList');
+      const div = document.createElement('div');
+      div.style.cssText = 'background:var(--md-sys-color-surface-container); padding:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;';
+      div.innerHTML = `
+        <span style="font-size:0.85rem; font-weight:bold;">${name}</span>
+        <a href="${url}" download="${name}" class="btn btn-primary" style="text-decoration:none; padding:4px 10px; font-size:0.75rem;">DL</a>
+      `;
+      container.prepend(div);
+      switchSidebarTab('file');
+    }
+
+    // --- 参加者一覧UI更新 ---
+    function updateUserListUI() {
+      const container = document.getElementById('userListContainer');
+      container.innerHTML = '';
+
+      // 自分
+      container.innerHTML += `
+        <div class="user-item">
+          <span>${myUserName} (自分) ${isHost ? '👑' : ''}</span>
+          <span>${isMicOn ? '🎤' : '🔇'}</span>
+        </div>
+      `;
+
+      // 他のピア
+      Object.keys(peers).forEach(id => {
+        const p = peers[id];
+        container.innerHTML += `
+          <div class="user-item">
+            <span>${p.userName || '参加者'}</span>
+            <span>${p.isMuted ? '🔇' : '🎤'}</span>
+          </div>
+        `;
       });
 
-      let currentChunk = 0;
-      const fileReader = new FileReader();
-
-      function readNext() {
-        const start = currentChunk * CHUNK_SIZE;
-        const end = Math.min(start + CHUNK_SIZE, file.size);
-        fileReader.readAsArrayBuffer(file.slice(start, end));
-      }
-
-      fileReader.onload = (e) => {
-        sendData({
-          type: 'file-chunk',
-          id: fileId,
-          index: currentChunk,
-          data: e.target.result
-        });
-        currentChunk++;
-        updateProgress(fileId, (currentChunk / totalChunks) * 100);
-
-        if (currentChunk < totalChunks) {
-          setTimeout(readNext, 2);
-        } else {
-          setFileStatus(fileId, '送信完了');
-        }
-      };
-      readNext();
+      document.getElementById('userCount').textContent = Object.keys(peers).length + 1;
     }
 
-    function handleIncomingData(data) {
-      switch (data.type) {
-        case 'chat':
-          appendMessage(data.text, 'remote');
-          break;
+    // --- ネットワーク再接続ハンドラ ---
+    function handleNetworkReconnected() {
+      showToast('ネットワークが復旧しました。接続を再同期中...', 'success');
+      if (peer && peer.disconnected) peer.reconnect();
+    }
 
-        case 'yt-load':
-          if (!isYtActive) toggleYouTubeMode();
-          if (isYtReady && ytPlayer.loadVideoById) {
-            isRemoteAction = true;
-            ytPlayer.loadVideoById(data.videoId);
-            setTimeout(() => { isRemoteAction = false; }, 1000);
-          }
-          break;
+    // --- UI切り替え ＆ ユーティリティ ---
+    function setUIState(state, text) {
+      document.getElementById('statusDot').className = 'status-dot ' + state;
+      document.getElementById('roomStatusText').textContent = text;
+      const joined = (state === 'connected' || state === 'waiting');
+      document.getElementById('joinBtn').style.display = joined ? 'none' : 'inline-flex';
+      document.getElementById('leaveBtn').style.display = joined ? 'inline-flex' : 'none';
+      document.getElementById('roomNameInput').disabled = joined;
+      document.getElementById('userNameInput').disabled = joined;
+    }
 
-        case 'yt-action':
-          if (!isYtReady || !ytPlayer) return;
-          isRemoteAction = true;
-          if (Math.abs(ytPlayer.getCurrentTime() - data.time) > 1.5) {
-            ytPlayer.seekTo(data.time, true);
-          }
-          if (data.action === 'play') ytPlayer.playVideo();
-          if (data.action === 'pause') ytPlayer.pauseVideo();
-          setTimeout(() => { isRemoteAction = false; }, 800);
-          break;
+    function leaveMeshRoom() {
+      if (peer) peer.destroy();
+      location.reload();
+    }
 
-        case 'file-meta':
-          receivedFiles[data.id] = {
-            name: data.name,
-            size: data.size,
-            mime: data.mime,
-            total: data.totalChunks,
-            received: 0,
-            chunks: []
-          };
-          addFileUI(data.id, data.name, data.size, '受信中');
-          break;
+    function copyInviteUrl() {
+      const room = document.getElementById('roomNameInput').value.trim();
+      const url = new URL(window.location.href);
+      if (room) url.searchParams.set('room', room);
+      navigator.clipboard.writeText(url.href).then(() => showToast('招待URLをコピーしました！'));
+    }
 
-        case 'file-chunk':
-          const f = receivedFiles[data.id];
-          if (!f) return;
-          f.chunks[data.index] = data.data;
-          f.received++;
-          updateProgress(data.id, (f.received / f.total) * 100);
+    function switchSidebarTab(tab) {
+      ['chat', 'users', 'file'].forEach(t => {
+        document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}`).classList.toggle('active', t === tab);
+        document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}Btn`).classList.toggle('active', t === tab);
+      });
+    }
 
-          if (f.received === f.total) {
-            const blob = new Blob(f.chunks, { type: f.mime || 'application/octet-stream' });
-            enableFileDownload(data.id, URL.createObjectURL(blob), f.name);
-            delete receivedFiles[data.id];
-          }
-          break;
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(e => alert(e.message));
+      } else {
+        document.exitFullscreen();
       }
     }
 
-    function sendData(data) {
-      if (currentConn && currentConn.open) {
-        currentConn.send(data);
-      }
-    }
-
-    function addFileUI(id, name, size, statusText) {
-      const container = document.getElementById('fileList');
-      const item = document.createElement('div');
-      item.id = `file-${id}`;
-      item.className = 'file-item';
-      item.innerHTML = `
-        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-          <span style="font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:160px;">${name}</span>
-          <span id="status-${id}" style="color:var(--text-sub);">${statusText}</span>
-        </div>
-        <div style="font-size:0.75rem; color:var(--text-sub);">${(size / 1024 / 1024).toFixed(2)} MB</div>
-        <div class="progress-bar-bg"><div id="progress-${id}" class="progress-bar"></div></div>
-      `;
-      container.prepend(item);
-    }
-
-    function updateProgress(id, percent) {
-      const p = document.getElementById(`progress-${id}`);
-      if (p) p.style.width = `${percent}%`;
-    }
-
-    function setFileStatus(id, text) {
-      const s = document.getElementById(`status-${id}`);
-      if (s) s.textContent = text;
-    }
-
-    function enableFileDownload(id, url, name) {
-      setFileStatus(id, '受信完了');
-      const p = document.getElementById(`progress-${id}`);
-      if (p) p.style.background = 'var(--accent)';
-      const item = document.getElementById(`file-${id}`);
-      const btn = document.createElement('a');
-      btn.href = url;
-      btn.download = name;
-      btn.textContent = 'ダウンロード';
-      btn.style.cssText = 'display:inline-block; margin-top:6px; font-size:0.75rem; background:var(--accent); color:#fff; padding:3px 8px; border-radius:4px; text-decoration:none;';
-      item.appendChild(btn);
-    }
-
-    function switchTab(tab) {
-      document.getElementById('chatContent').style.display = tab === 'chat' ? 'flex' : 'none';
-      document.getElementById('fileContent').style.display = tab === 'file' ? 'flex' : 'none';
-      document.getElementById('tabChatBtn').classList.toggle('active', tab === 'chat');
-      document.getElementById('tabFileBtn').classList.toggle('active', tab === 'file');
+    function showToast(text, type = 'normal') {
+      const c = document.getElementById('toastContainer');
+      const t = document.createElement('div');
+      t.className = 'toast';
+      if (type === 'error') t.style.background = 'var(--md-sys-color-error-container)';
+      t.textContent = text;
+      c.appendChild(t);
+      setTimeout(() => t.remove(), 4000);
     }
   </script>
 </body>
