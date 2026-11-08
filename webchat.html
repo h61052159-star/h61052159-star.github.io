@@ -8,8 +8,10 @@
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <!-- YouTube IFrame API -->
   <script src="https://www.youtube.com/iframe_api"></script>
-  <!-- Google Material Symbols Outlined -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <!-- Google Material Symbols (Preload警告対策済み) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" />
 
   <style>
     :root {
@@ -192,10 +194,24 @@
 
     #stageVideo { width: 100%; height: 100%; object-fit: contain; }
 
+    /* YouTubeコンテナ: display: none ではなく visibility/opacity でサイズを常時100%維持 */
     #ytContainer {
       position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      display: none; z-index: 5; background: #000;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 5;
+      background: #000;
+      visibility: hidden;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    #ytContainer.active {
+      visibility: visible;
+      opacity: 1;
+      pointer-events: auto;
     }
     #player { width: 100%; height: 100%; }
 
@@ -285,7 +301,6 @@
       gap: 3px;
     }
 
-    /* 音量調整バー */
     .volume-toolbar {
       flex-shrink: 0;
       background: var(--md-surface-cnt);
@@ -612,7 +627,6 @@
         </div>
       </div>
 
-      <!-- 下部カメラタイルバー -->
       <div class="camera-strip" id="cameraStrip">
         <div class="camera-tile local focused" id="tile-local" onclick="focusVideo('local')">
           <video id="localVideo" autoplay playsinline muted></video>
@@ -623,7 +637,6 @@
         </div>
       </div>
 
-      <!-- 音量バランス調整ツールバー -->
       <div class="volume-toolbar">
         <div class="vol-item">
           <span class="material-symbols-outlined" style="font-size:16px;">smart_display</span>
@@ -639,7 +652,6 @@
         </div>
       </div>
 
-      <!-- コントロールバー -->
       <div class="controls-bar">
         <button id="micBtn" class="btn btn-tonal" onclick="toggleMic()" title="マイクON/OFF">
           <span class="material-symbols-outlined">mic</span>
@@ -717,7 +729,6 @@
     </div>
   </div>
 
-  <!-- YouTube検索 モーダル -->
   <div class="modal-overlay" id="ytModal">
     <div class="modal-card">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -744,7 +755,6 @@
     </div>
   </div>
 
-  <!-- スマホ用 画面共有代替メニュー -->
   <div class="modal-overlay" id="mobileShareModal">
     <div class="modal-card" style="max-width:380px;">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -784,7 +794,6 @@
   <script>
     const YT_API_KEY = "AIzaSyBBZjIxmoP0ep6QgT1a4440dczYwqV278I";
 
-    // STUNサーバー明示設定
     const PEER_CONFIG = {
       config: {
         iceServers: [
@@ -809,14 +818,11 @@
     let isCamOn = true;
     let isScreenSharing = false;
 
-    // タブ閉鎖時のYouTube強制停止防止フラグ
     let isUnloading = false;
 
-    // 擬似画面共有
     let mockScreenCanvas = null;
     let mockScreenTimer = null;
 
-    // YouTube / ステージ
     let ytPlayer = null;
     let isYtReady = false;
     let isRemoteAction = false;
@@ -824,9 +830,7 @@
     let currentStageMode = 'camera';
     let currentYtVolume = 40;
 
-    // オーディオコンテキスト & 通話ゲイン（音量ブースト）
     let audioContext = null;
-    let callGainNode = null;
     let currentCallGain = 1.2;
 
     let isTtsOn = true;
@@ -851,14 +855,17 @@
         }
       });
 
-      // タブ閉鎖時の安全な処理（誤爆停止を防止）
       window.addEventListener('beforeunload', () => {
         isUnloading = true;
         if (peer && !peer.destroyed) peer.destroy();
       });
+
+      // YouTube APIの先行ロード完了チェック
+      if (window.YT && window.YT.Player) {
+        initYouTubePlayer();
+      }
     });
 
-    // 安全なダミーストリーム生成（マイクやカメラがないPC用）
     function createDummyMediaStream() {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const osc = ctx.createOscillator();
@@ -895,7 +902,6 @@
           const dummy = createDummyMediaStream();
           localStream.addTrack(dummy.getVideoTracks()[0]);
         } catch (e) {
-          // マイクもカメラもないPC：ダミーストリームで完全動作
           localStream = createDummyMediaStream();
           isMicOn = false;
           isCamOn = false;
@@ -907,7 +913,7 @@
 
     async function getRoomHostId(roomName) {
       const enc = new TextEncoder();
-      const data = enc.encode(`p2p_mesh_room_v9:${roomName.trim()}`);
+      const data = enc.encode(`p2p_mesh_room_v10:${roomName.trim()}`);
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const key = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
@@ -1027,7 +1033,6 @@
       call.on('close', () => removePeer(pId));
     }
 
-    // 音声ブースト（会話音量増幅）処理
     function setupAudioBoost(id, stream) {
       try {
         if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -1371,7 +1376,7 @@
       const stageVideo = document.getElementById('stageVideo');
       const ytContainer = document.getElementById('ytContainer');
 
-      ytContainer.style.display = 'none';
+      ytContainer.classList.remove('active');
       stageVideo.style.display = 'block';
 
       if (id === 'local') {
@@ -1391,7 +1396,7 @@
     function switchToYouTubeStage() {
       currentStageMode = 'youtube';
       document.getElementById('stageVideo').style.display = 'none';
-      document.getElementById('ytContainer').style.display = 'block';
+      document.getElementById('ytContainer').classList.add('active');
       document.getElementById('switchToYtBtn').style.display = 'none';
       document.querySelectorAll('.camera-tile').forEach(t => t.classList.remove('focused'));
     }
@@ -1430,7 +1435,6 @@
       } catch (e) {}
     }
 
-    // --- 音量調整ロジック ---
     function changeYouTubeVolume(val) {
       currentYtVolume = val;
       document.getElementById('ytVolVal').textContent = `${val}%`;
@@ -1449,21 +1453,42 @@
       });
     }
 
-    // --- YouTube 同時視聴 ---
-    function onYouTubeIframeAPIReady() {
+    // --- YouTube 同時視聴 (Cookie制限回避 & エラーハンドリング) ---
+    function initYouTubePlayer() {
+      if (ytPlayer || !window.YT || !window.YT.Player) return;
       ytPlayer = new YT.Player('player', {
+        host: 'https://www.youtube-nocookie.com', // サードパーティCookieブロック対策
         height: '100%',
         width: '100%',
         videoId: 'dQw4w9WgXcQ',
-        playerVars: { playsinline: 1, controls: 1, rel: 0 },
+        playerVars: {
+          playsinline: 1,
+          controls: 1,
+          rel: 0,
+          enablejsapi: 1,
+          origin: (window.location.origin && window.location.origin !== 'null') ? window.location.origin : undefined
+        },
         events: {
           onReady: (e) => {
             isYtReady = true;
             e.target.setVolume(currentYtVolume);
           },
-          onStateChange: onPlayerStateChange
+          onStateChange: onPlayerStateChange,
+          onError: onPlayerError
         }
       });
+    }
+
+    window.onYouTubeIframeAPIReady = function() {
+      initYouTubePlayer();
+    };
+
+    function onPlayerError(e) {
+      if (e.data === 101 || e.data === 150) {
+        showToast('この動画は外部サイトでの再生が制限されています', 'error');
+      } else if (e.data === 100 || e.data === 2) {
+        showToast('動画の読み込みに失敗しました (削除またはURL無効)', 'error');
+      }
     }
 
     function openYouTubeScreen(videoId) {
@@ -1479,7 +1504,6 @@
     }
 
     function onPlayerStateChange(event) {
-      // 退室中・リモート指示中の誤爆停止を完全にブロック
       if (isUnloading || isRemoteAction || Object.keys(peers).length === 0) return;
       const time = ytPlayer.getCurrentTime();
 
