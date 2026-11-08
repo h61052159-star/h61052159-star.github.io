@@ -199,7 +199,6 @@
     }
     #player { width: 100%; height: 100%; }
 
-    /* YouTube復帰用 フローティングピルボタン */
     .switch-to-yt-banner {
       position: absolute;
       top: 14px;
@@ -575,7 +574,6 @@
           <span class="material-symbols-outlined">volume_up</span> タップで音声再生
         </div>
 
-        <!-- YouTube画面に戻るフローティングボタン -->
         <div id="switchToYtBtn" class="switch-to-yt-banner" onclick="switchToYouTubeStage()">
           <span class="material-symbols-outlined">smart_display</span> YouTube画面に戻る
         </div>
@@ -704,8 +702,8 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <script>
-    // --- YouTube Data API v3 Key ---
-    const YT_API_KEY = atob("QUl6YVN5QkJabkl4bW9QMGVwNlFnVDFhNDQ0MGRjell3cVZ4MjhJ"); // 提供キーを格納
+    // YouTube Data API v3 Key (提供キー)
+    const YT_API_KEY = "AIzaSyBBZjIxmoP0ep6QgT1a4440dczYwqV278I";
 
     let myPeerId = null;
     let myUserName = 'ゲスト';
@@ -727,7 +725,7 @@
     let isYtReady = false;
     let isRemoteAction = false;
     let isYtLoaded = false;
-    let currentStageMode = 'camera'; // 'youtube' | 'camera'
+    let currentStageMode = 'camera';
 
     let audioContext = null;
 
@@ -747,7 +745,6 @@
       if (params.get('room')) document.getElementById('roomNameInput').value = params.get('room');
       document.getElementById('userNameInput').value = 'ゲスト' + Math.floor(Math.random() * 900 + 100);
 
-      // バックグラウンドタブ復帰時の切断防止
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
           if (peer && peer.disconnected) peer.reconnect();
@@ -780,7 +777,7 @@
 
     async function getRoomHostId(roomName) {
       const enc = new TextEncoder();
-      const data = enc.encode(`p2p_mesh_room_v6:${roomName.trim()}`);
+      const data = enc.encode(`p2p_mesh_room_v7:${roomName.trim()}`);
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const key = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
@@ -810,7 +807,7 @@
         myPeerId = id;
         setupPeerCommon();
         setUIState('waiting', `部屋: ${currentRoomName}`);
-        showToast('部屋を作成しました');
+        showToast('部屋を作成しました (ホスト)');
         updateUserListUI();
       });
 
@@ -834,13 +831,12 @@
         setUIState('waiting', `部屋: ${currentRoomName}`);
         connectToSinglePeer(hostId);
 
-        // ホスト不在（ゾンビID）の自動フェイルオーバー検知
+        // ホスト未応答（ゾンビID）時の自動昇格フォールバック
         setTimeout(() => {
           if (Object.keys(peers).length === 0 && !isHost) {
-            console.log('ホスト未応答のため自身がホストへ昇格を試みます');
             tryAsHost(hostId);
           }
-        }, 4500);
+        }, 4000);
       });
 
       peer.on('error', () => {
@@ -849,7 +845,6 @@
     }
 
     function setupPeerCommon() {
-      // ネットワーク切断時は裏で静かに再接続（トースト非表示）
       peer.on('disconnected', () => {
         if (!peer.destroyed) peer.reconnect();
       });
@@ -900,6 +895,7 @@
         conn.send({
           type: 'intro',
           userName: myUserName,
+          isHost: isHost,
           isMuted: !isMicOn,
           isCamOff: !isCamOn
         });
@@ -927,6 +923,7 @@
       switch (data.type) {
         case 'intro':
           peers[fromPeerId].userName = data.userName;
+          peers[fromPeerId].isHost = !!data.isHost;
           updateTileName(fromPeerId, data.userName);
           updateUserListUI();
           showToast(`${data.userName} が参加`);
@@ -982,6 +979,10 @@
           handleVoteKickSuccess(data);
           break;
 
+        case 'host-migrated':
+          handleHostMigrated(data.newHostId, data.newHostName);
+          break;
+
         case 'file-meta':
           handleFileMeta(data);
           break;
@@ -990,6 +991,41 @@
           handleFileChunk(data);
           break;
       }
+    }
+
+    // --- ホスト自動繰り上げ (リーダー自動選出) ---
+    function checkAndElectNewHost(removedPeerId) {
+      const wasHost = (peers[removedPeerId] && peers[removedPeerId].isHost) || removedPeerId.endsWith('-host');
+      if (!wasHost && !isHost) return;
+
+      const remainingPeerIds = [myPeerId, ...Object.keys(peers).filter(id => id !== removedPeerId && !kickedPeers.has(id))];
+      remainingPeerIds.sort(); // 決定論的ソート（全員が同一の参加者を新ホストとして選定）
+
+      const newHostId = remainingPeerIds[0];
+
+      if (newHostId === myPeerId) {
+        if (!isHost) {
+          isHost = true;
+          broadcast({ type: 'host-migrated', newHostId: myPeerId, newHostName: myUserName });
+          handleHostMigrated(myPeerId, myUserName);
+        }
+      }
+    }
+
+    function handleHostMigrated(newHostId, newHostName) {
+      Object.keys(peers).forEach(id => {
+        peers[id].isHost = (id === newHostId);
+      });
+      if (newHostId === myPeerId) {
+        isHost = true;
+        showToast('あなたが新しいホストに繰り上がりました 👑');
+        queueFastZundamonSpeech('ホストに昇格したのだ');
+      } else {
+        isHost = false;
+        showToast(`${newHostName} さんが新ホストになりました 👑`);
+        queueFastZundamonSpeech(`${newHostName}さんが新しいホストになったのだ`);
+      }
+      updateUserListUI();
     }
 
     // --- 投票キック ---
@@ -1115,6 +1151,7 @@
     }
 
     function removePeer(peerId) {
+      checkAndElectNewHost(peerId);
       if (peers[peerId]) delete peers[peerId];
       removeCameraTile(peerId);
       updateUserListUI();
@@ -1170,7 +1207,6 @@
       if (vid) vid.style.opacity = isCamOff ? '0' : '1';
     }
 
-    // カメラをメインステージにフォーカス
     function focusVideo(id) {
       currentStageMode = 'camera';
       document.querySelectorAll('.camera-tile').forEach(t => t.classList.remove('focused'));
@@ -1191,14 +1227,12 @@
         stageVideo.style.transform = 'none';
       }
 
-      // YouTube動画が存在する場合は「YouTubeに戻る」ボタンを表示
       const returnBtn = document.getElementById('switchToYtBtn');
       if (isYtLoaded) {
         returnBtn.style.display = 'inline-flex';
       }
     }
 
-    // YouTube画面に戻る
     function switchToYouTubeStage() {
       currentStageMode = 'youtube';
       document.getElementById('stageVideo').style.display = 'none';
@@ -1316,7 +1350,7 @@
       return match ? match[5] : input;
     }
 
-    // Google公式 YouTube Data API v3 による動画検索
+    // Google公式 YouTube Data API v3 による直接検索
     async function searchYouTube() {
       const q = document.getElementById('ytSearchInput').value.trim();
       if (!q) return;
@@ -1329,12 +1363,16 @@
       }
 
       const resultsBox = document.getElementById('ytSearchResults');
-      resultsBox.innerHTML = '<div style="text-align:center; padding:16px;">公式APIから検索中...</div>';
+      resultsBox.innerHTML = '<div style="text-align:center; padding:16px;">検索中...</div>';
 
       try {
         const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=10&q=${encodeURIComponent(q)}&key=${YT_API_KEY}`;
         const res = await fetch(url);
         const data = await res.json();
+
+        if (!res.ok || data.error) {
+          throw new Error(data.error ? data.error.message : 'APIエラー');
+        }
 
         if (!data.items || data.items.length === 0) {
           resultsBox.innerHTML = '<div style="text-align:center; padding:14px; color:var(--md-error);">動画が見つかりませんでした</div>';
@@ -1364,7 +1402,12 @@
           resultsBox.appendChild(div);
         });
       } catch (err) {
-        resultsBox.innerHTML = '<div style="text-align:center; padding:14px; color:var(--md-error);">検索に失敗しました。URLを直接入力してください。</div>';
+        resultsBox.innerHTML = `
+          <div style="text-align:center; padding:14px;">
+            <p style="color:var(--md-error); font-size:0.82rem; margin-bottom:8px;">検索に失敗しました (${err.message})</p>
+            <p style="font-size:0.75rem; color:var(--md-outline);">YouTube動画のURLを直接貼り付けて検索してください。</p>
+          </div>
+        `;
       }
     }
 
@@ -1590,16 +1633,17 @@
 
       container.innerHTML += `
         <div class="user-item">
-          <span>${myUserName} (自分)</span>
+          <span>${myUserName} (自分) ${isHost ? '👑' : ''}</span>
           <span class="material-symbols-outlined" style="font-size:18px;">${isMicOn ? 'mic' : 'mic_off'}</span>
         </div>
       `;
 
       Object.keys(peers).forEach(id => {
         const p = peers[id];
+        const hostBadge = p.isHost ? ' 👑' : '';
         container.innerHTML += `
           <div class="user-item">
-            <span>${p.userName || '参加者'}</span>
+            <span>${p.userName || '参加者'}${hostBadge}</span>
             <div style="display:flex; align-items:center; gap:6px;">
               <span class="material-symbols-outlined" style="font-size:18px;">${p.isMuted ? 'mic_off' : 'mic'}</span>
               <button class="btn btn-danger btn-xs" onclick="startKickVote('${id}')" title="投票キック">
