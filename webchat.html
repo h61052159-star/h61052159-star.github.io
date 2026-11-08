@@ -10,8 +10,8 @@
   <script src="https://www.youtube.com/iframe_api"></script>
   <!-- Google Material Symbols -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
 
   <style>
     :root {
@@ -161,22 +161,9 @@
       min-height: 0;
       display: flex;
       flex-direction: column;
-      background: #08070b;
+      background: #0b0a0e;
       position: relative;
       overflow: hidden;
-    }
-
-    /* 画面全体の周波数アナライザー Canvas */
-    #freqVisualizerCanvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 10;
-      mix-blend-mode: screen;
-      opacity: 0.92;
     }
 
     .main-stage {
@@ -188,7 +175,6 @@
       align-items: center;
       padding: 8px;
       overflow: hidden;
-      z-index: 2;
     }
 
     .aspect-screen {
@@ -206,10 +192,85 @@
       align-items: center;
       box-shadow: 0 4px 24px rgba(0,0,0,0.85);
       border: 1px solid var(--md-outline-var);
-      z-index: 3;
     }
 
     #stageVideo { width: 100%; height: 100%; object-fit: contain; }
+
+    /* ==========================================================================
+       カメラOFF時のアバタープレースホルダー（それっぽいマーク）
+       ========================================================================== */
+    .avatar-placeholder {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: #17151e;
+      gap: 12px;
+      z-index: 1;
+      user-select: none;
+    }
+    .tile-avatar-placeholder {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #17151e;
+      z-index: 1;
+      user-select: none;
+    }
+
+    .avatar-circle {
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--md-primary-cnt), var(--md-sec-cnt));
+      color: #ffffff;
+      font-weight: 700;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+      position: relative;
+      transition: transform 0.2s;
+    }
+
+    .stage-avatar-circle {
+      width: 105px;
+      height: 105px;
+      font-size: 2.5rem;
+    }
+
+    .tile-avatar-circle {
+      width: 44px;
+      height: 44px;
+      font-size: 1.25rem;
+    }
+
+    .avatar-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--md-on-surface);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* 発話中のパルス波紋エフェクト */
+    .camera-tile.speaking .tile-avatar-circle::after,
+    .aspect-screen.speaking .stage-avatar-circle::after {
+      content: '';
+      position: absolute;
+      top: -5px; left: -5px; right: -5px; bottom: -5px;
+      border-radius: 50%;
+      border: 2px solid var(--md-success);
+      animation: avatarRipple 1.1s infinite ease-out;
+    }
+
+    @keyframes avatarRipple {
+      0% { transform: scale(0.95); opacity: 1; }
+      100% { transform: scale(1.35); opacity: 0; }
+    }
 
     #ytContainer {
       position: absolute;
@@ -272,8 +333,7 @@
     .camera-strip {
       height: 110px;
       flex-shrink: 0;
-      background: rgba(33, 31, 38, 0.85);
-      backdrop-filter: blur(10px);
+      background: var(--md-surface-cnt);
       border-top: 1px solid var(--md-outline-var);
       padding: 6px 12px;
       display: flex;
@@ -317,12 +377,12 @@
       display: flex;
       align-items: center;
       gap: 3px;
+      z-index: 3;
     }
 
     .volume-toolbar {
       flex-shrink: 0;
-      background: rgba(33, 31, 38, 0.9);
-      backdrop-filter: blur(10px);
+      background: var(--md-surface-cnt);
       border-top: 1px solid var(--md-outline-var);
       padding: 4px 14px;
       display: flex;
@@ -384,13 +444,13 @@
       background: transparent;
       border: none;
       color: var(--md-on-surface-var);
-      font-size: 0.76rem;
+      font-size: 0.78rem;
       font-weight: 600;
       cursor: pointer;
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 3px;
+      gap: 4px;
       border-bottom: 3px solid transparent;
     }
     .tab-btn.active {
@@ -572,6 +632,7 @@
       .controls-bar .btn { padding: 6px 9px; }
       .volume-toolbar { gap: 10px; font-size: 0.7rem; padding: 4px 8px; }
       .vol-item input[type="range"] { width: 60px; }
+      .stage-avatar-circle { width: 75px; height: 75px; font-size: 1.8rem; }
     }
   </style>
 </head>
@@ -614,9 +675,6 @@
 
   <div class="main-container">
     <div class="stage-section" id="stageSection">
-      <!-- 画面全体の周波数アナライザー Canvas -->
-      <canvas id="freqVisualizerCanvas"></canvas>
-
       <div id="voteKickBanner" class="vote-kick-banner">
         <div style="font-size:0.85rem; font-weight:bold; display:flex; align-items:center; justify-content:center; gap:4px;">
           <span class="material-symbols-outlined" style="color:var(--md-error);">how_to_vote</span>
@@ -642,17 +700,38 @@
           <span class="material-symbols-outlined">smart_display</span> YouTube画面に戻る
         </div>
 
-        <div class="aspect-screen">
+        <div class="aspect-screen" id="aspectScreen">
           <video id="stageVideo" autoplay playsinline></video>
+
+          <!-- メインステージ用 アバターマーク (カメラOFF時表示) -->
+          <div id="stageAvatar" class="avatar-placeholder" style="display:none;">
+            <div class="avatar-circle stage-avatar-circle" id="stageAvatarCircle">
+              <span id="stageAvatarText">自</span>
+            </div>
+            <div class="avatar-name" id="stageAvatarName">
+              <span id="stageAvatarNameText">自分</span>
+              <span class="material-symbols-outlined" style="font-size:16px; color:var(--md-error);">videocam_off</span>
+            </div>
+          </div>
+
           <div id="ytContainer">
             <div id="player"></div>
           </div>
         </div>
       </div>
 
+      <!-- 下部カメラタイルバー -->
       <div class="camera-strip" id="cameraStrip">
         <div class="camera-tile local focused" id="tile-local" onclick="focusVideo('local')">
           <video id="localVideo" autoplay playsinline muted></video>
+
+          <!-- タイル用 アバターマーク -->
+          <div class="tile-avatar-placeholder" id="avatar-local" style="display:none;">
+            <div class="avatar-circle tile-avatar-circle" id="avatarCircle-local">
+              <span id="avatarText-local">自</span>
+            </div>
+          </div>
+
           <div class="tile-badge">
             <span id="localTileName">自分</span>
             <span id="localTileMic" class="material-symbols-outlined" style="font-size:13px;">mic</span>
@@ -723,9 +802,6 @@
         <button id="tabFileBtn" class="tab-btn" onclick="switchSidebarTab('file')">
           <span class="material-symbols-outlined">folder</span>ファイル
         </button>
-        <button id="tabOptBtn" class="tab-btn" onclick="switchSidebarTab('opt')">
-          <span class="material-symbols-outlined">equalizer</span>演出
-        </button>
       </div>
 
       <div id="tabChat" class="tab-panel active">
@@ -751,32 +827,6 @@
           <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)">
         </div>
         <div id="fileItemsList" style="padding:10px; display:flex; flex-direction:column; gap:6px;"></div>
-      </div>
-
-      <div id="tabOpt" class="tab-panel" style="padding:14px; gap:12px; overflow-y:auto;">
-        <div style="font-size:0.85rem; color:var(--md-primary); font-weight:bold; display:flex; align-items:center; gap:6px;">
-          <span class="material-symbols-outlined">equalizer</span>周波数アナライザー設定
-        </div>
-        <div style="background:var(--md-surface-cnt); padding:10px; border-radius:var(--r-sm); display:flex; flex-direction:column; gap:10px;">
-          <div>
-            <div style="font-size:0.8rem; font-weight:bold;">動画周波数スペクトラム</div>
-            <div style="font-size:0.72rem; color:var(--md-outline); margin-bottom:6px;">動画再生中のみ動作します（マイクの雑音は入りません）。</div>
-            <div style="display:flex; gap:6px;">
-              <button id="visRainbowBtn" class="btn btn-primary btn-xs" onclick="setVisualizerMode('rainbow')">🌈 レインボー</button>
-              <button id="visNeonBtn" class="btn btn-tonal btn-xs" onclick="setVisualizerMode('neon')">⚡ ネオン</button>
-              <button id="visOffBtn" class="btn btn-tonal btn-xs" onclick="setVisualizerMode('off')">OFF</button>
-            </div>
-          </div>
-
-          <div style="border-top:1px solid var(--md-outline-var); padding-top:8px;">
-            <div style="font-size:0.8rem; font-weight:bold;">表示レイヤー</div>
-            <div style="font-size:0.72rem; color:var(--md-outline); margin-bottom:6px;">動画の手前に透かすか、背後に配置するかを選択できます。</div>
-            <div style="display:flex; gap:6px;">
-              <button id="visLayerFrontBtn" class="btn btn-primary btn-xs" onclick="setVisualizerLayer('front')">前面 (動画の上)</button>
-              <button id="visLayerBackBtn" class="btn btn-tonal btn-xs" onclick="setVisualizerLayer('back')">背面 (背景)</button>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -881,17 +931,8 @@
     let isRemoteAction = false;
     let isYtLoaded = false;
     let currentStageMode = 'camera';
+    let currentFocusedPeerId = 'local';
     let currentYtVolume = 40;
-
-    // --- 周波数スペクトラム ビジュアライザー設定 ---
-    let visualizerMode = 'rainbow';
-    let visualizerLayer = 'front';
-    let visualizerCanvas, visualizerCtx;
-    let freqAnalyserNode = null;
-    let freqDataArray = null;
-    let peakValues = new Array(64).fill(0);
-    // 自然な音楽イコライザーのためのスムージング配列
-    let dynamicBars = new Array(64).fill(0);
 
     let audioContext = null;
     let currentCallGain = 1.2;
@@ -905,8 +946,36 @@
     let voteTimerInterval = null;
     let isReconnecting = false;
 
+    // 名前から一意の鮮やかなグラデーションカラーを生成
+    function getAvatarGradient(name) {
+      const gradients = [
+        'linear-gradient(135deg, #4f378b, #7961b2)',
+        'linear-gradient(135deg, #006874, #008b9b)',
+        'linear-gradient(135deg, #8c1d18, #b3261e)',
+        'linear-gradient(135deg, #7c5800, #a37500)',
+        'linear-gradient(135deg, #2b6a4c, #3d936b)',
+        'linear-gradient(135deg, #00639b, #1185c9)',
+        'linear-gradient(135deg, #833989, #ad4cb5)'
+      ];
+      let hash = 0;
+      for (let i = 0; i < (name || '').length; i++) hash += name.charCodeAt(i);
+      return gradients[Math.abs(hash) % gradients.length];
+    }
+
+    function ensureAudioContextResumed() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+    }
+
     window.addEventListener('DOMContentLoaded', async () => {
-      initVisualizerCanvas();
+      ['click', 'touchstart', 'keydown'].forEach(evt => {
+        window.addEventListener(evt, ensureAudioContextResumed, { once: true });
+      });
+
       await setupMedia();
       const params = new URLSearchParams(window.location.search);
       if (params.get('room')) document.getElementById('roomNameInput').value = params.get('room');
@@ -928,173 +997,7 @@
       if (window.YT && window.YT.Player) {
         initYouTubePlayer();
       }
-
-      requestAnimationFrame(renderVisualizer);
     });
-
-    // ==========================================================================
-    // 周波数アナライザー (動画専用 & 生音声解析フォールバック)
-    // ==========================================================================
-    function initVisualizerCanvas() {
-      visualizerCanvas = document.getElementById('freqVisualizerCanvas');
-      visualizerCtx = visualizerCanvas.getContext('2d');
-      resizeVisualizer();
-      window.addEventListener('resize', resizeVisualizer);
-      setVisualizerLayer('front');
-    }
-
-    function resizeVisualizer() {
-      if (!visualizerCanvas) return;
-      const section = document.getElementById('stageSection');
-      visualizerCanvas.width = section.clientWidth;
-      visualizerCanvas.height = section.clientHeight;
-    }
-
-    function setupVisualizerAudio() {
-      if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      if (!freqAnalyserNode) {
-        freqAnalyserNode = audioContext.createAnalyser();
-        freqAnalyserNode.fftSize = 128;
-        freqAnalyserNode.smoothingTimeConstant = 0.8;
-        freqDataArray = new Uint8Array(freqAnalyserNode.frequencyBinCount);
-      }
-    }
-
-    function setVisualizerMode(mode) {
-      visualizerMode = mode;
-      document.getElementById('visRainbowBtn').className = `btn btn-xs ${mode === 'rainbow' ? 'btn-primary' : 'btn-tonal'}`;
-      document.getElementById('visNeonBtn').className = `btn btn-xs ${mode === 'neon' ? 'btn-primary' : 'btn-tonal'}`;
-      document.getElementById('visOffBtn').className = `btn btn-xs ${mode === 'off' ? 'btn-primary' : 'btn-tonal'}`;
-      if (mode === 'off' && visualizerCtx) {
-        visualizerCtx.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
-      }
-    }
-
-    function setVisualizerLayer(layer) {
-      visualizerLayer = layer;
-      const canvas = document.getElementById('freqVisualizerCanvas');
-      const frontBtn = document.getElementById('visLayerFrontBtn');
-      const backBtn = document.getElementById('visLayerBackBtn');
-
-      if (layer === 'front') {
-        canvas.style.zIndex = '10';
-        canvas.style.mixBlendMode = 'screen';
-        frontBtn.className = 'btn btn-xs btn-primary';
-        backBtn.className = 'btn btn-xs btn-tonal';
-      } else {
-        canvas.style.zIndex = '1';
-        canvas.style.mixBlendMode = 'normal';
-        frontBtn.className = 'btn btn-xs btn-tonal';
-        backBtn.className = 'btn btn-xs btn-primary';
-      }
-    }
-
-    // 音楽スペクトラム描画 (動画専用)
-    function renderVisualizer() {
-      if (visualizerMode !== 'off' && visualizerCanvas && visualizerCtx) {
-        const w = visualizerCanvas.width;
-        const h = visualizerCanvas.height;
-        visualizerCtx.clearRect(0, 0, w, h);
-
-        const numBars = 64;
-        const data = new Uint8Array(numBars);
-
-        // 1. 画面共有でタブ音声が流れている場合: 100%本物の生周波数を解析
-        let hasDirectAudio = false;
-        if (isScreenSharing && freqAnalyserNode && freqDataArray) {
-          freqAnalyserNode.getByteFrequencyData(freqDataArray);
-          for (let i = 0; i < numBars; i++) {
-            if (freqDataArray[i] > 10) hasDirectAudio = true;
-            data[i] = freqDataArray[i] || 0;
-          }
-        }
-
-        // 2. YouTube再生時: 音楽特性（低音キック〜メロディ〜高音ハット）に完全準拠したスペクトラム生成
-        const isYtPlaying = ytPlayer && ytPlayer.getPlayerState && ytPlayer.getPlayerState() === YT.PlayerState.PLAYING;
-
-        if (!hasDirectAudio && isYtPlaying && currentYtVolume > 0) {
-          const vol = currentYtVolume / 100;
-          const t = performance.now() / 1000;
-
-          // 音楽的なビートパルス（低音バスドラム・ベース）
-          const kickPulse = (Math.sin(t * Math.PI * 4.2) > 0.35 ? 1.0 : 0.0) * Math.sin(t * 8.4);
-          const bassEnergy = Math.max(0, kickPulse) * 180 + Math.sin(t * 14) * 20;
-
-          for (let i = 0; i < numBars; i++) {
-            let targetEnergy = 0;
-
-            if (i < 8) {
-              // 重低音帯域（サブベース & キックドラム）
-              targetEnergy = bassEnergy * Math.pow(1 - (i / 8), 1.2);
-            } else if (i < 28) {
-              // 中音帯域（ボーカル・ピアノ・シンセコードのゆらぎ）
-              const melodicWave = Math.sin(t * 4.5 + i * 0.35) * 0.4 + Math.cos(t * 2.8 - i * 0.2) * 0.4 + 0.5;
-              targetEnergy = melodicWave * 135;
-            } else {
-              // 高音帯域（ハイハット・シンバル・クラップのシャープなスパイク）
-              const hihatSpark = (Math.sin(t * 16.8 + i * 0.9) > 0.4 ? 120 : 15);
-              targetEnergy = hihatSpark * (Math.random() * 0.3 + 0.85);
-            }
-
-            // スムージング（急激なカクつきを抑え、滑らかに弾む）
-            dynamicBars[i] += (targetEnergy * vol - dynamicBars[i]) * 0.22;
-            data[i] = Math.min(255, Math.max(0, dynamicBars[i]));
-          }
-        } else if (!hasDirectAudio && !isYtPlaying) {
-          // 動画停止時: 即座に全バーがゼロに減衰（マイクの雑音は一切拾わない）
-          for (let i = 0; i < numBars; i++) {
-            dynamicBars[i] = Math.max(0, dynamicBars[i] * 0.82);
-            data[i] = dynamicBars[i];
-          }
-        }
-
-        const barWidth = w / numBars;
-        const gap = Math.max(1, barWidth * 0.15);
-        const actualBarWidth = barWidth - gap;
-
-        for (let i = 0; i < numBars; i++) {
-          const val = data[i] / 255;
-          const barHeight = val * (h * 0.58); // 最大58%の高さまで跳ねる
-
-          // ピークドット（重力落下）
-          if (barHeight > peakValues[i]) {
-            peakValues[i] = barHeight;
-          } else {
-            peakValues[i] = Math.max(0, peakValues[i] - 2.8);
-          }
-
-          const x = i * barWidth;
-          const y = h - barHeight;
-
-          // カラースタイル
-          if (visualizerMode === 'rainbow') {
-            const hue = (i / numBars) * 315;
-            const grad = visualizerCtx.createLinearGradient(0, h, 0, y);
-            grad.addColorStop(0, `hsla(${hue}, 95%, 60%, 0.15)`);
-            grad.addColorStop(1, `hsla(${hue}, 95%, 65%, 0.85)`);
-            visualizerCtx.fillStyle = grad;
-          } else {
-            const grad = visualizerCtx.createLinearGradient(0, h, 0, y);
-            grad.addColorStop(0, 'rgba(127, 0, 255, 0.12)');
-            grad.addColorStop(0.5, 'rgba(208, 188, 255, 0.6)');
-            grad.addColorStop(1, 'rgba(0, 255, 255, 0.95)');
-            visualizerCtx.fillStyle = grad;
-          }
-
-          if (barHeight > 1.5) {
-            visualizerCtx.fillRect(x, y, actualBarWidth, barHeight);
-          }
-
-          // ピークドット
-          if (peakValues[i] > 3) {
-            visualizerCtx.fillStyle = '#ffffff';
-            visualizerCtx.fillRect(x, h - peakValues[i] - 3, actualBarWidth, 2);
-          }
-        }
-      }
-
-      requestAnimationFrame(renderVisualizer);
-    }
 
     function createDummyMediaStream() {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1113,10 +1016,6 @@
       const cctx = canvas.getContext('2d');
       cctx.fillStyle = '#111116';
       cctx.fillRect(0, 0, 320, 180);
-      cctx.fillStyle = '#666';
-      cctx.font = '16px sans-serif';
-      cctx.textAlign = 'center';
-      cctx.fillText('No Camera', 160, 95);
       const canvasStream = canvas.captureStream(5);
       const videoTrack = canvasStream.getVideoTracks()[0];
 
@@ -1124,1104 +1023,9 @@
     }
 
     async function setupMedia() {
-      setupVisualizerAudio();
       try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       } catch (err) {
         try {
           localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
-          const dummy = createDummyMediaStream();
-          localStream.addTrack(dummy.getVideoTracks()[0]);
-        } catch (e) {
-          localStream = createDummyMediaStream();
-          isMicOn = false;
-          isCamOn = false;
-        }
-      }
-      document.getElementById('localVideo').srcObject = localStream;
-      setupSpeakingDetector('local', localStream);
-      // 注意: マイク音声を周波数アナライザーに繋ぐ処理はユーザーの要望により完全削除（動画専用化）
-    }
-
-    async function getRoomHostId(roomName) {
-      const enc = new TextEncoder();
-      const data = enc.encode(`p2p_mesh_room_v14:${roomName.trim()}`);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const key = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
-      return `room-${key}-host`;
-    }
-
-    async function joinMeshRoom() {
-      const room = document.getElementById('roomNameInput').value.trim();
-      const name = document.getElementById('userNameInput').value.trim();
-      if (!room || !name) return alert('部屋名と名前を入力してください');
-
-      myUserName = name;
-      currentRoomName = room;
-      document.getElementById('localTileName').textContent = myUserName + ' (自分)';
-      document.getElementById('joinBtn').disabled = true;
-
-      const hostId = await getRoomHostId(room);
-      tryAsHost(hostId);
-    }
-
-    function tryAsHost(hostId) {
-      if (peer && !peer.destroyed) peer.destroy();
-      peer = new Peer(hostId, PEER_CONFIG);
-
-      peer.on('open', (id) => {
-        isHost = true;
-        myPeerId = id;
-        setupPeerCommon();
-        setUIState('waiting', `部屋: ${currentRoomName}`);
-        showToast('部屋を作成しました (ホスト)');
-        updateUserListUI();
-      });
-
-      peer.on('error', (err) => {
-        if (err.type === 'unavailable-id') {
-          setTimeout(() => joinAsGuest(hostId), 150);
-        } else {
-          document.getElementById('joinBtn').disabled = false;
-        }
-      });
-    }
-
-    function joinAsGuest(hostId) {
-      if (peer && !peer.destroyed) peer.destroy();
-      peer = new Peer(PEER_CONFIG);
-
-      peer.on('open', (id) => {
-        isHost = false;
-        myPeerId = id;
-        setupPeerCommon();
-        setUIState('waiting', `部屋: ${currentRoomName}`);
-        connectToSinglePeer(hostId);
-
-        setTimeout(() => {
-          if (Object.keys(peers).length === 0 && !isHost) {
-            tryAsHost(hostId);
-          }
-        }, 4000);
-      });
-
-      peer.on('error', () => {
-        document.getElementById('joinBtn').disabled = false;
-      });
-    }
-
-    function safeReconnect() {
-      if (isReconnecting || !peer || peer.destroyed || !peer.disconnected) return;
-      isReconnecting = true;
-      setTimeout(() => {
-        if (peer && !peer.destroyed && peer.disconnected) {
-          peer.reconnect();
-        }
-        isReconnecting = false;
-      }, 2000);
-    }
-
-    function setupPeerCommon() {
-      peer.on('disconnected', () => {
-        safeReconnect();
-      });
-
-      peer.on('call', (call) => {
-        if (kickedPeers.has(call.peer)) return call.close();
-        call.answer(localStream);
-        setupCallEvents(call);
-      });
-
-      peer.on('connection', (conn) => {
-        if (kickedPeers.has(conn.peer)) return conn.close();
-        setupConnEvents(conn);
-      });
-    }
-
-    function connectToSinglePeer(targetPeerId) {
-      if (kickedPeers.has(targetPeerId) || (peers[targetPeerId] && peers[targetPeerId].conn)) return;
-
-      const conn = peer.connect(targetPeerId, { reliable: true });
-      setupConnEvents(conn);
-
-      const call = peer.call(targetPeerId, localStream);
-      setupCallEvents(call);
-    }
-
-    function setupCallEvents(call) {
-      const pId = call.peer;
-      if (!peers[pId]) peers[pId] = {};
-      peers[pId].call = call;
-
-      call.on('stream', (remoteStream) => {
-        peers[pId].stream = remoteStream;
-        addCameraTile(pId, remoteStream, peers[pId].userName || '参加者');
-        setupSpeakingDetector(pId, remoteStream);
-        setupAudioBoost(pId, remoteStream);
-        // 注意: 通話相手の音声を周波数アナライザーに繋ぐ処理も削除（動画専用化）
-        setUIState('connected', `通話中: ${currentRoomName}`);
-      });
-
-      call.on('close', () => removePeer(pId));
-    }
-
-    function setupAudioBoost(id, stream) {
-      try {
-        if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        if (stream.getAudioTracks().length === 0) return;
-
-        const src = audioContext.createMediaStreamSource(stream);
-        const gain = audioContext.createGain();
-        gain.gain.value = currentCallGain;
-        src.connect(gain);
-        gain.connect(audioContext.destination);
-
-        peers[id].gainNode = gain;
-      } catch (e) {}
-    }
-
-    function setupConnEvents(conn) {
-      const pId = conn.peer;
-      if (!peers[pId]) peers[pId] = {};
-      peers[pId].conn = conn;
-
-      conn.on('open', () => {
-        conn.send({
-          type: 'intro',
-          userName: myUserName,
-          isHost: isHost,
-          isMuted: !isMicOn,
-          isCamOff: !isCamOn
-        });
-
-        if (isHost) {
-          const peerIds = Object.keys(peers).filter(id => id !== pId && !kickedPeers.has(id));
-          conn.send({ type: 'mesh-members', members: peerIds });
-
-          if (isYtLoaded && ytPlayer && ytPlayer.getVideoData) {
-            conn.send({
-              type: 'yt-state',
-              videoId: ytPlayer.getVideoData().video_id,
-              time: ytPlayer.getCurrentTime(),
-              isPlaying: ytPlayer.getPlayerState() === YT.PlayerState.PLAYING
-            });
-          }
-        }
-      });
-
-      conn.on('data', (data) => handlePeerData(pId, data));
-      conn.on('close', () => removePeer(pId));
-    }
-
-    function handlePeerData(fromPeerId, data) {
-      switch (data.type) {
-        case 'intro':
-          peers[fromPeerId].userName = data.userName;
-          peers[fromPeerId].isHost = !!data.isHost;
-          updateTileName(fromPeerId, data.userName);
-          updateUserListUI();
-          showToast(`${data.userName} が参加`);
-          break;
-
-        case 'mesh-members':
-          data.members.forEach(otherId => {
-            if (otherId !== myPeerId && !kickedPeers.has(otherId)) connectToSinglePeer(otherId);
-          });
-          break;
-
-        case 'chat':
-          appendChatMessage(data.text, 'remote', data.userName);
-          queueFastZundamonSpeech(data.text);
-          break;
-
-        case 'status-update':
-          if (peers[fromPeerId]) {
-            peers[fromPeerId].isMuted = data.isMuted;
-            peers[fromPeerId].isCamOff = data.isCamOff;
-            updateTileIcons(fromPeerId, data.isMuted, data.isCamOff);
-            updateUserListUI();
-          }
-          break;
-
-        case 'yt-load':
-          openYouTubeScreen(data.videoId);
-          break;
-
-        case 'yt-action':
-          handleRemoteYouTubeAction(data);
-          break;
-
-        case 'yt-state':
-          openYouTubeScreen(data.videoId);
-          setTimeout(() => {
-            if (ytPlayer && ytPlayer.seekTo) {
-              ytPlayer.seekTo(data.time, true);
-              if (data.isPlaying) ytPlayer.playVideo();
-            }
-          }, 1200);
-          break;
-
-        case 'vote-kick-start':
-          handleVoteKickStart(data);
-          break;
-
-        case 'vote-kick-vote':
-          handleVoteKickVote(data);
-          break;
-
-        case 'vote-kick-success':
-          handleVoteKickSuccess(data);
-          break;
-
-        case 'host-migrated':
-          handleHostMigrated(data.newHostId, data.newHostName);
-          break;
-
-        case 'file-meta':
-          handleFileMeta(data);
-          break;
-
-        case 'file-chunk':
-          handleFileChunk(data);
-          break;
-      }
-    }
-
-    function checkAndElectNewHost(removedPeerId) {
-      const wasHost = (peers[removedPeerId] && peers[removedPeerId].isHost) || removedPeerId.endsWith('-host');
-      if (!wasHost && !isHost) return;
-
-      const remainingPeerIds = [myPeerId, ...Object.keys(peers).filter(id => id !== removedPeerId && !kickedPeers.has(id))];
-      remainingPeerIds.sort();
-
-      const newHostId = remainingPeerIds[0];
-
-      if (newHostId === myPeerId) {
-        if (!isHost) {
-          isHost = true;
-          broadcast({ type: 'host-migrated', newHostId: myPeerId, newHostName: myUserName });
-          handleHostMigrated(myPeerId, myUserName);
-        }
-      }
-    }
-
-    function handleHostMigrated(newHostId, newHostName) {
-      Object.keys(peers).forEach(id => {
-        peers[id].isHost = (id === newHostId);
-      });
-      if (newHostId === myPeerId) {
-        isHost = true;
-        showToast('あなたが新しいホストになりました 👑');
-        queueFastZundamonSpeech('ホストに昇格したのだ');
-      } else {
-        isHost = false;
-        showToast(`${newHostName} さんが新ホストになりました 👑`);
-        queueFastZundamonSpeech(`${newHostName}さんが新しいホストになったのだ`);
-      }
-      updateUserListUI();
-    }
-
-    function startKickVote(targetId) {
-      if (currentVote) return showToast('すでに投票が進行中です', 'error');
-      const target = peers[targetId];
-      if (!target) return;
-
-      if (!confirm(`${target.userName} をキックするための投票を開始しますか？`)) return;
-
-      const totalVoters = Object.keys(peers).length;
-      const requiredYes = Math.floor(totalVoters / 2) + 1;
-
-      const voteData = {
-        type: 'vote-kick-start',
-        voteId: Math.random().toString(36).substring(2, 9),
-        targetId: targetId,
-        targetName: target.userName,
-        initiator: myUserName,
-        requiredYes: requiredYes
-      };
-
-      broadcast(voteData);
-      handleVoteKickStart(voteData);
-    }
-
-    function handleVoteKickStart(data) {
-      currentVote = {
-        voteId: data.voteId,
-        targetId: data.targetId,
-        targetName: data.targetName,
-        requiredYes: data.requiredYes,
-        yesCount: 0,
-        noCount: 0,
-        votedUsers: new Set(),
-        timeLeft: 20
-      };
-
-      const banner = document.getElementById('voteKickBanner');
-      document.getElementById('voteTargetName').textContent = data.targetName;
-      document.getElementById('voteYesCount').textContent = '0';
-      document.getElementById('voteNoCount').textContent = '0';
-      banner.style.display = 'flex';
-
-      if (myPeerId === data.targetId) {
-        document.getElementById('voteActionsArea').style.display = 'none';
-        document.getElementById('voteStatusLine').textContent = 'あなたに対するキック投票中...';
-      } else {
-        document.getElementById('voteActionsArea').style.display = 'flex';
-        document.getElementById('voteStatusLine').textContent = `残り 20 秒 (必要: ${data.requiredYes}票)`;
-      }
-
-      clearInterval(voteTimerInterval);
-      voteTimerInterval = setInterval(() => {
-        if (!currentVote) return clearInterval(voteTimerInterval);
-        currentVote.timeLeft--;
-        document.getElementById('voteStatusLine').textContent = `残り ${currentVote.timeLeft} 秒 (必要: ${currentVote.requiredYes}票)`;
-
-        if (currentVote.timeLeft <= 0) {
-          clearInterval(voteTimerInterval);
-          closeVoteKickUI('投票は否決されました');
-        }
-      }, 1000);
-    }
-
-    function castKickVote(choice) {
-      if (!currentVote || currentVote.votedUsers.has(myPeerId)) return;
-      currentVote.votedUsers.add(myPeerId);
-      document.getElementById('voteActionsArea').style.display = 'none';
-
-      const payload = {
-        type: 'vote-kick-vote',
-        voteId: currentVote.voteId,
-        choice: choice,
-        from: myPeerId
-      };
-      broadcast(payload);
-      handleVoteKickVote(payload);
-    }
-
-    function handleVoteKickVote(data) {
-      if (!currentVote || currentVote.voteId !== data.voteId) return;
-
-      if (data.choice === 'yes') currentVote.yesCount++;
-      else currentVote.noCount++;
-
-      document.getElementById('voteYesCount').textContent = currentVote.yesCount;
-      document.getElementById('voteNoCount').textContent = currentVote.noCount;
-
-      if (currentVote.yesCount >= currentVote.requiredYes) {
-        clearInterval(voteTimerInterval);
-        const successData = {
-          type: 'vote-kick-success',
-          targetId: currentVote.targetId,
-          targetName: currentVote.targetName
-        };
-        broadcast(successData);
-        handleVoteKickSuccess(successData);
-      }
-    }
-
-    function handleVoteKickSuccess(data) {
-      closeVoteKickUI(`投票の結果、${data.targetName} がキックされました`);
-      kickedPeers.add(data.targetId);
-
-      if (myPeerId === data.targetId) {
-        alert('キック投票が可決されたため、退出させられました。');
-        leaveMeshRoom();
-      } else {
-        if (peers[data.targetId]) {
-          if (peers[data.targetId].conn) peers[data.targetId].conn.close();
-          if (peers[data.targetId].call) peers[data.targetId].call.close();
-          removePeer(data.targetId);
-        }
-      }
-    }
-
-    function closeVoteKickUI(msg) {
-      document.getElementById('voteKickBanner').style.display = 'none';
-      clearInterval(voteTimerInterval);
-      currentVote = null;
-      if (msg) showToast(msg);
-    }
-
-    function removePeer(peerId) {
-      checkAndElectNewHost(peerId);
-      if (peers[peerId]) delete peers[peerId];
-      removeCameraTile(peerId);
-      updateUserListUI();
-      if (Object.keys(peers).length === 0 && !isHost) setUIState('waiting', '待機中');
-    }
-
-    function broadcast(data) {
-      Object.keys(peers).forEach(id => {
-        if (peers[id].conn && peers[id].conn.open) {
-          peers[id].conn.send(data);
-        }
-      });
-    }
-
-    function addCameraTile(id, stream, name) {
-      if (document.getElementById(`tile-${id}`)) return;
-      const strip = document.getElementById('cameraStrip');
-
-      const tile = document.createElement('div');
-      tile.className = 'camera-tile';
-      tile.id = `tile-${id}`;
-      tile.onclick = () => focusVideo(id);
-
-      tile.innerHTML = `
-        <video id="vid-${id}" autoplay playsinline></video>
-        <div class="tile-badge">
-          <span id="name-${id}">${name}</span>
-          <span id="mic-${id}" class="material-symbols-outlined" style="font-size:13px;">mic</span>
-        </div>
-      `;
-      strip.appendChild(tile);
-      document.getElementById(`vid-${id}`).srcObject = stream;
-
-      if (strip.children.length === 2 && currentStageMode === 'camera') focusVideo(id);
-      updateUserListUI();
-    }
-
-    function removeCameraTile(id) {
-      const tile = document.getElementById(`tile-${id}`);
-      if (tile) tile.remove();
-    }
-
-    function updateTileName(id, name) {
-      const el = document.getElementById(`name-${id}`);
-      if (el) el.textContent = name;
-    }
-
-    function updateTileIcons(id, isMuted, isCamOff) {
-      const mic = document.getElementById(`mic-${id}`);
-      if (mic) mic.textContent = isMuted ? 'mic_off' : 'mic';
-      const vid = document.getElementById(`vid-${id}`);
-      if (vid) vid.style.opacity = isCamOff ? '0' : '1';
-    }
-
-    function focusVideo(id) {
-      currentStageMode = 'camera';
-      document.querySelectorAll('.camera-tile').forEach(t => t.classList.remove('focused'));
-      const targetTile = document.getElementById(`tile-${id}`);
-      if (targetTile) targetTile.classList.add('focused');
-
-      const stageVideo = document.getElementById('stageVideo');
-      const ytContainer = document.getElementById('ytContainer');
-
-      ytContainer.classList.remove('active');
-      stageVideo.style.display = 'block';
-
-      if (id === 'local') {
-        stageVideo.srcObject = isScreenSharing && screenStream ? screenStream : localStream;
-        stageVideo.style.transform = isScreenSharing ? 'none' : 'scaleX(-1)';
-      } else if (peers[id] && peers[id].stream) {
-        stageVideo.srcObject = peers[id].stream;
-        stageVideo.style.transform = 'none';
-      }
-
-      const returnBtn = document.getElementById('switchToYtBtn');
-      if (isYtLoaded) {
-        returnBtn.style.display = 'inline-flex';
-      }
-    }
-
-    function switchToYouTubeStage() {
-      currentStageMode = 'youtube';
-      document.getElementById('stageVideo').style.display = 'none';
-      document.getElementById('ytContainer').classList.add('active');
-      document.getElementById('switchToYtBtn').style.display = 'none';
-      document.querySelectorAll('.camera-tile').forEach(t => t.classList.remove('focused'));
-    }
-
-    function toggleYouTubeStageOrModal() {
-      if (isYtLoaded && currentStageMode === 'camera') {
-        switchToYouTubeStage();
-      } else {
-        openYouTubeModal();
-      }
-    }
-
-    function setupSpeakingDetector(id, stream) {
-      try {
-        if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        if (stream.getAudioTracks().length === 0) return;
-
-        const src = audioContext.createMediaStreamSource(stream);
-        const analyser = audioContext.createAnalyser();
-        analyser.fftSize = 256;
-        src.connect(analyser);
-
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-        function checkVolume() {
-          analyser.getByteFrequencyData(dataArray);
-          let sum = 0;
-          for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-          const avg = sum / dataArray.length;
-
-          const tile = document.getElementById(`tile-${id}`);
-          if (tile) tile.classList.toggle('speaking', avg > 22);
-          requestAnimationFrame(checkVolume);
-        }
-        checkVolume();
-      } catch (e) {}
-    }
-
-    function changeYouTubeVolume(val) {
-      currentYtVolume = val;
-      document.getElementById('ytVolVal').textContent = `${val}%`;
-      if (ytPlayer && ytPlayer.setVolume) {
-        ytPlayer.setVolume(val);
-      }
-    }
-
-    function changeCallVolume(val) {
-      currentCallGain = val / 100;
-      document.getElementById('callVolVal').textContent = `${(val / 100).toFixed(1)}x`;
-      Object.values(peers).forEach(p => {
-        if (p.gainNode) {
-          p.gainNode.gain.value = currentCallGain;
-        }
-      });
-    }
-
-    // --- YouTube 同時視聴 ---
-    function initYouTubePlayer() {
-      if (ytPlayer || !window.YT || !window.YT.Player) return;
-      ytPlayer = new YT.Player('player', {
-        host: 'https://www.youtube-nocookie.com',
-        height: '100%',
-        width: '100%',
-        videoId: 'dQw4w9WgXcQ',
-        playerVars: {
-          playsinline: 1,
-          controls: 1,
-          rel: 0,
-          enablejsapi: 1,
-          origin: (window.location.origin && window.location.origin !== 'null') ? window.location.origin : undefined
-        },
-        events: {
-          onReady: (e) => {
-            isYtReady = true;
-            e.target.setVolume(currentYtVolume);
-          },
-          onStateChange: onPlayerStateChange,
-          onError: onPlayerError
-        }
-      });
-    }
-
-    window.onYouTubeIframeAPIReady = function() {
-      initYouTubePlayer();
-    };
-
-    function onPlayerError(e) {
-      if (e.data === 101 || e.data === 150) {
-        showToast('この動画は外部サイトでの再生が制限されています', 'error');
-      } else if (e.data === 100 || e.data === 2) {
-        showToast('動画の読み込みに失敗しました (削除またはURL無効)', 'error');
-      }
-    }
-
-    function openYouTubeScreen(videoId) {
-      isYtLoaded = true;
-      switchToYouTubeStage();
-
-      if (isYtReady && ytPlayer && ytPlayer.loadVideoById) {
-        isRemoteAction = true;
-        ytPlayer.loadVideoById(videoId);
-        ytPlayer.setVolume(currentYtVolume);
-        setTimeout(() => { isRemoteAction = false; }, 1000);
-      }
-    }
-
-    function onPlayerStateChange(event) {
-      if (isUnloading || isTabHidden || document.hidden || isRemoteAction || Object.keys(peers).length === 0) return;
-      const time = ytPlayer.getCurrentTime();
-
-      if (event.data === YT.PlayerState.PLAYING) {
-        broadcast({ type: 'yt-action', action: 'play', time: time });
-      } else if (event.data === YT.PlayerState.PAUSED) {
-        broadcast({ type: 'yt-action', action: 'pause', time: time });
-      }
-    }
-
-    function handleRemoteYouTubeAction(data) {
-      if (!isYtReady || !ytPlayer) return;
-      isRemoteAction = true;
-
-      if (Math.abs(ytPlayer.getCurrentTime() - data.time) > 1.5) {
-        ytPlayer.seekTo(data.time, true);
-      }
-
-      if (data.action === 'play') {
-        const p = ytPlayer.playVideo();
-        if (p && p.catch) {
-          p.catch(() => {
-            ytPlayer.mute();
-            ytPlayer.playVideo();
-            document.getElementById('unmuteBanner').style.display = 'block';
-          });
-        }
-      } else if (data.action === 'pause') {
-        ytPlayer.pauseVideo();
-      }
-      setTimeout(() => { isRemoteAction = false; }, 800);
-    }
-
-    function forceUnmuteYouTube() {
-      if (ytPlayer) {
-        ytPlayer.unMute();
-        ytPlayer.setVolume(currentYtVolume);
-      }
-      document.getElementById('unmuteBanner').style.display = 'none';
-    }
-
-    function openYouTubeModal() { document.getElementById('ytModal').style.display = 'flex'; }
-    function closeYouTubeModal() { document.getElementById('ytModal').style.display = 'none'; }
-
-    function parseYouTubeId(input) {
-      const match = input.match(/(youtu\.be\/|youtube\.com\/(watch\?(.*&)?v=|(embed|v)\/))([^?&"'>]+)/);
-      return match ? match[5] : input;
-    }
-
-    async function searchYouTube() {
-      const q = document.getElementById('ytSearchInput').value.trim();
-      if (!q) return;
-
-      const directId = parseYouTubeId(q);
-      if (directId.length === 11) {
-        selectAndBroadcastVideo(directId, '指定動画');
-        closeYouTubeModal();
-        return;
-      }
-
-      const resultsBox = document.getElementById('ytSearchResults');
-      resultsBox.innerHTML = '<div style="text-align:center; padding:16px;">検索中...</div>';
-
-      try {
-        const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=10&q=${encodeURIComponent(q)}&key=${YT_API_KEY}`;
-        const res = await fetch(url);
-        const data = await res.json();
-
-        if (!res.ok || data.error) throw new Error(data.error ? data.error.message : 'APIエラー');
-
-        if (!data.items || data.items.length === 0) {
-          resultsBox.innerHTML = '<div style="text-align:center; padding:14px; color:var(--md-error);">動画が見つかりませんでした</div>';
-          return;
-        }
-
-        resultsBox.innerHTML = '';
-        data.items.forEach(item => {
-          const vId = item.id.videoId;
-          const title = item.snippet.title;
-          const author = item.snippet.channelTitle;
-          const thumb = item.snippet.thumbnails.medium ? item.snippet.thumbnails.medium.url : item.snippet.thumbnails.default.url;
-
-          const div = document.createElement('div');
-          div.className = 'search-item';
-          div.innerHTML = `
-            <img src="${thumb}">
-            <div style="flex:1; overflow:hidden;">
-              <div style="font-size:0.82rem; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${title}</div>
-              <div style="font-size:0.72rem; color:var(--md-outline);">${author}</div>
-            </div>
-          `;
-          div.onclick = () => {
-            selectAndBroadcastVideo(vId, title);
-            closeYouTubeModal();
-          };
-          resultsBox.appendChild(div);
-        });
-      } catch (err) {
-        resultsBox.innerHTML = `
-          <div style="text-align:center; padding:14px;">
-            <p style="color:var(--md-error); font-size:0.82rem; margin-bottom:8px;">検索に失敗しました</p>
-            <p style="font-size:0.75rem; color:var(--md-outline);">動画URLを直接貼り付けて検索してください。</p>
-          </div>
-        `;
-      }
-    }
-
-    function selectAndBroadcastVideo(videoId, title) {
-      openYouTubeScreen(videoId);
-      broadcast({ type: 'yt-load', videoId: videoId });
-      showToast(`再生: ${title}`);
-    }
-
-    // --- ずんだもん読み上げ ---
-    function cycleTtsMode() {
-      isTtsOn = !isTtsOn;
-      const btn = document.getElementById('ttsToggleBtn');
-      btn.innerHTML = `<span class="material-symbols-outlined">${isTtsOn ? 'record_voice_over' : 'voice_over_off'}</span><span class="btn-text-mobile">${isTtsOn ? 'ON' : 'OFF'}</span>`;
-      btn.classList.toggle('btn-active', isTtsOn);
-      showToast(isTtsOn ? 'ずんだもん読み上げ ON' : '読み上げ OFF');
-    }
-
-    function queueFastZundamonSpeech(text) {
-      if (!isTtsOn) return;
-      const clean = text.replace(/https?:\/\/\S+/g, 'URL').replace(/w{2,}/gi, 'わら').slice(0, 15).trim();
-      if (!clean) return;
-
-      ttsQueue.push(clean);
-      processFastTtsQueue();
-    }
-
-    async function processFastTtsQueue() {
-      if (isSpeaking || ttsQueue.length === 0) return;
-      isSpeaking = true;
-      const text = ttsQueue.shift();
-
-      try {
-        let streamUrl = ttsAudioCache.get(text);
-
-        if (!streamUrl) {
-          const res = await fetch(`https://api.tts.quest/v3/voicevox/synthesis?speaker=3&text=${encodeURIComponent(text)}`);
-          const data = await res.json();
-          if (data.success && data.mp3StreamingUrl) {
-            streamUrl = data.mp3StreamingUrl;
-            ttsAudioCache.set(text, streamUrl);
-          }
-        }
-
-        if (streamUrl) {
-          const audio = new Audio(streamUrl);
-          await new Promise(resolve => {
-            audio.onended = resolve;
-            audio.onerror = resolve;
-            audio.play().catch(resolve);
-          });
-        }
-      } catch (err) {}
-
-      isSpeaking = false;
-      processFastTtsQueue();
-    }
-
-    // --- メディアコントロール ---
-    function toggleMic() {
-      if (!localStream) return;
-      isMicOn = !isMicOn;
-      localStream.getAudioTracks().forEach(t => t.enabled = isMicOn);
-
-      const btn = document.getElementById('micBtn');
-      btn.innerHTML = `<span class="material-symbols-outlined">${isMicOn ? 'mic' : 'mic_off'}</span><span class="btn-text-mobile">マイク</span>`;
-      btn.classList.toggle('btn-danger', !isMicOn);
-      document.getElementById('localTileMic').textContent = isMicOn ? 'mic' : 'mic_off';
-
-      broadcast({ type: 'status-update', isMuted: !isMicOn, isCamOff: !isCamOn });
-    }
-
-    function toggleCam() {
-      if (!localStream) return;
-      isCamOn = !isCamOn;
-      localStream.getVideoTracks().forEach(t => t.enabled = isCamOn);
-
-      const btn = document.getElementById('camBtn');
-      btn.innerHTML = `<span class="material-symbols-outlined">${isCamOn ? 'videocam' : 'videocam_off'}</span><span class="btn-text-mobile">カメラ</span>`;
-      btn.classList.toggle('btn-danger', !isCamOn);
-      document.getElementById('localVideo').style.opacity = isCamOn ? '1' : '0';
-
-      broadcast({ type: 'status-update', isMuted: !isMicOn, isCamOff: !isCamOn });
-    }
-
-    // --- 画面共有 (生音声解析フック付き) ---
-    async function toggleScreenShare() {
-      if (isScreenSharing) {
-        stopScreenShare();
-        return;
-      }
-
-      if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
-        try {
-          screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-          applyCustomVideoStream(screenStream);
-          const screenTrack = screenStream.getVideoTracks()[0];
-          screenTrack.onended = stopScreenShare;
-
-          // タブ音声を共有している場合: 100%本物の生周波数解析に接続
-          if (screenStream.getAudioTracks().length > 0 && freqAnalyserNode) {
-            try {
-              const src = audioContext.createMediaStreamSource(screenStream);
-              src.connect(freqAnalyserNode);
-            } catch (e) {}
-          }
-          return;
-        } catch (e) {
-          if (e.name === 'NotAllowedError') return;
-        }
-      }
-
-      openMobileShareModal();
-    }
-
-    function openMobileShareModal() { document.getElementById('mobileShareModal').style.display = 'flex'; }
-    function closeMobileShareModal() { document.getElementById('mobileShareModal').style.display = 'none'; }
-
-    function triggerScreenShotShare() {
-      closeMobileShareModal();
-      document.getElementById('screenShotInput').click();
-    }
-
-    function handleScreenShotSelected(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const img = new Image();
-      const reader = new FileReader();
-
-      reader.onload = (event) => {
-        img.onload = () => {
-          if (!mockScreenCanvas) mockScreenCanvas = document.createElement('canvas');
-          mockScreenCanvas.width = img.width;
-          mockScreenCanvas.height = img.height;
-          const ctx = mockScreenCanvas.getContext('2d');
-
-          function draw() { ctx.drawImage(img, 0, 0); }
-          draw();
-
-          clearInterval(mockScreenTimer);
-          mockScreenTimer = setInterval(draw, 200);
-
-          screenStream = mockScreenCanvas.captureStream(10);
-          applyCustomVideoStream(screenStream);
-          showToast('画像を画面共有として配信中');
-        };
-        img.src = event.target.result;
-      };
-      reader.readAsDataURL(file);
-      e.target.value = '';
-    }
-
-    async function triggerEnvironmentCameraShare() {
-      closeMobileShareModal();
-      try {
-        screenStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" } },
-          audio: false
-        });
-        applyCustomVideoStream(screenStream);
-        showToast('外カメラで画面を配信中');
-      } catch (err) {
-        showToast('外カメラを起動できませんでした', 'error');
-      }
-    }
-
-    function applyCustomVideoStream(stream) {
-      const videoTrack = stream.getVideoTracks()[0];
-
-      Object.values(peers).forEach(p => {
-        if (p.call && p.call.peerConnection) {
-          const sender = p.call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-          if (sender) sender.replaceTrack(videoTrack);
-        }
-      });
-
-      document.getElementById('localVideo').srcObject = stream;
-      focusVideo('local');
-
-      isScreenSharing = true;
-      document.getElementById('shareScreenBtn').classList.add('btn-active');
-      document.getElementById('shareScreenBtn').innerHTML = `<span class="material-symbols-outlined">stop_screen_share</span><span class="btn-text-mobile">停止</span>`;
-    }
-
-    function stopScreenShare() {
-      if (mockScreenTimer) {
-        clearInterval(mockScreenTimer);
-        mockScreenTimer = null;
-      }
-      if (screenStream) {
-        screenStream.getTracks().forEach(t => t.stop());
-        screenStream = null;
-      }
-
-      const localVideoTrack = localStream.getVideoTracks()[0];
-      Object.values(peers).forEach(p => {
-        if (p.call && p.call.peerConnection && localVideoTrack) {
-          const sender = p.call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-          if (sender) sender.replaceTrack(localVideoTrack);
-        }
-      });
-
-      document.getElementById('localVideo').srcObject = localStream;
-      isScreenSharing = false;
-      document.getElementById('shareScreenBtn').classList.remove('btn-active');
-      document.getElementById('shareScreenBtn').innerHTML = `<span class="material-symbols-outlined">screen_share</span><span class="btn-text-mobile">共有</span>`;
-      showToast('画面共有を終了しました');
-    }
-
-    // --- チャット・ファイル ---
-    function sendChatMessage() {
-      const input = document.getElementById('chatInput');
-      const text = input.value.trim();
-      if (!text) return;
-
-      broadcast({ type: 'chat', text: text, userName: myUserName });
-      appendChatMessage(text, 'local', myUserName);
-      input.value = '';
-    }
-
-    function appendChatMessage(text, senderType, senderName) {
-      const box = document.getElementById('messagesContainer');
-      const msg = document.createElement('div');
-      msg.className = `msg ${senderType}`;
-      msg.innerHTML = `
-        ${senderType === 'remote' ? `<div class="msg-sender">${senderName}</div>` : ''}
-        <div>${text}</div>
-      `;
-      box.appendChild(msg);
-      box.scrollTop = box.scrollHeight;
-    }
-
-    const receivedFiles = {};
-    function handleFileSelect(e) {
-      const f = e.target.files[0];
-      if (f) sendFileToPeers(f);
-    }
-    function handleDropFile(e) {
-      e.preventDefault();
-      const f = e.dataTransfer.files[0];
-      if (f) sendFileToPeers(f);
-    }
-
-    function sendFileToPeers(file) {
-      if (Object.keys(peers).length === 0) return alert('接続中の相手がいません');
-      const fileId = Math.random().toString(36).substring(2, 8);
-      const CHUNK = 16 * 1024;
-      const total = Math.ceil(file.size / CHUNK);
-
-      broadcast({ type: 'file-meta', id: fileId, name: file.name, size: file.size, mime: file.type, total: total });
-      let current = 0;
-      const reader = new FileReader();
-
-      function readSlice() {
-        const slice = file.slice(current * CHUNK, Math.min((current + 1) * CHUNK, file.size));
-        reader.readAsArrayBuffer(slice);
-      }
-      reader.onload = (e) => {
-        broadcast({ type: 'file-chunk', id: fileId, index: current, data: e.target.result });
-        current++;
-        if (current < total) setTimeout(readSlice, 2);
-        else showToast(`送信完了: ${file.name}`);
-      };
-      readSlice();
-    }
-
-    function handleFileMeta(data) {
-      receivedFiles[data.id] = { name: data.name, size: data.size, mime: data.mime, total: data.total, count: 0, chunks: [] };
-      showToast(`受信中: ${data.name}`);
-    }
-
-    function handleFileChunk(data) {
-      const f = receivedFiles[data.id];
-      if (!f) return;
-      f.chunks[data.index] = data.data;
-      f.count++;
-      if (f.count === f.total) {
-        const blob = new Blob(f.chunks, { type: f.mime || 'application/octet-stream' });
-        const url = URL.createObjectURL(blob);
-        addDownloadItem(f.name, url);
-        delete receivedFiles[data.id];
-      }
-    }
-
-    function addDownloadItem(name, url) {
-      const container = document.getElementById('fileItemsList');
-      const div = document.createElement('div');
-      div.style.cssText = 'background:var(--md-surface-cnt); padding:8px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;';
-      div.innerHTML = `
-        <span style="font-size:0.82rem; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px;">${name}</span>
-        <a href="${url}" download="${name}" class="btn btn-primary btn-xs" style="text-decoration:none;">
-          <span class="material-symbols-outlined" style="font-size:15px;">download</span>DL
-        </a>
-      `;
-      container.prepend(div);
-      switchSidebarTab('file');
-    }
-
-    function updateUserListUI() {
-      const container = document.getElementById('userListContainer');
-      container.innerHTML = '';
-
-      container.innerHTML += `
-        <div class="user-item">
-          <span>${myUserName} (自分) ${isHost ? '👑' : ''}</span>
-          <span class="material-symbols-outlined" style="font-size:18px;">${isMicOn ? 'mic' : 'mic_off'}</span>
-        </div>
-      `;
-
-      Object.keys(peers).forEach(id => {
-        const p = peers[id];
-        const hostBadge = p.isHost ? ' 👑' : '';
-        container.innerHTML += `
-          <div class="user-item">
-            <span>${p.userName || '参加者'}${hostBadge}</span>
-            <div style="display:flex; align-items:center; gap:6px;">
-              <span class="material-symbols-outlined" style="font-size:18px;">${p.isMuted ? 'mic_off' : 'mic'}</span>
-              <button class="btn btn-danger btn-xs" onclick="startKickVote('${id}')" title="投票キック">
-                <span class="material-symbols-outlined" style="font-size:13px;">how_to_vote</span>キック
-              </button>
-            </div>
-          </div>
-        `;
-      });
-
-      document.getElementById('userCount').textContent = Object.keys(peers).length + 1;
-    }
-
-    function setUIState(state, text) {
-      document.getElementById('statusDot').className = 'status-dot ' + state;
-      document.getElementById('roomStatusText').textContent = text;
-      const joined = (state === 'connected' || state === 'waiting');
-
-      document.getElementById('joinControls').style.display = joined ? 'none' : 'flex';
-      document.getElementById('inRoomControls').style.display = joined ? 'flex' : 'none';
-    }
-
-    function toggleMobileSidebar() {
-      const sidebar = document.getElementById('appSidebar');
-      sidebar.classList.toggle('mobile-open');
-    }
-
-    function leaveMeshRoom() {
-      isUnloading = true;
-      if (peer && !peer.destroyed) peer.destroy();
-      location.reload();
-    }
-
-    function copyInviteUrl() {
-      const room = document.getElementById('roomNameInput').value.trim() || currentRoomName;
-      const url = new URL(window.location.href);
-      if (room) url.searchParams.set('room', room);
-      navigator.clipboard.writeText(url.href).then(() => showToast('招待URLをコピーしました'));
-    }
-
-    function switchSidebarTab(tab) {
-      ['chat', 'users', 'file', 'opt'].forEach(t => {
-        const el = document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}`);
-        const btn = document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}Btn`);
-        if (el) el.classList.toggle('active', t === tab);
-        if (btn) btn.classList.toggle('active', t === tab);
-      });
-    }
-
-    function toggleFullScreen() {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(e => alert(e.message));
-      } else {
-        document.exitFullscreen();
-      }
-    }
-
-    function showToast(text, type = 'normal') {
-      const c = document.getElementById('toastContainer');
-      const t = document.createElement('div');
-      t.className = 'toast';
-      if (type === 'error') t.style.background = 'var(--md-error-cnt)';
-      t.textContent = text;
-      c.appendChild(t);
-      setTimeout(() => t.remove(), 3500);
-    }
-  </script>
-</body>
-</html>
+          const dummy = createDummyMediaSt
