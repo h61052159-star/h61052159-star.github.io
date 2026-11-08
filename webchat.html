@@ -24,25 +24,34 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    /* 画面全体の高さを100%に固定し、はみ出しスクロールを防ぐ */
+    html, body {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
       background-color: var(--bg-dark);
       color: var(--text-main);
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ヘッダー (縮まないように固定) */
     header {
+      flex-shrink: 0;
       background-color: var(--panel-bg);
       border-bottom: 1px solid var(--border);
-      padding: 10px 16px;
+      padding: 8px 16px;
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
       gap: 10px;
+      z-index: 20;
     }
 
     .brand {
@@ -104,40 +113,61 @@
     button.btn-sub { background: #36393f; border: 1px solid var(--border); }
     button.btn-sub:hover { background: #4f545c; }
 
+    /* メインコンテナ：余った縦幅をすべて使い、絶対に画面外にはみ出さない */
     .main-container {
       display: flex;
       flex: 1;
-      height: calc(100vh - 58px);
+      min-height: 0;
+      width: 100%;
+      position: relative;
     }
 
-    /* 左：メディアエリア */
+    /* 左側：メディア表示エリア */
     .media-section {
       flex: 1;
+      min-width: 0;
+      min-height: 0;
       display: flex;
       flex-direction: column;
+      background: #08090c;
       position: relative;
-      background: #000;
     }
 
+    /* 映像ラッパー：枠のサイズに完全に追従 */
     .viewers-wrapper {
       flex: 1;
+      min-height: 0;
       position: relative;
       display: flex;
       justify-content: center;
       align-items: center;
       overflow: hidden;
+      padding: 10px;
+    }
+
+    /* 16:9の比率を維持したまま、枠（縦横の小さい方）にピッタリ自動収縮するボックス */
+    .aspect-fit-box {
+      width: 100%;
+      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
+      aspect-ratio: 16 / 9;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.7);
     }
 
     .video-grid {
       width: 100%;
       height: 100%;
-      position: relative;
-      background: #0a0b0e;
-    }
-
-    video {
-      background: #111;
-      border-radius: 8px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
     #remoteVideo {
@@ -146,19 +176,22 @@
       object-fit: contain;
     }
 
+    /* 自分のカメラ（ピクチャー・イン・ピクチャー小窓） */
     #localVideo {
       position: absolute;
-      bottom: 20px;
-      right: 20px;
-      width: 180px;
-      height: 120px;
+      bottom: 14px;
+      right: 14px;
+      width: 160px;
+      aspect-ratio: 16 / 9;
       border: 2px solid var(--border);
+      border-radius: 6px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.5);
       z-index: 10;
       object-fit: cover;
       transform: scaleX(-1);
     }
 
+    /* YouTube コンテナ */
     #yt-container {
       position: absolute;
       top: 0;
@@ -175,13 +208,13 @@
       top: 10px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(30, 34, 45, 0.9);
+      background: rgba(30, 34, 45, 0.92);
       padding: 6px 12px;
       border-radius: 8px;
       display: flex;
       gap: 8px;
       z-index: 15;
-      backdrop-filter: blur(4px);
+      backdrop-filter: blur(6px);
       border: 1px solid var(--border);
     }
     .yt-bar input {
@@ -190,34 +223,46 @@
       border-radius: 4px;
       color: #fff;
       padding: 4px 8px;
-      width: 250px;
+      width: 240px;
     }
 
+    #player {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* 下部コントロールバー (絶対に縮まず、隠れない) */
     .controls-bar {
+      flex-shrink: 0;
       height: 60px;
       background: var(--panel-bg);
       border-top: 1px solid var(--border);
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
+      padding: 0 10px;
+      z-index: 15;
     }
 
     .ctrl-btn {
-      padding: 8px 16px;
+      padding: 8px 14px;
       border-radius: 20px;
+      font-size: 0.82rem;
+      white-space: nowrap;
     }
 
-    /* 右：サイドバー */
+    /* 右側：サイドバー */
     .sidebar {
-      width: 330px;
+      width: 320px;
+      flex-shrink: 0;
       background: var(--panel-bg);
       border-left: 1px solid var(--border);
       display: flex;
       flex-direction: column;
     }
 
-    .tabs { display: flex; border-bottom: 1px solid var(--border); }
+    .tabs { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
     .tab-btn {
       flex: 1;
       padding: 12px;
@@ -234,13 +279,14 @@
 
     .tab-content {
       flex: 1;
+      min-height: 0;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
     }
 
     .messages-container {
       flex: 1;
+      min-height: 0;
       padding: 12px;
       overflow-y: auto;
       display: flex;
@@ -252,14 +298,15 @@
       padding: 8px 12px;
       border-radius: 8px;
       font-size: 0.88rem;
-      max-width: 80%;
+      max-width: 85%;
       word-break: break-all;
     }
     .message.remote { background: #2b2f3d; align-self: flex-start; }
     .message.local { background: var(--accent); align-self: flex-end; }
-    .message.system { background: transparent; color: var(--text-sub); font-size: 0.75rem; align-self: center; }
+    .message.system { background: transparent; color: var(--text-sub); font-size: 0.75rem; align-self: center; text-align: center; }
 
     .chat-input-bar {
+      flex-shrink: 0;
       padding: 10px;
       border-top: 1px solid var(--border);
       display: flex;
@@ -276,20 +323,22 @@
 
     .file-tab {
       display: none;
+      flex: 1;
+      min-height: 0;
       padding: 16px;
       flex-direction: column;
       gap: 14px;
-      height: 100%;
       overflow-y: auto;
     }
 
     .drop-zone {
       border: 2px dashed var(--border);
       border-radius: 8px;
-      padding: 24px;
+      padding: 20px;
       text-align: center;
       cursor: pointer;
       color: var(--text-sub);
+      font-size: 0.85rem;
     }
     .drop-zone:hover { border-color: var(--accent); }
 
@@ -309,6 +358,13 @@
       margin-top: 6px;
     }
     .progress-bar { background: var(--success); height: 100%; width: 0%; transition: width 0.1s; }
+
+    /* レスポンシブ (スマホ表示時) */
+    @media (max-width: 768px) {
+      .main-container { flex-direction: column; }
+      .sidebar { width: 100%; height: 260px; border-left: none; border-top: 1px solid var(--border); }
+      #localVideo { width: 110px; bottom: 8px; right: 8px; }
+    }
   </style>
 </head>
 <body>
@@ -319,7 +375,6 @@
       <span id="roomStatusText">未接続</span>
     </div>
 
-    <!-- ルーム制御部 -->
     <div class="room-controls" id="roomControlsArea">
       <div class="input-box">
         <span style="color:var(--text-sub); margin-right:4px;">部屋:</span>
@@ -337,32 +392,38 @@
     </div>
   </header>
 
-  <div class="main-container">
+  <div class="main-container" id="appMainContainer">
     <div class="media-section">
       <div class="viewers-wrapper">
-        <div class="video-grid">
-          <video id="remoteVideo" autoplay playsinline></video>
-          <video id="localVideo" autoplay playsinline muted></video>
-        </div>
-
-        <div id="yt-container">
-          <div class="yt-bar">
-            <input type="text" id="ytVideoUrl" placeholder="YouTube URL または 動画ID">
-            <button onclick="loadAndSyncVideo()">読み込み</button>
-            <button onclick="forceSyncVideoTime()" style="background:#555;">同期</button>
+        <!-- 枠にピッタリ自動フィットするアスペクト比コンテナ -->
+        <div class="aspect-fit-box">
+          <div class="video-grid">
+            <video id="remoteVideo" autoplay playsinline></video>
+            <video id="localVideo" autoplay playsinline muted></video>
           </div>
-          <div id="player" style="width: 100%; height: 100%;"></div>
+
+          <div id="yt-container">
+            <div class="yt-bar">
+              <input type="text" id="ytVideoUrl" placeholder="YouTube URL または 動画ID">
+              <button onclick="loadAndSyncVideo()">読み込み</button>
+              <button onclick="forceSyncVideoTime()" style="background:#555;">同期</button>
+            </div>
+            <div id="player"></div>
+          </div>
         </div>
       </div>
 
+      <!-- コントロールバー（ボタン群） -->
       <div class="controls-bar">
         <button id="micBtn" class="ctrl-btn" onclick="toggleMic()">🎤 マイクON</button>
         <button id="camBtn" class="ctrl-btn" onclick="toggleCam()">📷 カメラON</button>
         <button id="shareScreenBtn" class="ctrl-btn" onclick="toggleScreenShare()">🖥 画面共有</button>
         <button id="ytToggleBtn" class="ctrl-btn" onclick="toggleYouTubeMode()">▶ YouTube同時視聴</button>
+        <button id="fullscreenBtn" class="ctrl-btn btn-sub" onclick="toggleFullScreen()">⛶ 全画面</button>
       </div>
     </div>
 
+    <!-- サイドバー -->
     <div class="sidebar">
       <div class="tabs">
         <button id="tabChatBtn" class="tab-btn active" onclick="switchTab('chat')">チャット</button>
@@ -406,27 +467,22 @@
     let isRemoteAction = false;
     let isYtActive = false;
 
-    // 起動時
     window.addEventListener('DOMContentLoaded', async () => {
       await setupMedia();
-
-      // URLパラメータに ?room= があれば自動セット
       const params = new URLSearchParams(window.location.search);
       if (params.get('room')) {
         document.getElementById('roomNameInput').value = params.get('room');
       }
     });
 
-    // メディア（カメラ・マイク）初期化
     async function setupMedia() {
       try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       } catch (err) {
-        console.warn('カメラ・マイクの同時取得に失敗しました。', err);
+        console.warn('カメラ・マイク取得エラー。音声のみ試行:', err);
         try {
           localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
         } catch (e) {
-          console.error('マイクも取得できませんでした。受信専用ダミーを生成します。', e);
           const ctx = new AudioContext();
           const osc = ctx.createOscillator();
           const dst = ctx.createMediaStreamDestination();
@@ -437,18 +493,14 @@
       document.getElementById('localVideo').srcObject = localStream;
     }
 
-    // --- セキュリティ: ルーム名と合言葉から推測困難なPeerIDハッシュを計算 ---
     async function generateRoomHash(roomName, password) {
       const enc = new TextEncoder();
-      // ルーム名とパスワードを結合してソルト付きSHA-256でハッシュ化
       const data = enc.encode(`p2p_room:${roomName.trim()}::${password.trim()}`);
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
-      // 先頭16文字をIDキーとして使用
       return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
     }
 
-    // ルーム参加処理（ホスト・ゲスト自動判別）
     async function handleJoinRoom() {
       const roomName = document.getElementById('roomNameInput').value.trim();
       const pass = document.getElementById('roomPassInput').value.trim();
@@ -456,35 +508,30 @@
       if (!roomName) return alert('ルーム名を入力してください');
 
       document.getElementById('joinBtn').disabled = true;
-      appendSystemMessage(`ルーム [${roomName}] の参加鍵を計算中...`);
+      appendSystemMessage(`ルーム [${roomName}] の参加キーを照合中...`);
 
       const roomKey = await generateRoomHash(roomName, pass);
       const hostId = `room-${roomKey}-host`;
 
-      // 1. まず「自分がホスト（部屋主）」として接続を試みる
       tryAsHost(hostId, roomName);
     }
 
     function tryAsHost(hostId, roomName) {
       if (peer) peer.destroy();
-
       peer = new Peer(hostId);
 
       peer.on('open', () => {
-        // ホストとして入室成功（部屋が存在しなかった＝自分が1人目）
         setUIState('waiting', `部屋: ${roomName} (相手の参加待ち)`);
-        appendSystemMessage('部屋を作成しました。相手が同じ部屋名で参加するのを待っています...');
+        appendSystemMessage('部屋を作成しました。相手が同じ部屋名で入室するのを待機しています...');
         setupCommonPeerEvents();
       });
 
       peer.on('error', (err) => {
-        // すでにホストが存在している場合 ('unavailable-id')
         if (err.type === 'unavailable-id') {
-          // 2. 自分が2人目（ゲスト）なので、ホストへ接続しに行く
           joinAsGuest(hostId, roomName);
         } else {
           console.error('Peer error:', err);
-          appendSystemMessage(`エラーが発生しました: ${err.type}`);
+          appendSystemMessage(`エラー: ${err.type}`);
           document.getElementById('joinBtn').disabled = false;
         }
       });
@@ -492,42 +539,35 @@
 
     function joinAsGuest(hostId, roomName) {
       if (peer) peer.destroy();
-
-      // ゲストはランダムなIDで起動
       peer = new Peer();
 
       peer.on('open', () => {
         setUIState('waiting', `部屋: ${roomName} (接続中...)`);
-        appendSystemMessage('ホストを発見しました。P2P接続を確立しています...');
+        appendSystemMessage('ホストを発見しました。P2P接続を確立中...');
         setupCommonPeerEvents();
 
-        // ホストへデータ接続
         const conn = peer.connect(hostId, { reliable: true });
         currentConn = conn;
         setupConnEvents(conn);
 
-        // ホストへ通話発信
         const call = peer.call(hostId, localStream);
         currentCall = call;
         setupCallEvents(call);
       });
 
       peer.on('error', (err) => {
-        console.error('Guest Peer error:', err);
-        appendSystemMessage(`接続に失敗しました: ${err.type}`);
+        console.error('Guest error:', err);
+        appendSystemMessage(`接続失敗: ${err.type}`);
         document.getElementById('joinBtn').disabled = false;
       });
     }
 
     function setupCommonPeerEvents() {
-      // 着信待機（ホスト側がゲストからの通話を受ける）
       peer.on('call', (call) => {
         currentCall = call;
         call.answer(localStream);
         setupCallEvents(call);
       });
-
-      // データ接続待機（ホスト側がゲストのデータチャネルを受ける）
       peer.on('connection', (conn) => {
         currentConn = conn;
         setupConnEvents(conn);
@@ -550,12 +590,8 @@
         setUIState('connected', '通話中');
         appendSystemMessage('相手と直接暗号化接続されました！');
       });
-      conn.on('data', (data) => {
-        handleIncomingData(data);
-      });
-      conn.on('close', () => {
-        setUIState('waiting', '相手が退室しました');
-      });
+      conn.on('data', handleIncomingData);
+      conn.on('close', () => setUIState('waiting', '相手が退室しました'));
     }
 
     function setUIState(state, text) {
@@ -596,11 +632,33 @@
       const url = new URL(window.location.href);
       if (room) url.searchParams.set('room', room);
       navigator.clipboard.writeText(url.href).then(() => {
-        alert('招待URLをコピーしました！相手に送信してください。\n※合言葉を設定した場合は、合言葉も別途教えてあげてください。');
+        alert('招待URLをコピーしました！相手に送信してください。');
       });
     }
 
-    // --- メディア操作 (ミュート・画面共有) ---
+    // --- 全画面（フルスクリーン）制御 ---
+    function toggleFullScreen() {
+      // main-containerごと全画面化することで、ボタン群もチャットも枠内に綺麗に残す
+      const target = document.documentElement;
+      if (!document.fullscreenElement) {
+        target.requestFullscreen().catch(err => {
+          alert(`全画面化エラー: ${err.message}`);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    document.addEventListener('fullscreenchange', () => {
+      const btn = document.getElementById('fullscreenBtn');
+      if (btn) {
+        const isFS = !!document.fullscreenElement;
+        btn.textContent = isFS ? '🗗 全画面解除' : '⛶ 全画面';
+        btn.classList.toggle('btn-active', isFS);
+      }
+    });
+
+    // --- メディアコントロール ---
     function toggleMic() {
       if (!localStream) return;
       isMicOn = !isMicOn;
@@ -620,9 +678,7 @@
     }
 
     async function toggleScreenShare() {
-      if (!currentCall || !currentCall.peerConnection) {
-        return alert('相手と通話中である必要があります');
-      }
+      if (!currentCall || !currentCall.peerConnection) return alert('通話中である必要があります');
       const videoSender = currentCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
 
       if (!isScreenSharing) {
@@ -786,7 +842,6 @@
       readNext();
     }
 
-    // --- データ振り分け ---
     function handleIncomingData(data) {
       switch (data.type) {
         case 'chat':
