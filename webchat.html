@@ -1110,44 +1110,95 @@
       speakText(`ユーチューブが読み込まれました`);
     }
 
-    // --- チャット読み上げ (ずんだもん風 / 標準 / OFF) ---
-    function cycleTtsMode() {
-      const btn = document.getElementById('ttsToggleBtn');
-      if (ttsMode === 'zundamon') {
-        ttsMode = 'standard';
-        btn.textContent = '🗣 読み上げ: 標準';
-      } else if (ttsMode === 'standard') {
-        ttsMode = 'off';
-        btn.textContent = '🔇 読み上げ: OFF';
+// --- チャット読み上げ (本物ずんだもんAPI + 再生キュー) ---
+let ttsMode = 'zundamon'; // 'zundamon' (本物API), 'standard' (ブラウザ標準), 'off'
+const ttsQueue = [];
+let isSpeaking = false;
+
+// 読み上げモード切り替え
+function cycleTtsMode() {
+  const btn = document.getElementById('ttsToggleBtn');
+  if (ttsMode === 'zundamon') {
+    ttsMode = 'standard';
+    btn.textContent = '🗣 読み上げ: 標準';
+  } else if (ttsMode === 'standard') {
+    ttsMode = 'off';
+    btn.textContent = '🔇 読み上げ: OFF';
+  } else {
+    ttsMode = 'zundamon';
+    btn.textContent = '🗣 読み上げ: ずんだもん(本物)';
+  }
+  showToast(`読み上げモード: ${ttsMode}`);
+}
+
+// 読み上げキューに追加
+function speakText(text) {
+  if (ttsMode === 'off') return;
+  // 長すぎる文章はAPI制限防止のため60文字にカット
+  const cleanText = text.slice(0, 60);
+  ttsQueue.push(cleanText);
+  processTtsQueue();
+}
+
+// キューを順次再生（重複・音被り防止）
+async function processTtsQueue() {
+  if (isSpeaking || ttsQueue.length === 0) return;
+  isSpeaking = true;
+  const text = ttsQueue.shift();
+
+  if (ttsMode === 'zundamon') {
+    try {
+      // 本物のVOICEVOXずんだもんAPI (speaker: 3 = ノーマル)
+      const res = await fetch(`https://api.tts.quest/v3/voicevox/synthesis?speaker=3&text=${encodeURIComponent(text)}`);
+      const data = await res.json();
+
+      if (data.success && data.mp3StreamingUrl) {
+        const audio = new Audio(data.mp3StreamingUrl);
+        await new Promise((resolve) => {
+          audio.onended = resolve;
+          audio.onerror = () => {
+            // 音声ロード失敗時はブラウザTTSで喋らせて次へ
+            speakBrowserTTS(text, true);
+            resolve();
+          };
+          audio.play().catch(resolve);
+        });
       } else {
-        ttsMode = 'zundamon';
-        btn.textContent = '🗣 読み上げ: ずんだもん';
+        throw new Error(data.errorMessage || 'API制限');
       }
-      showToast(`読み上げモード: ${ttsMode}`);
+    } catch (err) {
+      console.warn('ずんだもんAPIが混雑中のため、ブラウザ音声にフォールバックします:', err);
+      await speakBrowserTTS(text, true);
     }
+  } else {
+    // 標準ブラウザTTS
+    await speakBrowserTTS(text, false);
+  }
 
-    function speakText(text) {
-      if (ttsMode === 'off' || !window.speechSynthesis) return;
-      window.speechSynthesis.cancel();
+  isSpeaking = false;
+  processTtsQueue(); // 次の音声を処理
+}
 
-      const uttr = new SpeechSynthesisUtterance(text);
-      uttr.lang = 'ja-JP';
+// ブラウザ標準Web Speech APIでの発声
+function speakBrowserTTS(text, isZundaPitch) {
+  return new Promise((resolve) => {
+    if (!window.speechSynthesis) return resolve();
+    window.speechSynthesis.cancel();
 
-      if (ttsMode === 'zundamon') {
-        // ずんだもん風（高ピッチ・やや早口）
-        uttr.pitch = 1.75;
-        uttr.rate = 1.25;
-      } else {
-        uttr.pitch = 1.0;
-        uttr.rate = 1.0;
-      }
+    const uttr = new SpeechSynthesisUtterance(text);
+    uttr.lang = 'ja-JP';
+    uttr.pitch = isZundaPitch ? 1.75 : 1.0;
+    uttr.rate = isZundaPitch ? 1.25 : 1.0;
 
-      const voices = window.speechSynthesis.getVoices();
-      const jaVoice = voices.find(v => v.lang.includes('ja') || v.lang.includes('JP'));
-      if (jaVoice) uttr.voice = jaVoice;
+    const voices = window.speechSynthesis.getVoices();
+    const jaVoice = voices.find(v => v.lang.includes('ja') || v.lang.includes('JP'));
+    if (jaVoice) uttr.voice = jaVoice;
 
-      window.speechSynthesis.speak(uttr);
-    }
+    uttr.onend = resolve;
+    uttr.onerror = resolve;
+    window.speechSynthesis.speak(uttr);
+  });
+}
 
     // --- メディアコントロール (ミュート・画面共有) ---
     function toggleMic() {
