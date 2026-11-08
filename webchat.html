@@ -199,24 +199,6 @@
     }
     #player { width: 100%; height: 100%; }
 
-    /* YouTube 画面上部コントローラーバー */
-    .yt-top-controls {
-      position: absolute;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(29, 26, 34, 0.88);
-      backdrop-filter: blur(8px);
-      border: 1px solid var(--md-outline-var);
-      padding: 4px 12px;
-      border-radius: var(--r-full);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      z-index: 25;
-      font-size: 0.75rem;
-    }
-
     .switch-to-yt-banner {
       position: absolute;
       top: 14px;
@@ -249,7 +231,7 @@
       font-size: 0.8rem;
       font-weight: bold;
       cursor: pointer;
-      z-index: 26;
+      z-index: 25;
       display: none;
       box-shadow: 0 4px 12px rgba(0,0,0,0.4);
       white-space: nowrap;
@@ -303,8 +285,32 @@
       gap: 3px;
     }
 
+    /* 音量調整バー */
+    .volume-toolbar {
+      flex-shrink: 0;
+      background: var(--md-surface-cnt);
+      border-top: 1px solid var(--md-outline-var);
+      padding: 4px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      font-size: 0.75rem;
+      color: var(--md-on-surface-var);
+    }
+    .vol-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .vol-item input[type="range"] {
+      width: 75px;
+      accent-color: var(--md-primary);
+      cursor: pointer;
+    }
+
     .controls-bar {
-      height: 58px;
+      height: 56px;
       flex-shrink: 0;
       background: var(--md-surface);
       border-top: 1px solid var(--md-outline-var);
@@ -423,29 +429,6 @@
       font-size: 0.8rem;
     }
 
-    /* 音量設定パネル */
-    .volume-panel {
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-    .volume-slider-group {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .volume-slider-header {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.8rem;
-      color: var(--md-on-surface-var);
-    }
-    .volume-slider-group input[type="range"] {
-      width: 100%;
-      accent-color: var(--md-primary);
-    }
-
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -550,8 +533,10 @@
       .sidebar-header-mobile { display: flex; }
       .camera-strip { height: 85px; }
       .btn-text-mobile { display: none; }
-      .controls-bar { height: 54px; gap: 6px; padding: 0 6px; }
-      .controls-bar .btn { padding: 7px 11px; }
+      .controls-bar { height: 52px; gap: 4px; padding: 0 4px; }
+      .controls-bar .btn { padding: 6px 9px; }
+      .volume-toolbar { gap: 10px; font-size: 0.7rem; padding: 4px 8px; }
+      .vol-item input[type="range"] { width: 60px; }
     }
   </style>
 </head>
@@ -622,17 +607,12 @@
         <div class="aspect-screen">
           <video id="stageVideo" autoplay playsinline></video>
           <div id="ytContainer">
-            <!-- YouTube 音量調整バー -->
-            <div class="yt-top-controls">
-              <span class="material-symbols-outlined" style="font-size:16px;">volume_up</span>
-              <span>動画音量: <span id="ytVolLabel">80%</span></span>
-              <input type="range" id="ytVolSlider" min="0" max="100" value="80" oninput="changeYouTubeVolume(this.value)">
-            </div>
             <div id="player"></div>
           </div>
         </div>
       </div>
 
+      <!-- 下部カメラタイルバー -->
       <div class="camera-strip" id="cameraStrip">
         <div class="camera-tile local focused" id="tile-local" onclick="focusVideo('local')">
           <video id="localVideo" autoplay playsinline muted></video>
@@ -643,6 +623,23 @@
         </div>
       </div>
 
+      <!-- 音量バランス調整ツールバー -->
+      <div class="volume-toolbar">
+        <div class="vol-item">
+          <span class="material-symbols-outlined" style="font-size:16px;">smart_display</span>
+          <span>動画</span>
+          <input type="range" id="ytVolumeSlider" min="0" max="100" value="40" oninput="changeYouTubeVolume(this.value)">
+          <span id="ytVolVal" style="width:24px;">40%</span>
+        </div>
+        <div class="vol-item">
+          <span class="material-symbols-outlined" style="font-size:16px;">record_voice_over</span>
+          <span>会話増幅</span>
+          <input type="range" id="callVolumeSlider" min="50" max="250" value="120" oninput="changeCallVolume(this.value)">
+          <span id="callVolVal" style="width:28px;">1.2x</span>
+        </div>
+      </div>
+
+      <!-- コントロールバー -->
       <div class="controls-bar">
         <button id="micBtn" class="btn btn-tonal" onclick="toggleMic()" title="マイクON/OFF">
           <span class="material-symbols-outlined">mic</span>
@@ -652,7 +649,7 @@
           <span class="material-symbols-outlined">videocam</span>
           <span class="btn-text-mobile">カメラ</span>
         </button>
-        <button id="mobileChatToggleBtn" class="btn btn-tonal" onclick="toggleMobileSidebar()" title="チャット・メニュー">
+        <button id="mobileChatToggleBtn" class="btn btn-tonal" onclick="toggleMobileSidebar()" title="チャット・参加者">
           <span class="material-symbols-outlined">chat</span>
           <span class="btn-text-mobile">チャット</span>
         </button>
@@ -691,9 +688,6 @@
         <button id="tabFileBtn" class="tab-btn" onclick="switchSidebarTab('file')">
           <span class="material-symbols-outlined">folder</span>ファイル
         </button>
-        <button id="tabVolBtn" class="tab-btn" onclick="switchSidebarTab('vol')">
-          <span class="material-symbols-outlined">tune</span>音量
-        </button>
       </div>
 
       <div id="tabChat" class="tab-panel active">
@@ -720,31 +714,10 @@
         </div>
         <div id="fileItemsList" style="padding:10px; display:flex; flex-direction:column; gap:6px;"></div>
       </div>
-
-      <!-- 音量調整・通話ブーストタブ -->
-      <div id="tabVol" class="tab-panel">
-        <div class="volume-panel">
-          <div class="volume-slider-group">
-            <div class="volume-slider-header">
-              <span>🗣️ 通話相手の音量 (ブースト)</span>
-              <span id="voiceGainLabel">100%</span>
-            </div>
-            <input type="range" id="voiceGainSlider" min="0" max="200" value="100" oninput="changeVoiceGain(this.value)">
-            <span style="font-size:0.7rem; color:var(--md-outline);">※YouTubeの音が大きい時は、ここを150%〜200%に上げると会話がよく聞こえます。</span>
-          </div>
-
-          <div class="volume-slider-group" style="margin-top:10px;">
-            <div class="volume-slider-header">
-              <span>▶ YouTube動画の音量</span>
-              <span id="sideYtVolLabel">80%</span>
-            </div>
-            <input type="range" id="sideYtVolSlider" min="0" max="100" value="80" oninput="changeYouTubeVolume(this.value)">
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 
+  <!-- YouTube検索 モーダル -->
   <div class="modal-overlay" id="ytModal">
     <div class="modal-card">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -771,6 +744,7 @@
     </div>
   </div>
 
+  <!-- スマホ用 画面共有代替メニュー -->
   <div class="modal-overlay" id="mobileShareModal">
     <div class="modal-card" style="max-width:380px;">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -782,21 +756,21 @@
         </button>
       </div>
       <p style="font-size:0.78rem; color:var(--md-outline); line-height:1.4;">
-        ブラウザの制限で直接の画面共有ができないため、以下の方法で配信できます：
+        ブラウザ制限のため、以下の方法で相手の大画面に配信できます：
       </p>
       <div style="display:flex; flex-direction:column; gap:8px;">
         <button class="btn btn-primary" style="justify-content:flex-start; padding:12px 16px;" onclick="triggerScreenShotShare()">
           <span class="material-symbols-outlined">photo_library</span>
           <div style="text-align:left; margin-left:6px;">
             <div style="font-size:0.85rem;">スクショ・画像を画面として配信</div>
-            <div style="font-size:0.7rem; opacity:0.8;">スマホで撮った画像を動画ストリームとして送信</div>
+            <div style="font-size:0.7rem; opacity:0.8;">撮ったスクショを動画として相手に表示</div>
           </div>
         </button>
         <button class="btn btn-tonal" style="justify-content:flex-start; padding:12px 16px;" onclick="triggerEnvironmentCameraShare()">
           <span class="material-symbols-outlined">flip_camera_ios</span>
           <div style="text-align:left; margin-left:6px;">
             <div style="font-size:0.85rem;">外カメラで手元・別画面を配信</div>
-            <div style="font-size:0.7rem; opacity:0.8;">背面カメラで手元の画面や書類を配信</div>
+            <div style="font-size:0.7rem; opacity:0.8;">背面カメラで書類や画面を大画面に写す</div>
           </div>
         </button>
       </div>
@@ -810,15 +784,14 @@
   <script>
     const YT_API_KEY = "AIzaSyBBZjIxmoP0ep6QgT1a4440dczYwqV278I";
 
-    // STUNサーバー設定 (PeerJS WebSocketの安定化)
+    // STUNサーバー明示設定
     const PEER_CONFIG = {
       config: {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' }
         ]
-      },
-      debug: 1
+      }
     };
 
     let myPeerId = null;
@@ -829,7 +802,6 @@
 
     const peers = {};
     const kickedPeers = new Set();
-    const peerGainNodes = {}; // 通話音声ゲインノード管理
 
     let localStream = null;
     let screenStream = null;
@@ -837,20 +809,25 @@
     let isCamOn = true;
     let isScreenSharing = false;
 
+    // タブ閉鎖時のYouTube強制停止防止フラグ
+    let isUnloading = false;
+
+    // 擬似画面共有
     let mockScreenCanvas = null;
     let mockScreenTimer = null;
 
-    // YouTube 状態管理 & 誤送信防止フラグ
+    // YouTube / ステージ
     let ytPlayer = null;
     let isYtReady = false;
     let isRemoteAction = false;
     let isYtLoaded = false;
     let currentStageMode = 'camera';
-    let currentYtVolume = 80;
-    let currentVoiceGain = 1.0;
-    let isUnloading = false; // タブ離脱時のポーズ誤送信防止
+    let currentYtVolume = 40;
 
+    // オーディオコンテキスト & 通話ゲイン（音量ブースト）
     let audioContext = null;
+    let callGainNode = null;
+    let currentCallGain = 1.2;
 
     let isTtsOn = true;
     const ttsQueue = [];
@@ -859,6 +836,7 @@
 
     let currentVote = null;
     let voteTimerInterval = null;
+    let isReconnecting = false;
 
     window.addEventListener('DOMContentLoaded', async () => {
       await setupMedia();
@@ -866,20 +844,47 @@
       if (params.get('room')) document.getElementById('roomNameInput').value = params.get('room');
       document.getElementById('userNameInput').value = 'ゲスト' + Math.floor(Math.random() * 900 + 100);
 
-      // バックグラウンド復帰時のリカバリ (P2P通話は切断しない)
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
-          safePeerReconnect();
+          safeReconnect();
           if (audioContext && audioContext.state === 'suspended') audioContext.resume();
         }
       });
 
-      // タブ離脱時の誤停止防止
+      // タブ閉鎖時の安全な処理（誤爆停止を防止）
       window.addEventListener('beforeunload', () => {
         isUnloading = true;
-        if (peer) peer.destroy();
+        if (peer && !peer.destroyed) peer.destroy();
       });
     });
+
+    // 安全なダミーストリーム生成（マイクやカメラがないPC用）
+    function createDummyMediaStream() {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const dst = ctx.createMediaStreamDestination();
+      const gain = ctx.createGain();
+      gain.gain.value = 0;
+      osc.connect(gain);
+      gain.connect(dst);
+      osc.start();
+      const audioTrack = dst.stream.getAudioTracks()[0];
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 320;
+      canvas.height = 180;
+      const cctx = canvas.getContext('2d');
+      cctx.fillStyle = '#111116';
+      cctx.fillRect(0, 0, 320, 180);
+      cctx.fillStyle = '#666';
+      cctx.font = '16px sans-serif';
+      cctx.textAlign = 'center';
+      cctx.fillText('No Camera', 160, 95);
+      const canvasStream = canvas.captureStream(5);
+      const videoTrack = canvasStream.getVideoTracks()[0];
+
+      return new MediaStream([audioTrack, videoTrack]);
+    }
 
     async function setupMedia() {
       try {
@@ -887,12 +892,13 @@
       } catch (err) {
         try {
           localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+          const dummy = createDummyMediaStream();
+          localStream.addTrack(dummy.getVideoTracks()[0]);
         } catch (e) {
-          const ctx = new AudioContext();
-          const osc = ctx.createOscillator();
-          const dst = ctx.createMediaStreamDestination();
-          osc.connect(dst);
-          localStream = dst.stream;
+          // マイクもカメラもないPC：ダミーストリームで完全動作
+          localStream = createDummyMediaStream();
+          isMicOn = false;
+          isCamOn = false;
         }
       }
       document.getElementById('localVideo').srcObject = localStream;
@@ -923,7 +929,7 @@
     }
 
     function tryAsHost(hostId) {
-      if (peer) peer.destroy();
+      if (peer && !peer.destroyed) peer.destroy();
       peer = new Peer(hostId, PEER_CONFIG);
 
       peer.on('open', (id) => {
@@ -937,7 +943,7 @@
 
       peer.on('error', (err) => {
         if (err.type === 'unavailable-id') {
-          joinAsGuest(hostId);
+          setTimeout(() => joinAsGuest(hostId), 150);
         } else {
           document.getElementById('joinBtn').disabled = false;
         }
@@ -945,7 +951,7 @@
     }
 
     function joinAsGuest(hostId) {
-      if (peer) peer.destroy();
+      if (peer && !peer.destroyed) peer.destroy();
       peer = new Peer(PEER_CONFIG);
 
       peer.on('open', (id) => {
@@ -967,9 +973,20 @@
       });
     }
 
+    function safeReconnect() {
+      if (isReconnecting || !peer || peer.destroyed || !peer.disconnected) return;
+      isReconnecting = true;
+      setTimeout(() => {
+        if (peer && !peer.destroyed && peer.disconnected) {
+          peer.reconnect();
+        }
+        isReconnecting = false;
+      }, 2000);
+    }
+
     function setupPeerCommon() {
       peer.on('disconnected', () => {
-        safePeerReconnect();
+        safeReconnect();
       });
 
       peer.on('call', (call) => {
@@ -982,21 +999,6 @@
         if (kickedPeers.has(conn.peer)) return conn.close();
         setupConnEvents(conn);
       });
-    }
-
-    let isReconnecting = false;
-    function safePeerReconnect() {
-      if (peer && !peer.destroyed && peer.disconnected && !isReconnecting) {
-        // すでにP2P通話中なら急いで再接続する必要はない (エラー多発防止)
-        const hasPeers = Object.keys(peers).length > 0;
-        isReconnecting = true;
-        setTimeout(() => {
-          if (peer && !peer.destroyed && peer.disconnected) {
-            try { peer.reconnect(); } catch (e) {}
-          }
-          isReconnecting = false;
-        }, hasPeers ? 3000 : 1000);
-      }
     }
 
     function connectToSinglePeer(targetPeerId) {
@@ -1016,13 +1018,29 @@
 
       call.on('stream', (remoteStream) => {
         peers[pId].stream = remoteStream;
-        routeRemoteAudio(pId, remoteStream); // 通話音量ブースト用ゲインノードに接続
         addCameraTile(pId, remoteStream, peers[pId].userName || '参加者');
         setupSpeakingDetector(pId, remoteStream);
+        setupAudioBoost(pId, remoteStream);
         setUIState('connected', `通話中: ${currentRoomName}`);
       });
 
       call.on('close', () => removePeer(pId));
+    }
+
+    // 音声ブースト（会話音量増幅）処理
+    function setupAudioBoost(id, stream) {
+      try {
+        if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        if (stream.getAudioTracks().length === 0) return;
+
+        const src = audioContext.createMediaStreamSource(stream);
+        const gain = audioContext.createGain();
+        gain.gain.value = currentCallGain;
+        src.connect(gain);
+        gain.connect(audioContext.destination);
+
+        peers[id].gainNode = gain;
+      } catch (e) {}
     }
 
     function setupConnEvents(conn) {
@@ -1132,48 +1150,6 @@
       }
     }
 
-    // --- 通話音声の音量ブースト (Web Audio API GainNode) ---
-    function routeRemoteAudio(pId, stream) {
-      try {
-        if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        if (stream.getAudioTracks().length === 0) return;
-
-        const source = audioContext.createMediaStreamSource(stream);
-        const gainNode = audioContext.createGain();
-        gainNode.gain.value = currentVoiceGain;
-
-        source.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-
-        peerGainNodes[pId] = gainNode;
-      } catch (e) {
-        console.warn('Audio routing error:', e);
-      }
-    }
-
-    function changeVoiceGain(val) {
-      currentVoiceGain = val / 100;
-      document.getElementById('voiceGainLabel').textContent = `${val}%`;
-      Object.values(peerGainNodes).forEach(gainNode => {
-        if (gainNode) gainNode.gain.value = currentVoiceGain;
-      });
-    }
-
-    function changeYouTubeVolume(val) {
-      currentYtVolume = parseInt(val, 10);
-      document.getElementById('ytVolLabel').textContent = `${val}%`;
-      document.getElementById('sideYtVolLabel').textContent = `${val}%`;
-      document.getElementById('ytVolSlider').value = val;
-      document.getElementById('sideYtVolSlider').value = val;
-      if (ytPlayer && ytPlayer.setVolume) {
-        ytPlayer.setVolume(currentYtVolume);
-        if (currentYtVolume > 0 && ytPlayer.isMuted && ytPlayer.isMuted()) {
-          ytPlayer.unMute();
-        }
-      }
-    }
-
-    // --- ホスト自動昇格 ---
     function checkAndElectNewHost(removedPeerId) {
       const wasHost = (peers[removedPeerId] && peers[removedPeerId].isHost) || removedPeerId.endsWith('-host');
       if (!wasHost && !isHost) return;
@@ -1182,6 +1158,7 @@
       remainingPeerIds.sort();
 
       const newHostId = remainingPeerIds[0];
+
       if (newHostId === myPeerId) {
         if (!isHost) {
           isHost = true;
@@ -1197,7 +1174,7 @@
       });
       if (newHostId === myPeerId) {
         isHost = true;
-        showToast('あなたが新しいホストに繰り上がりました 👑');
+        showToast('あなたが新しいホストになりました 👑');
         queueFastZundamonSpeech('ホストに昇格したのだ');
       } else {
         isHost = false;
@@ -1207,7 +1184,6 @@
       updateUserListUI();
     }
 
-    // --- 投票キック ---
     function startKickVote(targetId) {
       if (currentVote) return showToast('すでに投票が進行中です', 'error');
       const target = peers[targetId];
@@ -1332,7 +1308,6 @@
     function removePeer(peerId) {
       checkAndElectNewHost(peerId);
       if (peers[peerId]) delete peers[peerId];
-      if (peerGainNodes[peerId]) delete peerGainNodes[peerId];
       removeCameraTile(peerId);
       updateUserListUI();
       if (Object.keys(peers).length === 0 && !isHost) setUIState('waiting', '待機中');
@@ -1346,6 +1321,7 @@
       });
     }
 
+    // --- カメラ & ステージ表示 ---
     function addCameraTile(id, stream, name) {
       if (document.getElementById(`tile-${id}`)) return;
       const strip = document.getElementById('cameraStrip');
@@ -1355,9 +1331,8 @@
       tile.id = `tile-${id}`;
       tile.onclick = () => focusVideo(id);
 
-      // 相手のvideoタグはmutedにし、音声はWeb Audio (GainNode) 側で再生してブースト
       tile.innerHTML = `
-        <video id="vid-${id}" autoplay playsinline muted></video>
+        <video id="vid-${id}" autoplay playsinline></video>
         <div class="tile-badge">
           <span id="name-${id}">${name}</span>
           <span id="mic-${id}" class="material-symbols-outlined" style="font-size:13px;">mic</span>
@@ -1455,6 +1430,25 @@
       } catch (e) {}
     }
 
+    // --- 音量調整ロジック ---
+    function changeYouTubeVolume(val) {
+      currentYtVolume = val;
+      document.getElementById('ytVolVal').textContent = `${val}%`;
+      if (ytPlayer && ytPlayer.setVolume) {
+        ytPlayer.setVolume(val);
+      }
+    }
+
+    function changeCallVolume(val) {
+      currentCallGain = val / 100;
+      document.getElementById('callVolVal').textContent = `${(val / 100).toFixed(1)}x`;
+      Object.values(peers).forEach(p => {
+        if (p.gainNode) {
+          p.gainNode.gain.value = currentCallGain;
+        }
+      });
+    }
+
     // --- YouTube 同時視聴 ---
     function onYouTubeIframeAPIReady() {
       ytPlayer = new YT.Player('player', {
@@ -1463,9 +1457,9 @@
         videoId: 'dQw4w9WgXcQ',
         playerVars: { playsinline: 1, controls: 1, rel: 0 },
         events: {
-          onReady: () => {
+          onReady: (e) => {
             isYtReady = true;
-            ytPlayer.setVolume(currentYtVolume);
+            e.target.setVolume(currentYtVolume);
           },
           onStateChange: onPlayerStateChange
         }
@@ -1479,16 +1473,16 @@
       if (isYtReady && ytPlayer && ytPlayer.loadVideoById) {
         isRemoteAction = true;
         ytPlayer.loadVideoById(videoId);
+        ytPlayer.setVolume(currentYtVolume);
         setTimeout(() => { isRemoteAction = false; }, 1000);
       }
     }
 
-    // タブ離脱時・バックグラウンド時の誤ポーズ送信を完全防止
     function onPlayerStateChange(event) {
+      // 退室中・リモート指示中の誤爆停止を完全にブロック
       if (isUnloading || isRemoteAction || Object.keys(peers).length === 0) return;
-      if (document.hidden && event.data === YT.PlayerState.PAUSED) return;
-
       const time = ytPlayer.getCurrentTime();
+
       if (event.data === YT.PlayerState.PLAYING) {
         broadcast({ type: 'yt-action', action: 'play', time: time });
       } else if (event.data === YT.PlayerState.PAUSED) {
@@ -1554,9 +1548,7 @@
         const res = await fetch(url);
         const data = await res.json();
 
-        if (!res.ok || data.error) {
-          throw new Error(data.error ? data.error.message : 'APIエラー');
-        }
+        if (!res.ok || data.error) throw new Error(data.error ? data.error.message : 'APIエラー');
 
         if (!data.items || data.items.length === 0) {
           resultsBox.innerHTML = '<div style="text-align:center; padding:14px; color:var(--md-error);">動画が見つかりませんでした</div>';
@@ -1677,7 +1669,6 @@
       broadcast({ type: 'status-update', isMuted: !isMicOn, isCamOff: !isCamOn });
     }
 
-    // --- 画面共有 ---
     async function toggleScreenShare() {
       if (isScreenSharing) {
         stopScreenShare();
@@ -1929,7 +1920,7 @@
 
     function leaveMeshRoom() {
       isUnloading = true;
-      if (peer) peer.destroy();
+      if (peer && !peer.destroyed) peer.destroy();
       location.reload();
     }
 
@@ -1941,7 +1932,7 @@
     }
 
     function switchSidebarTab(tab) {
-      ['chat', 'users', 'file', 'vol'].forEach(t => {
+      ['chat', 'users', 'file'].forEach(t => {
         document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}`).classList.toggle('active', t === tab);
         document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}Btn`).classList.toggle('active', t === tab);
       });
