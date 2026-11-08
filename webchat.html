@@ -288,6 +288,10 @@
             </div>
             <video id="syncMediaVideo" controls playsinline style="max-height:85%; max-width:100%; display:none;"></video>
             <audio id="syncMediaAudio" controls style="display:none; width:80%; margin-top:10px;"></audio>
+            <button id="pipBtn" class="btn btn-tonal btn-xs" style="margin-top:8px; display:none;" onclick="togglePiP()">
+              <span class="material-symbols-outlined" style="font-size:14px;">picture_in_picture_alt</span>
+              <span>小窓（バックグラウンド）再生</span>
+            </button>
           </div>
         </div>
       </div>
@@ -305,7 +309,6 @@
         </div>
       </div>
 
-      <!-- 音量ツールバー: 動画・通話マスター・同期・左右分離 -->
       <div class="volume-toolbar">
         <div class="vol-item">
           <span class="material-symbols-outlined" style="font-size:16px;">smart_display</span>
@@ -338,7 +341,6 @@
           <span class="material-symbols-outlined">mic</span><span class="btn-text-mobile">マイク</span>
         </button>
 
-        <!-- カメラ切り替えプルダウン一体型ボタン -->
         <div class="cam-btn-group">
           <button id="camBtn" class="btn btn-tonal" onclick="toggleCam()" title="カメラON/OFF">
             <span class="material-symbols-outlined">videocam</span><span class="btn-text-mobile">カメラ</span>
@@ -479,17 +481,18 @@
     const peers = {}, kickedPeers = new Set(), receivedFiles = {}, sharedMediaFiles = {}, ttsAudioCache = new Map(), ttsQueue = [];
     const seenMessageIds = new Set();
 
-    let localStream = null, screenStream = null, isMicOn = true, isCamOn = true, isScreenSharing = false;
-    let isUnloading = false, isTabHidden = false, ytPlayer = null, isYtReady = false, isRemoteAction = false, isYtLoaded = false;
+    let localStream = null, screenStream = null;
+    let isMicOn = true, isCamOn = true, isScreenSharing = false;
+    let isMicBusy = false; // マイクハードウェア切り替え排他制御
+    let isUnloading = false, isTabHidden = false, tabHiddenTime = 0;
+    let ytPlayer = null, isYtReady = false, isRemoteAction = false, isYtLoaded = false;
     let currentStageMode = 'camera', currentFocusedPeerId = 'local', currentYtVolume = 40;
     let isTtsOn = true, isSpeaking = false, currentVote = null, voteTimerInterval = null, isReconnecting = false;
 
-    // YouTube 同期保留キュー
     let pendingYtAction = null;
     let currentSyncMediaId = null;
     let isSyncRemoteAction = false;
 
-    // Web Audio パイプライン（ダッキング抑制・クリーンルーティング）
     let audioContext = null, masterCallGainNode = null, masterLimiterNode = null, voicePannerNode = null;
     let currentMasterGain = 1.2, isAudioSplit = false;
 
@@ -499,13 +502,12 @@
         masterCallGainNode = audioContext.createGain();
         masterCallGainNode.gain.value = currentMasterGain;
 
-        // iPad等のダッキング・過度なフェードインを抑える自然なリミッター設定
         masterLimiterNode = audioContext.createDynamicsCompressor();
-        masterLimiterNode.threshold.value = -6; // 叫び声のみ頭打ち
+        masterLimiterNode.threshold.value = -6;
         masterLimiterNode.knee.value = 12;
         masterLimiterNode.ratio.value = 6;
         masterLimiterNode.attack.value = 0.003;
-        masterLimiterNode.release.value = 0.05; // 素早く復帰（フェードインの遅れを解消）
+        masterLimiterNode.release.value = 0.05;
 
         if (audioContext.createStereoPanner) {
           voicePannerNode = audioContext.createStereoPanner();
@@ -544,10 +546,8 @@
       }
     }
 
-    // 初回タップ時のオーディオアンロック（全機種対応TTS＆YouTube対応）
     function unlockAllAudio() {
       ensureAudioContextResumed();
-      // ダミーオーディオ再生によるモバイルの自動再生権限取得
       const dummy = new Audio();
       dummy.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
       dummy.play().catch(() => {});
@@ -581,18 +581,28 @@
       if (p.get('room')) $('roomNameInput').value = p.get('room');
       $('userNameInput').value = 'ゲスト' + Math.floor(Math.random() * 900 + 100);
 
-      // バックグラウンド再生維持：タブ非表示でもタイマーやAudioContextを停止させない
       document.addEventListener('visibilitychange', () => {
-        isTabHidden = (document.visibilityState === 'hidden');
-        if (!isTabHidden) {
+        isTabHidden = document.hidden;
+        if (isTabHidden) {
+          tabHiddenTime = Date.now();
+        } else {
           safeReconnect();
           ensureAudioContextResumed();
+          if (isYtLoaded || currentSyncMediaId) {
+            setTimeout(requestCatchUpSync, 400);
+          }
         }
       });
 
       window.addEventListener('beforeunload', () => { isUnloading = true; if (peer && !peer.destroyed) peer.destroy(); });
       if (window.YT && window.YT.Player) initYouTubePlayer();
     });
+
+    function requestCatchUpSync() {
+      if (Object.keys(peers).length > 0) {
+        broadcast({ type: 'sync-request' });
+      }
+    }
 
     async function updateCameraDeviceList() {
       if (!navigator.mediaDevices?.enumerateDevices) return;
@@ -610,7 +620,6 @@
       } catch (e) {}
     }
 
-    // カメラデバイス切り替え
     async function changeCameraDevice(val) {
       if (!localStream) return;
       try {
@@ -651,13 +660,8 @@
       return new MediaStream([dst.stream.getAudioTracks()[0], canvas.captureStream(5).getVideoTracks()[0]]);
     }
 
-    // iPad等の音量ダッキングを防ぐマイク設定
     async function setupMedia() {
-      const audioConstraints = {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: false // ダッキング・フェードインの原因となる自動ゲインをOFF
-      };
+      const audioConstraints = { echoCancellation: true, noiseSuppression: true, autoGainControl: false };
       try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: audioConstraints });
       } catch (err) {
@@ -775,13 +779,11 @@
       call.on('close', () => removePeer(pId));
     }
 
-    // 【修正】古いAudioNodeを確実に切断して音漏れ・音量0で消えないバグを根絶
     function setupPeerAudio(id, stream) {
       try {
         const { ctx, master } = getAudioPipeline();
         if (stream.getAudioTracks().length === 0) return;
 
-        // 既存の接続が残っている場合は確実に切断
         if (peers[id]?.userGainNode) {
           try { peers[id].userGainNode.disconnect(); } catch (e) {}
         }
@@ -803,7 +805,6 @@
       } catch (e) {}
     }
 
-    // 【修正】音量0のときは物理的ゼロを保証
     function changeUserVolume(id, val) {
       const v = Number(val);
       if (peers[id]) {
@@ -835,7 +836,6 @@
       conn.on('open', () => {
         conn.send({ type: 'intro', userName: myUserName, isHost, isMuted: !isMicOn, isCamOff: !isCamOn });
         
-        // 誰かがYouTube再生中なら新メンバーへ動画状態を送信
         if (isYtLoaded && ytPlayer && ytPlayer.getVideoData && ytPlayer.getPlayerState) {
           conn.send({
             type: 'yt-state', videoId: ytPlayer.getVideoData().video_id,
@@ -920,6 +920,27 @@
                   if (data.isPlaying) ytPlayer.playVideo();
                 }
               }, 1000);
+            }
+          }
+          break;
+
+        case 'sync-request':
+          if (!document.hidden && !isTabHidden) {
+            if (isYtLoaded && ytPlayer && ytPlayer.getVideoData) {
+              peers[fromPeerId]?.conn?.send({
+                type: 'yt-state',
+                videoId: ytPlayer.getVideoData().video_id,
+                time: ytPlayer.getCurrentTime(),
+                isPlaying: ytPlayer.getPlayerState() === YT.PlayerState.PLAYING
+              });
+            } else if (currentSyncMediaId) {
+              const player = sharedMediaFiles[currentSyncMediaId]?.mime.startsWith('audio/') ? $('syncMediaAudio') : $('syncMediaVideo');
+              peers[fromPeerId]?.conn?.send({
+                type: 'sync-media-action',
+                fileId: currentSyncMediaId,
+                action: player.paused ? 'pause' : 'play',
+                time: player.currentTime
+              });
             }
           }
           break;
@@ -1156,7 +1177,6 @@
       if (a) a.volume = currentYtVolume / 100;
     }
 
-    // 【修正】YouTube準備完了時の保留アクション消化
     function initYouTubePlayer() {
       if (ytPlayer || !window.YT || !window.YT.Player) return;
       ytPlayer = new YT.Player('player', {
@@ -1201,6 +1221,8 @@
 
     function onPlayerStateChange(e) {
       if (isUnloading || isRemoteAction || Object.keys(peers).length === 0) return;
+      if (document.hidden || isTabHidden || (Date.now() - tabHiddenTime < 1500)) return;
+
       const time = ytPlayer.getCurrentTime();
       if (e.data === YT.PlayerState.PLAYING) broadcast({ type: 'yt-action', action: 'play', time });
       else if (e.data === YT.PlayerState.PAUSED) broadcast({ type: 'yt-action', action: 'pause', time });
@@ -1222,7 +1244,6 @@
       setTimeout(() => isRemoteAction = false, 800);
     }
 
-    // 手動強制同期ボタン
     function forceSyncWithOthers() {
       if (ytPlayer && isYtLoaded && ytPlayer.getVideoData) {
         broadcast({
@@ -1293,7 +1314,6 @@
       showToast(`再生: ${title}`);
     }
 
-    // --- MP3/MP4 同時視聴 ---
     function setupSyncMediaListeners() {
       const v = $('syncMediaVideo'), a = $('syncMediaAudio');
       [v, a].forEach(player => {
@@ -1303,6 +1323,7 @@
         };
         player.onpause = () => {
           if (isSyncRemoteAction || !currentSyncMediaId) return;
+          if (document.hidden || isTabHidden || (Date.now() - tabHiddenTime < 1500)) return;
           broadcast({ type: 'sync-media-action', fileId: currentSyncMediaId, action: 'pause', time: player.currentTime });
         };
         player.onseeked = () => {
@@ -1310,6 +1331,19 @@
           broadcast({ type: 'sync-media-action', fileId: currentSyncMediaId, action: 'seek', time: player.currentTime });
         };
       });
+    }
+
+    async function togglePiP() {
+      const v = $('syncMediaVideo');
+      try {
+        if (document.pictureInPictureElement) {
+          await document.exitPictureInPicture();
+        } else if (document.pictureInPictureEnabled && v) {
+          await v.requestPictureInPicture();
+        }
+      } catch (err) {
+        showToast('小窓再生に対応していません', 'error');
+      }
     }
 
     function startSyncSharedMedia(fileId) {
@@ -1333,16 +1367,17 @@
       $('switchToYtBtn').style.display = 'none';
 
       const isAudio = data.mime.startsWith('audio/');
-      const v = $('syncMediaVideo'), a = $('syncMediaAudio'), vis = $('syncAudioVisualizer');
+      const v = $('syncMediaVideo'), a = $('syncMediaAudio'), vis = $('syncAudioVisualizer'), pip = $('pipBtn');
 
       if (isAudio) {
-        v.style.display = 'none'; v.pause(); v.src = '';
+        v.style.display = 'none'; v.pause(); v.src = ''; pip.style.display = 'none';
         a.style.display = 'block'; a.src = f.url; a.volume = currentYtVolume / 100;
         vis.style.display = 'flex'; $('syncAudioTitle').textContent = data.name;
       } else {
         a.style.display = 'none'; a.pause(); a.src = '';
         vis.style.display = 'none';
         v.style.display = 'block'; v.src = f.url; v.volume = currentYtVolume / 100;
+        pip.style.display = document.pictureInPictureEnabled ? 'inline-flex' : 'none';
       }
       showToast(`同時視聴開始: ${data.name}`);
     }
@@ -1362,7 +1397,6 @@
       setTimeout(() => isSyncRemoteAction = false, 600);
     }
 
-    // 【修正】全機種対応・Web Speech API自動フォールバック搭載TTS
     function cycleTtsMode() {
       isTtsOn = !isTtsOn;
       $('ttsToggleBtn').replaceChildren(el('span', { className: 'material-symbols-outlined', text: isTtsOn ? 'record_voice_over' : 'voice_over_off' }));
@@ -1423,7 +1457,6 @@
         success = false;
       }
 
-      // スマホの自動再生禁止や外部API不調時は標準Web Speechで100%読み上げ
       if (!success) {
         await speakNativeSpeech(text);
       }
@@ -1432,15 +1465,58 @@
       processFastTtsQueue();
     }
 
-    function toggleMic() {
-      if (!localStream) return;
-      isMicOn = !isMicOn;
-      localStream.getAudioTracks().forEach(t => t.enabled = isMicOn);
-      $('micBtn').replaceChildren(
+    // 【修正】ミュート時はマイクハードウェアを完全に停止・解放（iPadのダッキングを根絶）
+    async function toggleMic() {
+      if (isMicBusy || !localStream) return;
+      isMicBusy = true;
+
+      try {
+        if (isMicOn) {
+          // マイクを物理的に完全停止
+          isMicOn = false;
+          localStream.getAudioTracks().forEach(t => {
+            t.stop(); // ハードウェアマイクを解放！
+            localStream.removeTrack(t);
+          });
+
+          // 各ピアへの送信トラックを完全無音化
+          Object.values(peers).forEach(p => {
+            const sender = p.call?.peerConnection?.getSenders().find(s => s.track === null || s.track?.kind === 'audio');
+            if (sender) sender.replaceTrack(null).catch(() => {});
+          });
+
+          showToast('マイクを完全に停止しました（ハードウェアOFF）');
+        } else {
+          // マイクを再取得・起動
+          const audioConstraints = { echoCancellation: true, noiseSuppression: true, autoGainControl: false };
+          const newAudioStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
+          const newAudioTrack = newAudioStream.getAudioTracks()[0];
+
+          localStream.addTrack(newAudioTrack);
+          isMicOn = true;
+
+          // 各ピアへの送信トラックを更新
+          Object.values(peers).forEach(p => {
+            const sender = p.call?.peerConnection?.getSenders().find(s => s.track === null || s.track?.kind === 'audio');
+            if (sender) sender.replaceTrack(newAudioTrack).catch(() => {});
+          });
+
+          setupSpeakingDetector('local', localStream);
+          showToast('マイクを起動しました（ON）');
+        }
+      } catch (err) {
+        showToast('マイクの起動に失敗しました', 'error');
+        isMicOn = false;
+      } finally {
+        isMicBusy = false;
+      }
+
+      const btn = $('micBtn');
+      btn.replaceChildren(
         el('span', { className: 'material-symbols-outlined', text: isMicOn ? 'mic' : 'mic_off' }),
         el('span', { className: 'btn-text-mobile', text: 'マイク' })
       );
-      $('micBtn').classList.toggle('btn-danger', !isMicOn);
+      btn.classList.toggle('btn-danger', !isMicOn);
       $('localTileMic').textContent = isMicOn ? 'mic' : 'mic_off';
       broadcast({ type: 'status-update', isMuted: !isMicOn, isCamOff: !isCamOn });
     }
@@ -1519,7 +1595,7 @@
     function handleFileSelect(e) { if (e.target.files[0]) sendFileToPeers(e.target.files[0]); }
     function handleDropFile(e) { e.preventDefault(); if (e.dataTransfer.files[0]) sendFileToPeers(e.dataTransfer.files[0]); }
 
-    // 【修正】DataChannelバッファ溢れ防止（フロー制御）を導入した高速P2P転送
+    // 【修正】Uint8Arrayバイナリ化＋バッファ制御による安定送信
     async function sendFileToPeers(file) {
       const activePeers = Object.values(peers).filter(p => p.conn?.open);
       if (activePeers.length === 0) return alert('接続中の相手がいません');
@@ -1538,20 +1614,22 @@
       for (let current = 0; current < total; current++) {
         const start = current * FILE_CHUNK_SIZE;
         const end = Math.min(start + FILE_CHUNK_SIZE, file.size);
-        const chunk = await file.slice(start, end).arrayBuffer();
+        const arrayBuffer = await file.slice(start, end).arrayBuffer();
+        const chunkData = new Uint8Array(arrayBuffer);
 
-        // 各ピアのバッファが空くまで待機（クラッシュ・ドロップ防止）
         for (const p of activePeers) {
-          const dc = p.conn?.dataChannel;
+          const dc = p.conn?.dataChannel || p.conn?._dc;
           if (dc && dc.bufferedAmount > 64 * 1024) {
             await new Promise(r => setTimeout(r, 20));
           }
         }
 
-        broadcast({ type: 'file-chunk', id: fileId, index: current, data: chunk });
-
-        // 送信進捗更新
+        broadcast({ type: 'file-chunk', id: fileId, index: current, data: chunkData });
         updateFileProgress(fileId, Math.round(((current + 1) / total) * 100));
+
+        if (current % 5 === 0) {
+          await new Promise(r => setTimeout(r, 4));
+        }
       }
       showToast(`送信完了: ${safeName}`);
     }
@@ -1564,17 +1642,29 @@
         total: data.total, count: 0, receivedIndices: new Set(), chunks: new Array(data.total),
         timeout: setTimeout(() => delete receivedFiles[data.id], 300000)
       };
-      // 受信カード（プログレスバー付き）を即座に作成
       addDownloadItem(data.id, safeName, null, data.mime || '', data.size, false);
       showToast(`受信開始: ${safeName}`);
     }
 
-    // 【修正】受信進捗（%）をリアルタイム表示
+    // 【修正】ArrayBuffer / Uint8Array の両方に対応する安全なチャンクデコード
     function handleFileChunk(data) {
       const f = receivedFiles[data.id]; if (!f) return;
-      if (data.index < 0 || data.index >= f.total || !(data.data instanceof ArrayBuffer) || data.data.byteLength > FILE_CHUNK_SIZE * 2 || f.receivedIndices.has(data.index)) return;
+      if (typeof data.index !== 'number' || data.index < 0 || data.index >= f.total) return;
+      if (f.receivedIndices.has(data.index)) return;
+
+      let chunkBlobPart = null;
+      if (data.data instanceof ArrayBuffer) {
+        chunkBlobPart = data.data;
+      } else if (ArrayBuffer.isView(data.data)) {
+        chunkBlobPart = data.data;
+      } else if (data.data instanceof Blob) {
+        chunkBlobPart = data.data;
+      } else {
+        return;
+      }
+
       f.receivedIndices.add(data.index);
-      f.chunks[data.index] = data.data;
+      f.chunks[data.index] = chunkBlobPart;
       f.count++;
 
       const pct = Math.round((f.count / f.total) * 100);
