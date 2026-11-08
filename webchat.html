@@ -8,7 +8,6 @@
   <script src="https://www.youtube.com/iframe_api"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
-  <!-- Material Symbols Outlined（公式推奨の全軸パラメータ） -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
 
   <style>
@@ -29,7 +28,6 @@
       touch-action: manipulation; display: flex; flex-direction: column;
     }
 
-    /* Material Symbols の厳格なフォント・リガチャ定義（テキスト露出防止） */
     .material-symbols-outlined {
       font-family: 'Material Symbols Outlined' !important;
       font-weight: normal; font-style: normal; font-size: 20px; line-height: 1;
@@ -51,20 +49,13 @@
     .status-dot.waiting { background: #faa81a; }
     .header-controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 
-    /* MD3 Outlined Text Field */
     .md-field {
       display: flex; align-items: center; background: var(--md-surface-cnt);
       border: 1px solid var(--md-outline-var); border-radius: var(--r-sm);
       padding: 6px 12px; gap: 6px; transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .md-field:focus-within {
-      border-color: var(--md-primary);
-      box-shadow: 0 0 0 1px var(--md-primary);
-    }
-    .md-field input {
-      width: 100%; background: transparent; border: none; color: var(--md-on-surface);
-      font-size: 0.85rem; outline: none; font-family: inherit;
-    }
+    .md-field:focus-within { border-color: var(--md-primary); box-shadow: 0 0 0 1px var(--md-primary); }
+    .md-field input { width: 100%; background: transparent; border: none; color: var(--md-on-surface); font-size: 0.85rem; outline: none; font-family: inherit; }
     .md-field input::placeholder { color: var(--md-outline); }
     
     .btn {
@@ -110,9 +101,13 @@
     }
     @keyframes avatarRipple { 0% { transform: scale(0.95); opacity: 1; } 100% { transform: scale(1.35); opacity: 0; } }
 
-    #ytContainer { position: absolute; inset: 0; z-index: 5; background: #000; visibility: hidden; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
-    #ytContainer.active { visibility: visible; opacity: 1; pointer-events: auto; }
+    #ytContainer, #syncMediaContainer {
+      position: absolute; inset: 0; z-index: 5; background: #000; visibility: hidden; opacity: 0;
+      pointer-events: none; transition: opacity 0.2s; display: flex; flex-direction: column; justify-content: center; align-items: center;
+    }
+    #ytContainer.active, #syncMediaContainer.active { visibility: visible; opacity: 1; pointer-events: auto; }
     #player { width: 100%; height: 100%; }
+    #syncMediaVideo { width: 100%; height: 100%; object-fit: contain; }
 
     .switch-to-yt-banner, .unmute-banner {
       position: absolute; border-radius: var(--r-full); font-size: 0.8rem; font-weight: bold;
@@ -131,15 +126,27 @@
 
     .volume-toolbar {
       flex-shrink: 0; background: var(--md-surface-cnt); border-top: 1px solid var(--md-outline-var);
-      padding: 4px 14px; display: flex; align-items: center; justify-content: center; gap: 16px;
+      padding: 4px 14px; display: flex; align-items: center; justify-content: center; gap: 14px;
       font-size: 0.75rem; color: var(--md-on-surface-var); z-index: 12; flex-wrap: wrap;
     }
     .vol-item { display: flex; align-items: center; gap: 6px; }
-    .vol-item input[type="range"] { width: 75px; accent-color: var(--md-primary); cursor: pointer; }
+    .vol-item input[type="range"] { width: 70px; accent-color: var(--md-primary); cursor: pointer; }
 
     .controls-bar {
       height: 56px; flex-shrink: 0; background: var(--md-surface); border-top: 1px solid var(--md-outline-var);
       display: flex; justify-content: center; align-items: center; gap: 6px; padding: 0 8px; z-index: 20; overflow-x: auto;
+    }
+
+    /* カメラボタン＋プルダウンの一体化グループ */
+    .cam-btn-group {
+      display: inline-flex; align-items: center; background: var(--md-sec-cnt);
+      border-radius: var(--r-full); overflow: hidden;
+    }
+    .cam-btn-group .btn { border-radius: var(--r-full) 0 0 var(--r-full); padding-right: 6px; }
+    .cam-select {
+      background: var(--md-surface-highest); color: var(--md-on-surface); border: none;
+      font-size: 0.72rem; padding: 7px 8px; border-radius: 0 var(--r-full) var(--r-full) 0;
+      outline: none; cursor: pointer; border-left: 1px solid var(--md-outline-var); font-family: inherit;
     }
 
     .sidebar { width: 320px; flex-shrink: 0; background: var(--md-surface); border-left: 1px solid var(--md-outline-var); display: flex; flex-direction: column; z-index: 25; }
@@ -168,6 +175,14 @@
     .user-vol-row input[type="range"] { flex: 1; accent-color: var(--md-primary); cursor: pointer; }
 
     .file-drop-area { margin: 12px; border: 2px dashed var(--md-outline-var); border-radius: var(--r-md); padding: 18px; text-align: center; color: var(--md-outline); cursor: pointer; font-size: 0.8rem; }
+    
+    .file-card-item {
+      background: var(--md-surface-cnt); padding: 10px; border-radius: var(--r-sm);
+      display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--md-outline-var);
+    }
+    .file-card-title { font-size: 0.82rem; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-card-actions { display: flex; align-items: center; gap: 6px; }
+
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); z-index: 100; display: none; justify-content: center; align-items: center; padding: 12px; }
     .modal-card { width: 100%; max-width: 540px; background: var(--md-surface-high); border-radius: var(--r-lg); padding: 18px; display: flex; flex-direction: column; gap: 12px; max-height: 85vh; }
     .search-results { overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
@@ -197,8 +212,8 @@
       .camera-strip { height: 85px; }
       .controls-bar { height: 52px; gap: 4px; padding: 0 4px; }
       .controls-bar .btn { padding: 6px 9px; }
-      .volume-toolbar { gap: 10px; font-size: 0.7rem; padding: 4px 8px; }
-      .vol-item input[type="range"] { width: 55px; }
+      .volume-toolbar { gap: 8px; font-size: 0.7rem; padding: 4px 8px; }
+      .vol-item input[type="range"] { width: 50px; }
       .stage-avatar-circle { width: 75px; height: 75px; font-size: 1.8rem; }
     }
   </style>
@@ -254,10 +269,11 @@
           <span class="material-symbols-outlined">volume_up</span> タップで音声再生
         </div>
         <div id="switchToYtBtn" class="switch-to-yt-banner" onclick="switchToYouTubeStage()">
-          <span class="material-symbols-outlined">smart_display</span> YouTube画面に戻る
+          <span class="material-symbols-outlined">smart_display</span> メディア画面に戻る
         </div>
+        
         <div class="aspect-screen" id="aspectScreen">
-          <video id="stageVideo" autoplay playsinline></video>
+          <video id="stageVideo" autoplay playsinline muted></video>
           <div id="stageAvatar" class="avatar-placeholder" style="display:none;">
             <div class="avatar-circle stage-avatar-circle" id="stageAvatarCircle"><span id="stageAvatarText">自</span></div>
             <div class="avatar-name" id="stageAvatarName">
@@ -266,6 +282,16 @@
             </div>
           </div>
           <div id="ytContainer"><div id="player"></div></div>
+          
+          <!-- MP3/MP4 同時視聴プレイヤーコンテナ -->
+          <div id="syncMediaContainer">
+            <div id="syncAudioVisualizer" style="display:none; flex-direction:column; align-items:center; gap:14px; margin-bottom:12px;">
+              <span class="material-symbols-outlined" style="font-size:72px; color:var(--md-primary); animation:avatarRipple 1.4s infinite ease-out;">library_music</span>
+              <div id="syncAudioTitle" style="font-size:1rem; font-weight:bold; color:var(--md-primary);">音楽を再生中</div>
+            </div>
+            <video id="syncMediaVideo" controls playsinline style="max-height:85%; max-width:100%; display:none;"></video>
+            <audio id="syncMediaAudio" controls style="display:none; width:80%; margin-top:10px;"></audio>
+          </div>
         </div>
       </div>
 
@@ -295,9 +321,11 @@
           <input type="range" id="callVolumeSlider" min="0" max="250" value="120" oninput="changeMasterVolume(this.value)">
           <span id="callVolVal" style="width:34px;">1.2x</span>
         </div>
-        <div class="vol-item" title="突発的な大声を抑えて耳を守り、音割れを防ぎます">
-          <span class="material-symbols-outlined" style="font-size:16px; color:var(--md-success);">health_and_safety</span>
-          <span style="color:var(--md-success);">音量リミッター保護</span>
+        <div class="vol-item">
+          <button id="splitAudioBtn" class="btn btn-tonal btn-xs" onclick="toggleSplitAudio()" title="左耳:動画 / 右耳:通話音声に分離します">
+            <span class="material-symbols-outlined" style="font-size:15px;">headphones</span>
+            <span id="splitAudioText">左右分離: OFF</span>
+          </button>
         </div>
       </div>
 
@@ -305,9 +333,18 @@
         <button id="micBtn" class="btn btn-tonal" onclick="toggleMic()" title="マイクON/OFF">
           <span class="material-symbols-outlined">mic</span><span class="btn-text-mobile">マイク</span>
         </button>
-        <button id="camBtn" class="btn btn-tonal" onclick="toggleCam()" title="カメラON/OFF">
-          <span class="material-symbols-outlined">videocam</span><span class="btn-text-mobile">カメラ</span>
-        </button>
+
+        <!-- カメラボタン ＋ 右側カメラ選択プルダウン -->
+        <div class="cam-btn-group">
+          <button id="camBtn" class="btn btn-tonal" onclick="toggleCam()" title="カメラON/OFF">
+            <span class="material-symbols-outlined">videocam</span><span class="btn-text-mobile">カメラ</span>
+          </button>
+          <select id="cameraSelect" class="cam-select" onchange="changeCameraDevice(this.value)" title="カメラ選択（内カメ/外カメ）">
+            <option value="user">内カメラ</option>
+            <option value="environment">外カメラ</option>
+          </select>
+        </div>
+
         <button class="btn btn-tonal" onclick="toggleMobileSidebar()" title="チャット・参加者">
           <span class="material-symbols-outlined">chat</span><span class="btn-text-mobile">チャット</span>
         </button>
@@ -365,11 +402,12 @@
           ファイルを転送
           <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)">
         </div>
-        <div id="fileItemsList" style="padding:10px; display:flex; flex-direction:column; gap:6px;"></div>
+        <div id="fileItemsList" style="padding:10px; display:flex; flex-direction:column; gap:8px;"></div>
       </div>
     </div>
   </div>
 
+  <!-- YouTube モーダル -->
   <div class="modal-overlay" id="ytModal">
     <div class="modal-card">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -392,41 +430,22 @@
     </div>
   </div>
 
-  <div class="modal-overlay" id="mobileShareModal">
-    <div class="modal-card" style="max-width:380px;">
+  <!-- 安全なファイルプレビュー用モーダル -->
+  <div class="modal-overlay" id="filePreviewModal">
+    <div class="modal-card" style="max-width:680px;">
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3 style="font-size:1rem; color:var(--md-primary); display:flex; align-items:center; gap:6px;">
-          <span class="material-symbols-outlined">screen_share</span>スマホ画面共有メニュー
-        </h3>
-        <button class="btn btn-tonal btn-icon-only" onclick="toggleModal('mobileShareModal', false)"><span class="material-symbols-outlined">close</span></button>
+        <h3 id="previewModalTitle" style="font-size:0.95rem; color:var(--md-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:80%;">ファイルプレビュー</h3>
+        <button class="btn btn-tonal btn-icon-only" onclick="closeFilePreviewModal()"><span class="material-symbols-outlined">close</span></button>
       </div>
-      <p style="font-size:0.78rem; color:var(--md-outline); line-height:1.4;">ブラウザ制限のため、以下の方法で相手の大画面に配信できます：</p>
-      <div style="display:flex; flex-direction:column; gap:8px;">
-        <button class="btn btn-primary" style="justify-content:flex-start; padding:12px 16px;" onclick="triggerScreenShotShare()">
-          <span class="material-symbols-outlined">photo_library</span>
-          <div style="text-align:left; margin-left:6px;">
-            <div style="font-size:0.85rem;">スクショ・画像を画面として配信</div>
-            <div style="font-size:0.7rem; opacity:0.8;">撮ったスクショを動画として相手に表示</div>
-          </div>
-        </button>
-        <button class="btn btn-tonal" style="justify-content:flex-start; padding:12px 16px;" onclick="triggerEnvironmentCameraShare()">
-          <span class="material-symbols-outlined">flip_camera_ios</span>
-          <div style="text-align:left; margin-left:6px;">
-            <div style="font-size:0.85rem;">外カメラで手元・別画面を配信</div>
-            <div style="font-size:0.7rem; opacity:0.8;">背面カメラで書類や画面を大画面に写す</div>
-          </div>
-        </button>
-      </div>
+      <div id="previewModalBody" style="display:flex; justify-content:center; align-items:center; min-height:180px; overflow:auto;"></div>
     </div>
   </div>
 
-  <input type="file" id="screenShotInput" accept="image/*" style="display:none;" onchange="handleScreenShotSelected(event)">
   <div class="toast-container" id="toastContainer"></div>
 
   <script>
     const $ = id => document.getElementById(id);
 
-    // 【修正】class/className プロパティを正しく適用するセキュアなDOM生成ヘルパー
     const el = (tag, attrs = {}, ...children) => {
       const node = document.createElement(tag);
       for (const [k, v] of Object.entries(attrs)) {
@@ -455,16 +474,21 @@
     const PEER_CONFIG = { config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] } };
 
     let myPeerId = null, myUserName = 'ゲスト', currentRoomName = '', isHost = false, peer = null;
-    const peers = {}, kickedPeers = new Set(), receivedFiles = {}, ttsAudioCache = new Map(), ttsQueue = [];
+    const peers = {}, kickedPeers = new Set(), receivedFiles = {}, sharedMediaFiles = {}, ttsAudioCache = new Map(), ttsQueue = [];
+    const seenMessageIds = new Set(); // メッセージ重複排除用キャッシュ
+
     let localStream = null, screenStream = null, isMicOn = true, isCamOn = true, isScreenSharing = false;
-    let isUnloading = false, isTabHidden = false, mockScreenCanvas = null, mockScreenTimer = null;
-    let ytPlayer = null, isYtReady = false, isRemoteAction = false, isYtLoaded = false;
+    let isUnloading = false, isTabHidden = false, ytPlayer = null, isYtReady = false, isRemoteAction = false, isYtLoaded = false;
     let currentStageMode = 'camera', currentFocusedPeerId = 'local', currentYtVolume = 40;
     let isTtsOn = true, isSpeaking = false, currentVote = null, voteTimerInterval = null, isReconnecting = false;
 
-    // Web Audio 音声パイプライン（マスターゲイン ＋ 大声リミッター）
-    let audioContext = null, masterCallGainNode = null, masterLimiterNode = null;
-    let currentMasterGain = 1.2;
+    // 同時視聴用メディアステート
+    let currentSyncMediaId = null;
+    let isSyncRemoteAction = false;
+
+    // Web Audio 音声パイプライン
+    let audioContext = null, masterCallGainNode = null, masterLimiterNode = null, voicePannerNode = null;
+    let currentMasterGain = 1.2, isAudioSplit = false;
 
     function getAudioPipeline() {
       if (!audioContext) {
@@ -479,11 +503,41 @@
         masterLimiterNode.attack.value = 0.003;
         masterLimiterNode.release.value = 0.25;
 
-        masterCallGainNode.connect(masterLimiterNode);
-        masterLimiterNode.connect(audioContext.destination);
+        if (audioContext.createStereoPanner) {
+          voicePannerNode = audioContext.createStereoPanner();
+          voicePannerNode.pan.value = isAudioSplit ? 1.0 : 0.0;
+        }
+
+        if (voicePannerNode) {
+          masterCallGainNode.connect(masterLimiterNode);
+          masterLimiterNode.connect(voicePannerNode);
+          voicePannerNode.connect(audioContext.destination);
+        } else {
+          masterCallGainNode.connect(masterLimiterNode);
+          masterLimiterNode.connect(audioContext.destination);
+        }
       }
       if (audioContext.state === 'suspended') audioContext.resume();
       return { ctx: audioContext, master: masterCallGainNode };
+    }
+
+    function toggleSplitAudio() {
+      getAudioPipeline();
+      isAudioSplit = !isAudioSplit;
+      if (voicePannerNode) {
+        voicePannerNode.pan.setTargetAtTime(isAudioSplit ? 1.0 : 0.0, audioContext.currentTime, 0.05);
+      }
+      const btn = $('splitAudioBtn');
+      const text = $('splitAudioText');
+      if (isAudioSplit) {
+        btn.classList.add('btn-active');
+        text.textContent = '左右分離: ON (右:通話)';
+        showToast('左右分離モード: ON（通話音声を右耳に固定しました）');
+      } else {
+        btn.classList.remove('btn-active');
+        text.textContent = '左右分離: OFF';
+        showToast('左右分離モード: OFF（両耳ステレオに戻しました）');
+      }
     }
 
     function ensureAudioContextResumed() {
@@ -507,6 +561,9 @@
     window.addEventListener('DOMContentLoaded', async () => {
       ['click', 'touchstart', 'keydown'].forEach(e => window.addEventListener(e, ensureAudioContextResumed, { once: true }));
       await setupMedia();
+      updateCameraDeviceList();
+      setupSyncMediaListeners();
+
       const p = new URLSearchParams(window.location.search);
       if (p.get('room')) $('roomNameInput').value = p.get('room');
       $('userNameInput').value = 'ゲスト' + Math.floor(Math.random() * 900 + 100);
@@ -518,6 +575,59 @@
       window.addEventListener('beforeunload', () => { isUnloading = true; if (peer && !peer.destroyed) peer.destroy(); });
       if (window.YT && window.YT.Player) initYouTubePlayer();
     });
+
+    // デバイス一覧を取得してプルダウンに反映
+    async function updateCameraDeviceList() {
+      if (!navigator.mediaDevices?.enumerateDevices) return;
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoInputs = devices.filter(d => d.kind === 'videoinput');
+        const sel = $('cameraSelect');
+        if (videoInputs.length > 0 && videoInputs[0].label) {
+          sel.replaceChildren();
+          videoInputs.forEach((d, i) => {
+            const label = d.label || (i === 0 ? '内カメラ (前面)' : '外カメラ (背面)');
+            sel.appendChild(el('option', { value: d.deviceId, text: label }));
+          });
+        }
+      } catch (e) {}
+    }
+
+    // カメラ切り替え処理
+    async function changeCameraDevice(val) {
+      if (!localStream) return;
+      try {
+        let constraints;
+        if (val === 'user' || val === 'environment') {
+          constraints = { video: { facingMode: { ideal: val } }, audio: false };
+        } else {
+          constraints = { video: { deviceId: { exact: val } }, audio: false };
+        }
+
+        const newMedia = await navigator.mediaDevices.getUserMedia(constraints);
+        const newTrack = newMedia.getVideoTracks()[0];
+        const oldTrack = localStream.getVideoTracks()[0];
+
+        if (oldTrack) {
+          localStream.removeTrack(oldTrack);
+          oldTrack.stop();
+        }
+        localStream.addTrack(newTrack);
+        newTrack.enabled = isCamOn;
+
+        // 全接続のPeerConnectionに差し替え
+        Object.values(peers).forEach(p => {
+          const sender = p.call?.peerConnection?.getSenders().find(s => s.track?.kind === 'video');
+          if (sender) sender.replaceTrack(newTrack);
+        });
+
+        $('localVideo').srcObject = localStream;
+        updateLocalAvatarUI();
+        showToast('カメラを切り替えました');
+      } catch (err) {
+        showToast('カメラ切り替えに失敗しました', 'error');
+      }
+    }
 
     function createDummyMediaStream() {
       const { ctx } = getAudioPipeline();
@@ -615,8 +725,15 @@
       });
     }
 
+    // 【修正】タイブレーカー方式（二重接続の防止）
     function connectToSinglePeer(targetId) {
-      if (kickedPeers.has(targetId) || (peers[targetId] && peers[targetId].conn)) return;
+      if (kickedPeers.has(targetId)) return;
+      if (peers[targetId]?.conn?.open) return; // 既に接続済みならスキップ
+
+      // ホスト宛て以外は辞書順で自分の方が小さい場合のみ能動的接続を行う
+      const isTargetHost = targetId.endsWith('-host');
+      if (!isTargetHost && myPeerId > targetId) return;
+
       setupConnEvents(peer.connect(targetId, { reliable: true }));
       setupCallEvents(peer.call(targetId, localStream));
     }
@@ -624,7 +741,11 @@
     function setupCallEvents(call) {
       const pId = call.peer;
       if (!peers[pId]) peers[pId] = { userVolume: 100 };
+      if (peers[pId].call && peers[pId].call !== call) {
+        try { peers[pId].call.close(); } catch(e){}
+      }
       peers[pId].call = call;
+
       call.on('stream', stream => {
         peers[pId].stream = stream;
         addCameraTile(pId, stream, peers[pId].userName || '参加者');
@@ -647,7 +768,6 @@
 
         src.connect(userGain);
         userGain.connect(master);
-
         peers[id].userGainNode = userGain;
       } catch (e) {}
     }
@@ -656,7 +776,9 @@
       const v = Number(val);
       if (peers[id]) {
         peers[id].userVolume = v;
-        if (peers[id].userGainNode) peers[id].userGainNode.gain.value = v / 100;
+        if (peers[id].userGainNode && audioContext) {
+          peers[id].userGainNode.gain.setValueAtTime(v / 100, audioContext.currentTime);
+        }
         const span = $(`user-vol-val-${id}`);
         if (span) span.textContent = `${v}%`;
       }
@@ -665,12 +787,17 @@
     function changeMasterVolume(val) {
       currentMasterGain = Number(val) / 100;
       $('callVolVal').textContent = `${currentMasterGain.toFixed(1)}x`;
-      if (masterCallGainNode) masterCallGainNode.gain.value = currentMasterGain;
+      if (masterCallGainNode && audioContext) {
+        masterCallGainNode.gain.setValueAtTime(currentMasterGain, audioContext.currentTime);
+      }
     }
 
     function setupConnEvents(conn) {
       const pId = conn.peer;
       if (!peers[pId]) peers[pId] = { userVolume: 100 };
+      if (peers[pId].conn && peers[pId].conn !== conn) {
+        try { peers[pId].conn.close(); } catch(e){}
+      }
       peers[pId].conn = conn;
 
       conn.on('open', () => {
@@ -689,8 +816,19 @@
       conn.on('close', () => removePeer(pId));
     }
 
+    // 【修正】メッセージ重複排除（Deduplication）による6連チャット＆参加重複の完全排除
     function handlePeerData(fromPeerId, data) {
       if (!data || typeof data !== 'object') return;
+
+      if (data.msgId) {
+        if (seenMessageIds.has(data.msgId)) return; // 既に処理済みなら無視
+        seenMessageIds.add(data.msgId);
+        if (seenMessageIds.size > 200) {
+          const first = seenMessageIds.values().next().value;
+          seenMessageIds.delete(first);
+        }
+      }
+
       switch (data.type) {
         case 'intro':
           peers[fromPeerId].userName = typeof data.userName === 'string' ? data.userName.slice(0, 30) : '参加者';
@@ -700,17 +838,24 @@
           updateTileName(fromPeerId, peers[fromPeerId].userName);
           updateTileIcons(fromPeerId, data.isMuted, data.isCamOff);
           updateUserListUI();
-          showToast(`${peers[fromPeerId].userName} が参加`);
+          
+          if (!peers[fromPeerId].hasAnnounced) {
+            peers[fromPeerId].hasAnnounced = true;
+            showToast(`${peers[fromPeerId].userName} が参加`);
+          }
           break;
+
         case 'mesh-members':
           if (Array.isArray(data.members)) data.members.forEach(id => { if (id !== myPeerId && !kickedPeers.has(id)) connectToSinglePeer(id); });
           break;
+
         case 'chat':
           if (typeof data.text === 'string' && data.text.trim()) {
             appendChatMessage(data.text, 'remote', peers[fromPeerId]?.userName || data.userName || '参加者');
             queueFastZundamonSpeech(data.text);
           }
           break;
+
         case 'status-update':
           if (peers[fromPeerId]) {
             peers[fromPeerId].isMuted = !!data.isMuted;
@@ -720,12 +865,15 @@
             if (currentFocusedPeerId === fromPeerId) updateStageView();
           }
           break;
+
         case 'yt-load':
           if (typeof data.videoId === 'string') openYouTubeScreen(data.videoId);
           break;
+
         case 'yt-action':
           handleRemoteYouTubeAction(data);
           break;
+
         case 'yt-state':
           if (typeof data.videoId === 'string') {
             openYouTubeScreen(data.videoId);
@@ -737,6 +885,16 @@
             }, 1200);
           }
           break;
+
+        // MP3/MP4 同時視聴シグナリング
+        case 'sync-media-start':
+          handleSyncMediaStart(data);
+          break;
+
+        case 'sync-media-action':
+          handleSyncMediaAction(data);
+          break;
+
         case 'vote-kick-start': handleVoteKickStart(fromPeerId, data); break;
         case 'vote-kick-vote': handleVoteKickVote(fromPeerId, data); break;
         case 'file-meta': handleFileMeta(data); break;
@@ -839,6 +997,8 @@
     }
 
     function broadcast(data) {
+      if (!data.msgId) data.msgId = Math.random().toString(36).substring(2, 11);
+      seenMessageIds.add(data.msgId);
       Object.values(peers).forEach(p => { if (p.conn && p.conn.open) p.conn.send(data); });
     }
 
@@ -848,7 +1008,7 @@
       const gradient = getAvatarGradient(name);
 
       const tile = el('div', { className: 'camera-tile', id: `tile-${id}`, onclick: () => focusVideo(id) },
-        el('video', { id: `vid-${id}`, autoplay: '', playsinline: '' }),
+        el('video', { id: `vid-${id}`, autoplay: '', playsinline: '', muted: '' }),
         el('div', { className: 'tile-avatar-placeholder', id: `avatar-${id}`, style: { display: 'none' } },
           el('div', { className: 'avatar-circle tile-avatar-circle', id: `avatarCircle-${id}`, style: { background: gradient } },
             el('span', { id: `avatarText-${id}`, text: initial })
@@ -860,7 +1020,9 @@
         )
       );
       $('cameraStrip').appendChild(tile);
-      $(`vid-${id}`).srcObject = stream;
+      const vid = $(`vid-${id}`);
+      vid.muted = true;
+      vid.srcObject = stream;
       if ($('cameraStrip').children.length === 2 && currentStageMode === 'camera') focusVideo(id);
       updateUserListUI();
     }
@@ -883,11 +1045,13 @@
       document.querySelectorAll('.camera-tile').forEach(t => t.classList.remove('focused'));
       const target = $(`tile-${id}`); if (target) target.classList.add('focused');
       updateStageView();
-      if (isYtLoaded) $('switchToYtBtn').style.display = 'inline-flex';
+      if (isYtLoaded || currentSyncMediaId) $('switchToYtBtn').style.display = 'inline-flex';
     }
 
     function updateStageView() {
       $('ytContainer').classList.remove('active');
+      $('syncMediaContainer').classList.remove('active');
+
       const id = currentFocusedPeerId;
       let targetName = (id === 'local') ? `${myUserName} (自分)` : (peers[id]?.userName || '参加者');
       let isCamOff = (id === 'local') ? (!isCamOn && !isScreenSharing) : !!peers[id]?.isCamOff;
@@ -904,20 +1068,31 @@
         $('stageVideo').style.display = 'block';
         if (stream) {
           $('stageVideo').srcObject = stream;
+          $('stageVideo').muted = true;
           $('stageVideo').style.transform = (id === 'local' && !isScreenSharing) ? 'scaleX(-1)' : 'none';
         }
       }
     }
 
     function switchToYouTubeStage() {
-      currentStageMode = 'youtube';
-      $('stageVideo').style.display = 'none'; $('stageAvatar').style.display = 'none';
-      $('ytContainer').classList.add('active'); $('switchToYtBtn').style.display = 'none';
+      if (currentSyncMediaId) {
+        currentStageMode = 'sync-media';
+        $('stageVideo').style.display = 'none'; $('stageAvatar').style.display = 'none';
+        $('ytContainer').classList.remove('active');
+        $('syncMediaContainer').classList.add('active');
+        $('switchToYtBtn').style.display = 'none';
+      } else {
+        currentStageMode = 'youtube';
+        $('stageVideo').style.display = 'none'; $('stageAvatar').style.display = 'none';
+        $('syncMediaContainer').classList.remove('active');
+        $('ytContainer').classList.add('active');
+        $('switchToYtBtn').style.display = 'none';
+      }
       document.querySelectorAll('.camera-tile').forEach(t => t.classList.remove('focused'));
     }
 
     function toggleYouTubeStageOrModal() {
-      if (isYtLoaded && currentStageMode === 'camera') switchToYouTubeStage();
+      if ((isYtLoaded || currentSyncMediaId) && currentStageMode === 'camera') switchToYouTubeStage();
       else toggleModal('ytModal', true);
     }
 
@@ -945,6 +1120,9 @@
       currentYtVolume = Number(val);
       $('ytVolVal').textContent = `${val}%`;
       if (ytPlayer && ytPlayer.setVolume) ytPlayer.setVolume(val);
+      const v = $('syncMediaVideo'), a = $('syncMediaAudio');
+      if (v) v.volume = currentYtVolume / 100;
+      if (a) a.volume = currentYtVolume / 100;
     }
 
     function initYouTubePlayer() {
@@ -965,6 +1143,7 @@
     window.onYouTubeIframeAPIReady = initYouTubePlayer;
 
     function openYouTubeScreen(videoId) {
+      currentSyncMediaId = null;
       isYtLoaded = true; switchToYouTubeStage();
       if (isYtReady && ytPlayer && ytPlayer.loadVideoById) {
         isRemoteAction = true;
@@ -1048,6 +1227,79 @@
       showToast(`再生: ${title}`);
     }
 
+    // --- MP3/MP4 同時視聴システム ---
+    function setupSyncMediaListeners() {
+      const v = $('syncMediaVideo');
+      const a = $('syncMediaAudio');
+      [v, a].forEach(player => {
+        player.onplay = () => {
+          if (isSyncRemoteAction || !currentSyncMediaId) return;
+          broadcast({ type: 'sync-media-action', fileId: currentSyncMediaId, action: 'play', time: player.currentTime });
+        };
+        player.onpause = () => {
+          if (isSyncRemoteAction || !currentSyncMediaId) return;
+          broadcast({ type: 'sync-media-action', fileId: currentSyncMediaId, action: 'pause', time: player.currentTime });
+        };
+        player.onseeked = () => {
+          if (isSyncRemoteAction || !currentSyncMediaId) return;
+          broadcast({ type: 'sync-media-action', fileId: currentSyncMediaId, action: 'seek', time: player.currentTime });
+        };
+      });
+    }
+
+    function startSyncSharedMedia(fileId) {
+      const f = sharedMediaFiles[fileId];
+      if (!f) return showToast('メディアファイルが見つかりません', 'error');
+
+      broadcast({ type: 'sync-media-start', fileId, name: f.name, mime: f.mime });
+      handleSyncMediaStart({ fileId, name: f.name, mime: f.mime });
+    }
+
+    function handleSyncMediaStart(data) {
+      const f = sharedMediaFiles[data.fileId];
+      if (!f) return showToast(`${data.name} の受信が完了していません`, 'error');
+
+      currentSyncMediaId = data.fileId;
+      currentStageMode = 'sync-media';
+      $('stageVideo').style.display = 'none';
+      $('stageAvatar').style.display = 'none';
+      $('ytContainer').classList.remove('active');
+      $('syncMediaContainer').classList.add('active');
+      $('switchToYtBtn').style.display = 'none';
+
+      const isAudio = data.mime.startsWith('audio/');
+      const v = $('syncMediaVideo'), a = $('syncMediaAudio'), vis = $('syncAudioVisualizer');
+
+      if (isAudio) {
+        v.style.display = 'none'; v.pause(); v.src = '';
+        a.style.display = 'block'; a.src = f.url; a.volume = currentYtVolume / 100;
+        vis.style.display = 'flex'; $('syncAudioTitle').textContent = data.name;
+      } else {
+        a.style.display = 'none'; a.pause(); a.src = '';
+        vis.style.display = 'none';
+        v.style.display = 'block'; v.src = f.url; v.volume = currentYtVolume / 100;
+      }
+      showToast(`同時視聴開始: ${data.name}`);
+    }
+
+    function handleSyncMediaAction(data) {
+      if (!currentSyncMediaId || currentSyncMediaId !== data.fileId) return;
+      const f = sharedMediaFiles[data.fileId]; if (!f) return;
+      const player = f.mime.startsWith('audio/') ? $('syncMediaAudio') : $('syncMediaVideo');
+
+      isSyncRemoteAction = true;
+      if (typeof data.time === 'number' && Math.abs(player.currentTime - data.time) > 1.0) {
+        player.currentTime = data.time;
+      }
+
+      if (data.action === 'play') {
+        player.play().catch(() => {});
+      } else if (data.action === 'pause') {
+        player.pause();
+      }
+      setTimeout(() => isSyncRemoteAction = false, 600);
+    }
+
     function cycleTtsMode() {
       isTtsOn = !isTtsOn;
       $('ttsToggleBtn').replaceChildren(el('span', { className: 'material-symbols-outlined', text: isTtsOn ? 'record_voice_over' : 'voice_over_off' }));
@@ -1116,40 +1368,10 @@
           screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
           applyCustomVideoStream(screenStream);
           screenStream.getVideoTracks()[0].onended = stopScreenShare;
-          return;
-        } catch (e) { if (e.name === 'NotAllowedError') return; }
+        } catch (e) {}
+      } else {
+        showToast('お使いの環境では画面共有に対応していません', 'error');
       }
-      toggleModal('mobileShareModal', true);
-    }
-
-    function triggerScreenShotShare() { toggleModal('mobileShareModal', false); $('screenShotInput').click(); }
-    function handleScreenShotSelected(e) {
-      const file = e.target.files[0]; if (!file) return;
-      const img = new Image(), reader = new FileReader();
-      reader.onload = ev => {
-        img.onload = () => {
-          if (!mockScreenCanvas) mockScreenCanvas = el('canvas');
-          mockScreenCanvas.width = img.width; mockScreenCanvas.height = img.height;
-          const ctx = mockScreenCanvas.getContext('2d');
-          const draw = () => ctx.drawImage(img, 0, 0); draw();
-          clearInterval(mockScreenTimer);
-          mockScreenTimer = setInterval(draw, 200);
-          screenStream = mockScreenCanvas.captureStream(10);
-          applyCustomVideoStream(screenStream);
-          showToast('画像を画面共有として配信中');
-        };
-        img.src = ev.target.result;
-      };
-      reader.readAsDataURL(file); e.target.value = '';
-    }
-
-    async function triggerEnvironmentCameraShare() {
-      toggleModal('mobileShareModal', false);
-      try {
-        screenStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
-        applyCustomVideoStream(screenStream);
-        showToast('外カメラで画面を配信中');
-      } catch (err) { showToast('外カメラを起動できませんでした', 'error'); }
     }
 
     function applyCustomVideoStream(stream) {
@@ -1166,7 +1388,6 @@
     }
 
     function stopScreenShare() {
-      if (mockScreenTimer) { clearInterval(mockScreenTimer); mockScreenTimer = null; }
       if (screenStream) { screenStream.getTracks().forEach(t => t.stop()); screenStream = null; }
       const localTrack = localStream.getVideoTracks()[0];
       Object.values(peers).forEach(p => {
@@ -1206,7 +1427,14 @@
       if (file.size > MAX_FILE_SIZE) return alert('ファイルサイズが大きすぎます (最大 50MB)');
 
       const fileId = Math.random().toString(36).substring(2, 8), total = Math.ceil(file.size / FILE_CHUNK_SIZE);
-      broadcast({ type: 'file-meta', id: fileId, name: sanitizeFileName(file.name), size: file.size, mime: file.type?.slice(0, 50) || '', total });
+      const safeName = sanitizeFileName(file.name);
+      
+      // 送信者自身のライブラリに登録
+      const url = URL.createObjectURL(file);
+      sharedMediaFiles[fileId] = { blob: file, url, name: safeName, mime: file.type || '' };
+      addDownloadItem(fileId, safeName, url, file.type || '', file.size);
+
+      broadcast({ type: 'file-meta', id: fileId, name: safeName, size: file.size, mime: file.type?.slice(0, 50) || '', total });
 
       let current = 0; const reader = new FileReader();
       const readSlice = () => reader.readAsArrayBuffer(file.slice(current * FILE_CHUNK_SIZE, Math.min((current + 1) * FILE_CHUNK_SIZE, file.size)));
@@ -1214,7 +1442,7 @@
         broadcast({ type: 'file-chunk', id: fileId, index: current, data: e.target.result });
         current++;
         if (current < total) setTimeout(readSlice, 2);
-        else showToast(`送信完了: ${file.name}`);
+        else showToast(`送信完了: ${safeName}`);
       };
       readSlice();
     }
@@ -1238,20 +1466,71 @@
       f.count++;
       if (f.count === f.total) {
         clearTimeout(f.timeout);
-        addDownloadItem(f.name, URL.createObjectURL(new Blob(f.chunks, { type: f.mime || 'application/octet-stream' })));
+        const blob = new Blob(f.chunks, { type: f.mime || 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        sharedMediaFiles[data.id] = { blob, url, name: f.name, mime: f.mime };
+        addDownloadItem(data.id, f.name, url, f.mime, f.size);
         delete receivedFiles[data.id];
       }
     }
 
-    function addDownloadItem(name, url) {
+    // ファイルカードUI（DL・プレビュー・同時視聴ボタン）
+    function addDownloadItem(fileId, name, url, mime, size) {
       const box = $('fileItemsList');
-      const item = el('div', { style: { background: 'var(--md-surface-cnt)', padding: '8px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
-        el('span', { style: { fontSize: '0.82rem', fontWeight: 'bold', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '180px' }, text: name }),
-        el('a', { href: url, download: name, className: 'btn btn-primary btn-xs', style: { textDecoration: 'none' } },
-          el('span', { className: 'material-symbols-outlined', style: { fontSize: '15px' }, text: 'download' }), 'DL'
+      const isMedia = mime.startsWith('video/') || mime.startsWith('audio/');
+      
+      const card = el('div', { className: 'file-card-item' },
+        el('div', { className: 'file-card-title', text: name }),
+        el('div', { className: 'file-card-actions' },
+          el('a', { href: url, download: name, className: 'btn btn-tonal btn-xs', style: { textDecoration: 'none' } },
+            el('span', { className: 'material-symbols-outlined', style: { fontSize: '14px' }, text: 'download' }), 'DL'
+          ),
+          el('button', { className: 'btn btn-tonal btn-xs', onclick: () => openFilePreview(name, url, mime, fileId) },
+            el('span', { className: 'material-symbols-outlined', style: { fontSize: '14px' }, text: 'visibility' }), 'プレビュー'
+          ),
+          isMedia ? el('button', { className: 'btn btn-primary btn-xs', onclick: () => startSyncSharedMedia(fileId) },
+            el('span', { className: 'material-symbols-outlined', style: { fontSize: '14px' }, text: 'sync' }), '同時視聴'
+          ) : null
         )
       );
-      box.prepend(item); switchSidebarTab('file');
+      box.prepend(card); switchSidebarTab('file');
+    }
+
+    // 安全なプレビュー表示（XSS完全防御）
+    function openFilePreview(name, url, mime, fileId) {
+      $('previewModalTitle').textContent = `プレビュー: ${name}`;
+      const body = $('previewModalBody');
+      body.replaceChildren();
+
+      if (mime.startsWith('image/')) {
+        body.appendChild(el('img', { src: url, style: { maxWidth: '100%', maxHeight: '65vh', objectFit: 'contain', borderRadius: '8px' } }));
+      } else if (mime.startsWith('video/')) {
+        body.appendChild(el('video', { src: url, controls: true, autoplay: true, playsinline: true, style: { maxWidth: '100%', maxHeight: '65vh', borderRadius: '8px' } }));
+      } else if (mime.startsWith('audio/')) {
+        body.appendChild(el('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', width: '100%', padding: '16px' } },
+          el('span', { className: 'material-symbols-outlined', style: { fontSize: '48px', color: 'var(--md-primary)' }, text: 'music_note' }),
+          el('audio', { src: url, controls: true, autoplay: true, style: { width: '100%' } })
+        ));
+      } else if (mime.startsWith('text/') || mime === 'application/json') {
+        fetch(url).then(r => r.text()).then(txt => {
+          body.appendChild(el('pre', { text: txt.slice(0, 50000), style: { maxHeight: '60vh', overflow: 'auto', whiteSpace: 'pre-wrap', fontSize: '0.8rem', background: 'var(--md-surface-cnt)', padding: '12px', borderRadius: '8px', width: '100%' } }));
+        }).catch(() => {
+          body.appendChild(el('div', { text: 'テキストの読み込みに失敗しました' }));
+        });
+      } else {
+        body.appendChild(el('div', { style: { textAlign: 'center', padding: '24px' } },
+          el('span', { className: 'material-symbols-outlined', style: { fontSize: '48px', color: 'var(--md-outline)', marginBottom: '8px' }, text: 'draft' }),
+          el('p', { style: { fontSize: '0.85rem' }, text: 'このファイル形式はプレビュー非対応です。DLをご利用ください。' })
+        ));
+      }
+
+      toggleModal('filePreviewModal', true);
+    }
+
+    function closeFilePreviewModal() {
+      const v = $('previewModalBody').querySelector('video, audio');
+      if (v) v.pause();
+      toggleModal('filePreviewModal', false);
     }
 
     function updateUserListUI() {
@@ -1266,7 +1545,7 @@
         )
       ));
 
-      // 参加者（個別音量スライダー付き）
+      // 参加者
       Object.entries(peers).forEach(([id, p]) => {
         const vol = p.userVolume ?? 100;
         box.appendChild(el('div', { className: 'user-item' },
