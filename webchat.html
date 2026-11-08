@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>P2P Mesh Room</title>
   <!-- PeerJS -->
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
@@ -47,6 +47,7 @@
       background-color: var(--md-bg);
       color: var(--md-on-surface);
       font-family: Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      touch-action: manipulation;
     }
 
     body { display: flex; flex-direction: column; }
@@ -57,36 +58,38 @@
       font-size: 20px;
     }
 
+    /* Top App Bar */
     header {
       flex-shrink: 0;
       background-color: var(--md-surface);
-      padding: 10px 18px;
+      padding: 8px 16px;
       display: flex;
-      flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
       border-bottom: 1px solid var(--md-outline-var);
       z-index: 30;
+      min-height: 52px;
     }
 
     .brand-title {
-      font-size: 1.15rem;
+      font-size: 1.05rem;
       font-weight: 600;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       color: var(--md-primary);
+      white-space: nowrap;
     }
 
     .status-chip {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 4px 12px;
+      padding: 3px 10px;
       border-radius: var(--r-full);
       background: var(--md-surface-high);
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       color: var(--md-on-surface-var);
     }
     .status-dot {
@@ -98,46 +101,54 @@
     .status-dot.connected { background: var(--md-success); box-shadow: 0 0 8px var(--md-success); }
     .status-dot.waiting { background: #faa81a; }
 
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
     .md-field {
       display: flex;
       align-items: center;
       background: var(--md-surface-cnt);
       border: 1px solid var(--md-outline-var);
       border-radius: var(--r-sm);
-      padding: 6px 12px;
-      gap: 6px;
+      padding: 5px 10px;
+      gap: 4px;
     }
-    .md-field span { font-size: 0.75rem; color: var(--md-outline); }
+    .md-field span { font-size: 0.72rem; color: var(--md-outline); }
     .md-field input {
       background: transparent;
       border: none;
       color: var(--md-on-surface);
-      font-size: 0.88rem;
+      font-size: 0.85rem;
       outline: none;
     }
 
     .btn {
       border: none;
       border-radius: var(--r-full);
-      padding: 8px 16px;
-      font-size: 0.84rem;
+      padding: 7px 14px;
+      font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
       transition: background 0.2s, transform 0.1s;
       white-space: nowrap;
+      user-select: none;
     }
-    .btn:active { transform: scale(0.97); }
+    .btn:active { transform: scale(0.96); }
     .btn-primary { background: var(--md-primary); color: var(--md-on-primary); }
-    .btn-primary:hover { background: #e8def8; }
     .btn-tonal { background: var(--md-sec-cnt); color: var(--md-on-sec-cnt); }
-    .btn-tonal:hover { background: #5c556b; }
     .btn-danger { background: var(--md-error-cnt); color: var(--md-error); }
     .btn-active { background: var(--md-primary-cnt); color: var(--md-on-primary-cnt); }
     .btn-xs { padding: 4px 10px; font-size: 0.75rem; border-radius: var(--r-full); }
+    .btn-icon-only { padding: 7px; border-radius: 50%; }
 
+    /* Layout */
     .main-container {
       display: flex;
       flex: 1;
@@ -162,7 +173,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 10px;
+      padding: 8px;
     }
 
     .aspect-screen {
@@ -178,7 +189,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.85);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.8);
       border: 1px solid var(--md-outline-var);
     }
 
@@ -193,31 +204,33 @@
 
     .unmute-banner {
       position: absolute;
-      top: 14px;
+      top: 12px;
       left: 50%;
       transform: translateX(-50%);
       background: var(--md-primary);
       color: var(--md-on-primary);
-      padding: 8px 18px;
+      padding: 6px 16px;
       border-radius: var(--r-full);
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       font-weight: bold;
       cursor: pointer;
       z-index: 25;
       display: none;
       box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      white-space: nowrap;
     }
 
     .camera-strip {
-      height: 135px;
+      height: 110px;
       flex-shrink: 0;
       background: var(--md-surface-cnt);
       border-top: 1px solid var(--md-outline-var);
-      padding: 8px 14px;
+      padding: 6px 12px;
       display: flex;
-      gap: 10px;
+      gap: 8px;
       overflow-x: auto;
       align-items: center;
+      -webkit-overflow-scrolling: touch;
     }
 
     .camera-tile {
@@ -230,11 +243,11 @@
       flex-shrink: 0;
       cursor: pointer;
       border: 2px solid transparent;
-      transition: border-color 0.2s, transform 0.2s;
+      transition: border-color 0.2s;
     }
     .camera-tile.speaking {
       border-color: var(--md-success) !important;
-      box-shadow: 0 0 12px var(--md-success);
+      box-shadow: 0 0 10px var(--md-success);
     }
     .camera-tile.focused { border-color: var(--md-primary); }
     .camera-tile video { width: 100%; height: 100%; object-fit: cover; }
@@ -242,56 +255,66 @@
 
     .tile-badge {
       position: absolute;
-      bottom: 6px;
-      left: 6px;
+      bottom: 4px;
+      left: 4px;
       background: rgba(0, 0, 0, 0.65);
       backdrop-filter: blur(4px);
-      padding: 2px 8px;
+      padding: 1px 6px;
       border-radius: var(--r-full);
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       color: #fff;
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 3px;
     }
 
     .controls-bar {
-      height: 64px;
+      height: 58px;
       flex-shrink: 0;
       background: var(--md-surface);
       border-top: 1px solid var(--md-outline-var);
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 8px;
-      padding: 0 16px;
+      gap: 6px;
+      padding: 0 8px;
       z-index: 20;
       overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
     }
 
     .sidebar {
-      width: 330px;
+      width: 320px;
       flex-shrink: 0;
       background: var(--md-surface);
       border-left: 1px solid var(--md-outline-var);
       display: flex;
       flex-direction: column;
+      z-index: 25;
+    }
+
+    .sidebar-header-mobile {
+      display: none;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--md-outline-var);
+      justify-content: space-between;
+      align-items: center;
     }
 
     .tabs { display: flex; border-bottom: 1px solid var(--md-outline-var); flex-shrink: 0; }
     .tab-btn {
       flex: 1;
-      padding: 12px;
+      padding: 10px 4px;
       background: transparent;
       border: none;
       color: var(--md-on-surface-var);
-      font-size: 0.84rem;
+      font-size: 0.78rem;
       font-weight: 600;
       cursor: pointer;
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
       border-bottom: 3px solid transparent;
     }
     .tab-btn.active {
@@ -311,58 +334,58 @@
     .messages-container {
       flex: 1;
       min-height: 0;
-      padding: 12px;
+      padding: 10px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
     }
     .msg {
-      padding: 8px 14px;
+      padding: 7px 12px;
       border-radius: var(--r-md);
-      font-size: 0.88rem;
+      font-size: 0.85rem;
       max-width: 85%;
       word-break: break-all;
     }
     .msg.remote { background: var(--md-surface-high); align-self: flex-start; }
     .msg.local { background: var(--md-primary-cnt); color: var(--md-on-primary-cnt); align-self: flex-end; }
-    .msg.system { background: transparent; color: var(--md-outline); font-size: 0.75rem; align-self: center; text-align: center; }
-    .msg-sender { font-size: 0.7rem; color: var(--md-primary); margin-bottom: 2px; }
+    .msg.system { background: transparent; color: var(--md-outline); font-size: 0.72rem; align-self: center; text-align: center; }
+    .msg-sender { font-size: 0.68rem; color: var(--md-primary); margin-bottom: 2px; }
 
     .chat-input-box {
       flex-shrink: 0;
-      padding: 10px;
+      padding: 8px;
       border-top: 1px solid var(--md-outline-var);
       display: flex;
-      gap: 8px;
+      gap: 6px;
     }
 
     .user-list {
-      padding: 12px;
+      padding: 10px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
     }
     .user-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 14px;
+      padding: 8px 12px;
       background: var(--md-surface-cnt);
       border-radius: var(--r-sm);
-      font-size: 0.88rem;
+      font-size: 0.85rem;
     }
 
     .file-drop-area {
-      margin: 14px;
+      margin: 12px;
       border: 2px dashed var(--md-outline-var);
       border-radius: var(--r-md);
-      padding: 24px;
+      padding: 18px;
       text-align: center;
       color: var(--md-outline);
       cursor: pointer;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
     }
 
     .modal-overlay {
@@ -374,108 +397,164 @@
       display: none;
       justify-content: center;
       align-items: center;
+      padding: 12px;
     }
     .modal-card {
-      width: 92%;
-      max-width: 580px;
+      width: 100%;
+      max-width: 540px;
       background: var(--md-surface-high);
       border-radius: var(--r-lg);
-      padding: 22px;
+      padding: 18px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
-      max-height: 80vh;
+      gap: 12px;
+      max-height: 85vh;
     }
     .search-results {
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
     }
     .search-item {
       display: flex;
-      gap: 10px;
-      padding: 8px;
+      gap: 8px;
+      padding: 6px;
       border-radius: var(--r-sm);
       cursor: pointer;
       background: var(--md-surface-cnt);
     }
-    .search-item img { width: 100px; height: 58px; object-fit: cover; border-radius: 4px; }
+    .search-item img { width: 90px; height: 52px; object-fit: cover; border-radius: 4px; }
 
-    /* 投票カード */
+    /* 投票バナー */
     .vote-kick-banner {
       position: absolute;
-      top: 14px;
+      top: 10px;
       left: 50%;
       transform: translateX(-50%);
       background: var(--md-surface-highest);
       border: 1px solid var(--md-primary);
-      padding: 12px 20px;
+      padding: 10px 16px;
       border-radius: var(--r-lg);
       z-index: 40;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.7);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.8);
       display: none;
       flex-direction: column;
-      gap: 8px;
-      min-width: 320px;
+      gap: 6px;
+      width: calc(100% - 24px);
+      max-width: 360px;
       text-align: center;
     }
 
     .toast-container {
       position: fixed;
-      bottom: 76px;
-      left: 16px;
+      bottom: 70px;
+      left: 12px;
+      right: 12px;
       z-index: 99;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
+      pointer-events: none;
     }
     .toast {
       background: var(--md-surface-high);
       color: var(--md-on-surface);
-      padding: 10px 16px;
+      padding: 8px 14px;
       border-radius: var(--r-sm);
-      font-size: 0.84rem;
+      font-size: 0.8rem;
       box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      align-self: flex-start;
+      pointer-events: auto;
     }
 
+    /* ==========================================================================
+       スマートフォン専用 最適化スタイル (max-width: 768px)
+       ========================================================================== */
     @media (max-width: 768px) {
-      .main-container { flex-direction: column; }
-      .sidebar { width: 100%; height: 250px; border-left: none; border-top: 1px solid var(--md-outline-var); }
-      .camera-strip { height: 100px; }
+      /* フォントサイズ16pxでiOS Safariの強制ズームを防止 */
+      input, select, textarea { font-size: 16px !important; }
+
+      header {
+        padding: 6px 12px;
+        min-height: 48px;
+      }
+      .brand-text { display: none; } /* スマホではロゴ文字を隠してアイコン化 */
+
+      /* サイドバーをスライドアップ式ボトムシートに変更 */
+      .sidebar {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 78%;
+        max-height: 78vh;
+        z-index: 60;
+        border-radius: 20px 20px 0 0;
+        border-left: none;
+        border-top: 1px solid var(--md-outline-var);
+        box-shadow: 0 -8px 32px rgba(0,0,0,0.85);
+        transform: translateY(100%);
+        transition: transform 0.28s cubic-bezier(0.1, 0.9, 0.2, 1);
+      }
+      .sidebar.mobile-open {
+        transform: translateY(0);
+      }
+      .sidebar-header-mobile {
+        display: flex;
+      }
+
+      .camera-strip { height: 85px; }
+
+      /* コントロールバーのテキストを隠してアイコンボタン化 */
+      .btn-text-mobile { display: none; }
+      .controls-bar {
+        height: 54px;
+        gap: 6px;
+        padding: 0 6px;
+      }
+      .controls-bar .btn {
+        padding: 7px 11px;
+      }
     }
   </style>
 </head>
 <body>
 
+  <!-- トップバー -->
   <header>
     <div class="brand-title">
       <span class="material-symbols-outlined">hub</span>
-      <span>P2P Mesh Room</span>
+      <span class="brand-text">P2P Room</span>
       <div class="status-chip">
         <span id="statusDot" class="status-dot"></span>
         <span id="roomStatusText">未接続</span>
       </div>
     </div>
 
-    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+    <!-- 未参加時の入力エリア -->
+    <div id="joinControls" class="header-controls">
       <div class="md-field">
-        <span class="material-symbols-outlined" style="font-size:16px;">meeting_room</span>
-        <input type="text" id="roomNameInput" placeholder="ルーム名" size="8">
+        <input type="text" id="roomNameInput" placeholder="部屋名" size="6">
       </div>
       <div class="md-field">
-        <span class="material-symbols-outlined" style="font-size:16px;">badge</span>
-        <input type="text" id="userNameInput" placeholder="名前" size="8">
+        <input type="text" id="userNameInput" placeholder="名前" size="6">
       </div>
-
       <button id="joinBtn" class="btn btn-primary" onclick="joinMeshRoom()">
-        <span class="material-symbols-outlined">login</span>参加
+        <span class="material-symbols-outlined">login</span>
+        <span class="btn-text-mobile">参加</span>
       </button>
-      <button class="btn btn-tonal" onclick="copyInviteUrl()">
-        <span class="material-symbols-outlined">link</span>招待URL
+    </div>
+
+    <!-- 参加後のスリム操作エリア -->
+    <div id="inRoomControls" class="header-controls" style="display:none;">
+      <button class="btn btn-tonal" onclick="copyInviteUrl()" title="招待URLをコピー">
+        <span class="material-symbols-outlined">link</span>
+        <span class="btn-text-mobile">招待</span>
       </button>
-      <button id="leaveBtn" class="btn btn-danger" style="display:none;" onclick="leaveMeshRoom()">
-        <span class="material-symbols-outlined">logout</span>退室
+      <button class="btn btn-danger" onclick="leaveMeshRoom()" title="退室">
+        <span class="material-symbols-outlined">logout</span>
+        <span class="btn-text-mobile">退室</span>
       </button>
     </div>
   </header>
@@ -484,12 +563,12 @@
     <div class="stage-section">
       <!-- 投票キック バナー -->
       <div id="voteKickBanner" class="vote-kick-banner">
-        <div style="font-size:0.9rem; font-weight:bold; display:flex; align-items:center; justify-content:center; gap:6px;">
+        <div style="font-size:0.85rem; font-weight:bold; display:flex; align-items:center; justify-content:center; gap:4px;">
           <span class="material-symbols-outlined" style="color:var(--md-error);">how_to_vote</span>
-          <span id="voteTargetName"></span> をキックしますか？
+          <span id="voteTargetName"></span> をキック？
         </div>
-        <div style="font-size:0.75rem; color:var(--md-outline);" id="voteStatusLine">残り 20 秒 (必要賛成数: 0)</div>
-        <div style="display:flex; justify-content:center; gap:10px; margin-top:4px;" id="voteActionsArea">
+        <div style="font-size:0.72rem; color:var(--md-outline);" id="voteStatusLine">残り 20 秒</div>
+        <div style="display:flex; justify-content:center; gap:8px; margin-top:2px;" id="voteActionsArea">
           <button class="btn btn-primary btn-xs" onclick="castKickVote('yes')">
             <span class="material-symbols-outlined" style="font-size:16px;">thumb_up</span>賛成 (<span id="voteYesCount">0</span>)
           </button>
@@ -499,9 +578,10 @@
         </div>
       </div>
 
+      <!-- メインステージ -->
       <div class="main-stage">
         <div id="unmuteBanner" class="unmute-banner" onclick="forceUnmuteYouTube()">
-          <span class="material-symbols-outlined">volume_up</span> タップして音声を再生
+          <span class="material-symbols-outlined">volume_up</span> タップで音声再生
         </div>
 
         <div class="aspect-screen">
@@ -512,39 +592,58 @@
         </div>
       </div>
 
+      <!-- 下部カメラタイルバー -->
       <div class="camera-strip" id="cameraStrip">
         <div class="camera-tile local focused" id="tile-local" onclick="focusVideo('local')">
           <video id="localVideo" autoplay playsinline muted></video>
           <div class="tile-badge">
             <span id="localTileName">自分</span>
-            <span id="localTileMic" class="material-symbols-outlined" style="font-size:14px;">mic</span>
+            <span id="localTileMic" class="material-symbols-outlined" style="font-size:13px;">mic</span>
           </div>
         </div>
       </div>
 
+      <!-- コントロールバー -->
       <div class="controls-bar">
-        <button id="micBtn" class="btn btn-tonal" onclick="toggleMic()">
-          <span class="material-symbols-outlined">mic</span>マイクON
+        <button id="micBtn" class="btn btn-tonal" onclick="toggleMic()" title="マイクON/OFF">
+          <span class="material-symbols-outlined">mic</span>
+          <span class="btn-text-mobile">マイク</span>
         </button>
-        <button id="camBtn" class="btn btn-tonal" onclick="toggleCam()">
-          <span class="material-symbols-outlined">videocam</span>カメラON
+        <button id="camBtn" class="btn btn-tonal" onclick="toggleCam()" title="カメラON/OFF">
+          <span class="material-symbols-outlined">videocam</span>
+          <span class="btn-text-mobile">カメラ</span>
         </button>
-        <button id="shareScreenBtn" class="btn btn-tonal" onclick="toggleScreenShare()">
-          <span class="material-symbols-outlined">screen_share</span>画面共有
+        <!-- スマホ用チャット呼び出しボタン -->
+        <button id="mobileChatToggleBtn" class="btn btn-tonal" onclick="toggleMobileSidebar()" title="チャット・参加者">
+          <span class="material-symbols-outlined">chat</span>
+          <span class="btn-text-mobile">チャット</span>
         </button>
-        <button class="btn btn-tonal" onclick="openYouTubeModal()">
-          <span class="material-symbols-outlined">smart_display</span>YouTube
+        <button class="btn btn-tonal" onclick="openYouTubeModal()" title="YouTube検索">
+          <span class="material-symbols-outlined">smart_display</span>
+          <span class="btn-text-mobile">動画</span>
         </button>
-        <button id="ttsToggleBtn" class="btn btn-tonal" onclick="cycleTtsMode()">
-          <span class="material-symbols-outlined">record_voice_over</span>ずんだもん: ON
+        <button id="shareScreenBtn" class="btn btn-tonal" onclick="toggleScreenShare()" title="画面共有">
+          <span class="material-symbols-outlined">screen_share</span>
         </button>
-        <button class="btn btn-tonal" onclick="toggleFullScreen()">
-          <span class="material-symbols-outlined">fullscreen</span>全画面
+        <button id="ttsToggleBtn" class="btn btn-tonal" onclick="cycleTtsMode()" title="ずんだもん読み上げ">
+          <span class="material-symbols-outlined">record_voice_over</span>
+        </button>
+        <button class="btn btn-tonal" onclick="toggleFullScreen()" title="全画面表示">
+          <span class="material-symbols-outlined">fullscreen</span>
         </button>
       </div>
     </div>
 
-    <div class="sidebar">
+    <!-- サイドバー (スマホ時は下部スライドシート) -->
+    <div class="sidebar" id="appSidebar">
+      <!-- スマホ専用ヘッダー (閉じるボタン) -->
+      <div class="sidebar-header-mobile">
+        <span style="font-weight:bold; font-size:0.9rem;">メニュー</span>
+        <button class="btn btn-tonal btn-icon-only" onclick="toggleMobileSidebar()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
       <div class="tabs">
         <button id="tabChatBtn" class="tab-btn active" onclick="switchSidebarTab('chat')">
           <span class="material-symbols-outlined">chat</span>チャット
@@ -559,7 +658,7 @@
 
       <div id="tabChat" class="tab-panel active">
         <div class="messages-container" id="messagesContainer">
-          <div class="msg system">ルーム名と名前を入力して参加してください</div>
+          <div class="msg system">ルームに参加してください</div>
         </div>
         <div class="chat-input-box">
           <input type="text" id="chatInput" class="md-field" style="flex:1;" placeholder="メッセージ..." onkeydown="if(event.key==='Enter') sendChatMessage()">
@@ -575,11 +674,11 @@
 
       <div id="tabFile" class="tab-panel">
         <div class="file-drop-area" onclick="document.getElementById('fileInput').click()" ondragover="event.preventDefault()" ondrop="handleDropFile(event)">
-          <span class="material-symbols-outlined" style="font-size:32px; display:block; margin-bottom:8px;">upload_file</span>
-          ファイルをドロップ または クリック
+          <span class="material-symbols-outlined" style="font-size:28px; display:block; margin-bottom:4px;">upload_file</span>
+          ファイルを転送
           <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)">
         </div>
-        <div id="fileItemsList" style="padding:12px; display:flex; flex-direction:column; gap:8px;"></div>
+        <div id="fileItemsList" style="padding:10px; display:flex; flex-direction:column; gap:6px;"></div>
       </div>
     </div>
   </div>
@@ -588,27 +687,27 @@
   <div class="modal-overlay" id="ytModal">
     <div class="modal-card">
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3 style="font-size:1.05rem; color:var(--md-primary); display:flex; align-items:center; gap:6px;">
+        <h3 style="font-size:1rem; color:var(--md-primary); display:flex; align-items:center; gap:6px;">
           <span class="material-symbols-outlined">smart_display</span>YouTube 動画検索
         </h3>
-        <button class="btn btn-tonal" style="padding:4px 8px;" onclick="closeYouTubeModal()">
+        <button class="btn btn-tonal btn-icon-only" onclick="closeYouTubeModal()">
           <span class="material-symbols-outlined">close</span>
         </button>
       </div>
 
-      <div style="display:flex; gap:8px;">
-        <input type="text" id="ytSearchInput" class="md-field" style="flex:1;" placeholder="キーワード または YouTube URL" onkeydown="if(event.key==='Enter') searchYouTube()">
+      <div style="display:flex; gap:6px;">
+        <input type="text" id="ytSearchInput" class="md-field" style="flex:1;" placeholder="キーワード または URL" onkeydown="if(event.key==='Enter') searchYouTube()">
         <button class="btn btn-primary" onclick="searchYouTube()">
-          <span class="material-symbols-outlined">search</span>検索
+          <span class="material-symbols-outlined">search</span>
         </button>
-        <button class="btn btn-tonal" onclick="openExternalYouTubeSearch()" title="YouTube公式を別タブで開く">
+        <button class="btn btn-tonal btn-icon-only" onclick="openExternalYouTubeSearch()" title="YouTube公式で探す">
           <span class="material-symbols-outlined">open_in_new</span>
         </button>
       </div>
 
       <div class="search-results" id="ytSearchResults">
-        <div style="font-size:0.85rem; color:var(--md-outline); text-align:center; padding:20px;">
-          キーワードを入力して「検索」するか、動画URLを直接貼り付けてください。
+        <div style="font-size:0.8rem; color:var(--md-outline); text-align:center; padding:16px;">
+          キーワードを入力して検索するか、動画URLを直接貼り付けてください。
         </div>
       </div>
     </div>
@@ -639,13 +738,13 @@
 
     let audioContext = null;
 
-    // ずんだもん高速化 (キャッシュ & 最適化)
+    // ずんだもん高速化 (メモリキャッシュ)
     let isTtsOn = true;
     const ttsQueue = [];
     let isSpeaking = false;
     const ttsAudioCache = new Map();
 
-    // 投票キック状態
+    // 投票キック
     let currentVote = null;
     let voteTimerInterval = null;
 
@@ -682,7 +781,7 @@
 
     async function getRoomHostId(roomName) {
       const enc = new TextEncoder();
-      const data = enc.encode(`p2p_mesh_room_v4:${roomName.trim()}`);
+      const data = enc.encode(`p2p_mesh_room_v5:${roomName.trim()}`);
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const key = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
@@ -713,7 +812,7 @@
         isHost = true;
         myPeerId = id;
         setupPeerCommon();
-        setUIState('waiting', `部屋: ${currentRoomName} (ホスト)`);
+        setUIState('waiting', `部屋: ${currentRoomName}`);
         showToast('部屋を作成しました');
         updateUserListUI();
       });
@@ -736,7 +835,7 @@
         isHost = false;
         myPeerId = id;
         setupPeerCommon();
-        setUIState('waiting', `部屋: ${currentRoomName} (接続中)`);
+        setUIState('waiting', `部屋: ${currentRoomName}`);
         connectToSinglePeer(hostId);
       });
 
@@ -865,7 +964,6 @@
           }, 1200);
           break;
 
-        // 投票キック イベント
         case 'vote-kick-start':
           handleVoteKickStart(data);
           break;
@@ -888,9 +986,7 @@
       }
     }
 
-    // ==========================================================================
-    // 投票キック (Vote Kick) システム
-    // ==========================================================================
+    // --- 投票キック ---
     function startKickVote(targetId) {
       if (currentVote) return showToast('すでに投票が進行中です', 'error');
       const target = peers[targetId];
@@ -898,8 +994,8 @@
 
       if (!confirm(`${target.userName} をキックするための投票を開始しますか？`)) return;
 
-      const totalVoters = Object.keys(peers).length; // 自分 + 他参加者 (キック対象除く)
-      const requiredYes = Math.floor(totalVoters / 2) + 1; // 過半数
+      const totalVoters = Object.keys(peers).length;
+      const requiredYes = Math.floor(totalVoters / 2) + 1;
 
       const voteData = {
         type: 'vote-kick-start',
@@ -932,24 +1028,23 @@
       document.getElementById('voteNoCount').textContent = '0';
       banner.style.display = 'flex';
 
-      // 対象者自身は投票不可
       if (myPeerId === data.targetId) {
         document.getElementById('voteActionsArea').style.display = 'none';
-        document.getElementById('voteStatusLine').textContent = 'あなたに対するキック投票が開始されました...';
+        document.getElementById('voteStatusLine').textContent = 'あなたに対するキック投票中...';
       } else {
         document.getElementById('voteActionsArea').style.display = 'flex';
-        document.getElementById('voteStatusLine').textContent = `残り 20 秒 (必要賛成数: ${data.requiredYes}票)`;
+        document.getElementById('voteStatusLine').textContent = `残り 20 秒 (必要: ${data.requiredYes}票)`;
       }
 
       clearInterval(voteTimerInterval);
       voteTimerInterval = setInterval(() => {
         if (!currentVote) return clearInterval(voteTimerInterval);
         currentVote.timeLeft--;
-        document.getElementById('voteStatusLine').textContent = `残り ${currentVote.timeLeft} 秒 (必要賛成数: ${currentVote.requiredYes}票)`;
+        document.getElementById('voteStatusLine').textContent = `残り ${currentVote.timeLeft} 秒 (必要: ${currentVote.requiredYes}票)`;
 
         if (currentVote.timeLeft <= 0) {
           clearInterval(voteTimerInterval);
-          closeVoteKickUI('時間切れにより投票は否決されました');
+          closeVoteKickUI('投票は否決されました');
         }
       }, 1000);
     }
@@ -978,7 +1073,6 @@
       document.getElementById('voteYesCount').textContent = currentVote.yesCount;
       document.getElementById('voteNoCount').textContent = currentVote.noCount;
 
-      // 過半数到達で可決
       if (currentVote.yesCount >= currentVote.requiredYes) {
         clearInterval(voteTimerInterval);
         const successData = {
@@ -996,7 +1090,7 @@
       kickedPeers.add(data.targetId);
 
       if (myPeerId === data.targetId) {
-        alert('キック投票が可決されたため、ルームから退出させられました。');
+        alert('キック投票が可決されたため、退出させられました。');
         leaveMeshRoom();
       } else {
         if (peers[data.targetId]) {
@@ -1029,6 +1123,7 @@
       });
     }
 
+    // --- カメラタイル表示 ---
     function addCameraTile(id, stream, name) {
       if (document.getElementById(`tile-${id}`)) return;
       const strip = document.getElementById('cameraStrip');
@@ -1042,7 +1137,7 @@
         <video id="vid-${id}" autoplay playsinline></video>
         <div class="tile-badge">
           <span id="name-${id}">${name}</span>
-          <span id="mic-${id}" class="material-symbols-outlined" style="font-size:14px;">mic</span>
+          <span id="mic-${id}" class="material-symbols-outlined" style="font-size:13px;">mic</span>
         </div>
       `;
       strip.appendChild(tile);
@@ -1115,9 +1210,7 @@
       } catch (e) {}
     }
 
-    // ==========================================================================
-    // YouTube 同時視聴 ＆ 堅牢検索
-    // ==========================================================================
+    // --- YouTube ---
     function onYouTubeIframeAPIReady() {
       ytPlayer = new YT.Player('player', {
         height: '100%',
@@ -1199,7 +1292,6 @@
       window.open(url, '_blank');
     }
 
-    // 複数APIフォールバックによる堅牢な動画検索
     async function searchYouTube() {
       const q = document.getElementById('ytSearchInput').value.trim();
       if (!q) return;
@@ -1212,7 +1304,7 @@
       }
 
       const resultsBox = document.getElementById('ytSearchResults');
-      resultsBox.innerHTML = '<div style="text-align:center; padding:20px;">検索中...</div>';
+      resultsBox.innerHTML = '<div style="text-align:center; padding:16px;">検索中...</div>';
 
       const endpoints = [
         `https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(q)}&filter=videos`,
@@ -1226,7 +1318,7 @@
       for (const url of endpoints) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          const timeoutId = setTimeout(() => controller.abort(), 3500);
           const res = await fetch(url, { signal: controller.signal });
           clearTimeout(timeoutId);
 
@@ -1251,8 +1343,8 @@
 
       if (!items || items.length === 0) {
         resultsBox.innerHTML = `
-          <div style="text-align:center; padding:16px;">
-            <p style="color:var(--md-error); margin-bottom:10px;">検索結果を取得できませんでした。</p>
+          <div style="text-align:center; padding:14px;">
+            <p style="color:var(--md-error); font-size:0.85rem; margin-bottom:8px;">検索結果を取得できませんでした</p>
             <button class="btn btn-primary" onclick="openExternalYouTubeSearch()">
               <span class="material-symbols-outlined">open_in_new</span>YouTube公式で開いてURLをコピー
             </button>
@@ -1268,8 +1360,8 @@
         div.innerHTML = `
           <img src="${item.thumb}">
           <div style="flex:1; overflow:hidden;">
-            <div style="font-size:0.85rem; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.title}</div>
-            <div style="font-size:0.75rem; color:var(--md-outline);">${item.author}</div>
+            <div style="font-size:0.82rem; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.title}</div>
+            <div style="font-size:0.72rem; color:var(--md-outline);">${item.author}</div>
           </div>
         `;
         div.onclick = () => {
@@ -1286,20 +1378,17 @@
       showToast(`再生: ${title}`);
     }
 
-    // ==========================================================================
-    // ずんだもん読み上げ (高速化: キャッシュ + 短縮)
-    // ==========================================================================
+    // --- ずんだもん読み上げ (高速化キャッシュ) ---
     function cycleTtsMode() {
       isTtsOn = !isTtsOn;
       const btn = document.getElementById('ttsToggleBtn');
-      btn.innerHTML = `<span class="material-symbols-outlined">${isTtsOn ? 'record_voice_over' : 'voice_over_off'}</span>ずんだもん: ${isTtsOn ? 'ON' : 'OFF'}`;
+      btn.innerHTML = `<span class="material-symbols-outlined">${isTtsOn ? 'record_voice_over' : 'voice_over_off'}</span><span class="btn-text-mobile">${isTtsOn ? 'ON' : 'OFF'}</span>`;
       btn.classList.toggle('btn-active', isTtsOn);
       showToast(isTtsOn ? 'ずんだもん読み上げ ON' : '読み上げ OFF');
     }
 
     function queueFastZundamonSpeech(text) {
       if (!isTtsOn) return;
-      // 高速化のため不要な文字・URLを排除し15文字にトリミング
       const clean = text.replace(/https?:\/\/\S+/g, 'URL').replace(/w{2,}/gi, 'わら').slice(0, 15).trim();
       if (!clean) return;
 
@@ -1320,7 +1409,7 @@
           const data = await res.json();
           if (data.success && data.mp3StreamingUrl) {
             streamUrl = data.mp3StreamingUrl;
-            ttsAudioCache.set(text, streamUrl); // キャッシュ登録
+            ttsAudioCache.set(text, streamUrl);
           }
         }
 
@@ -1338,16 +1427,14 @@
       processFastTtsQueue();
     }
 
-    // ==========================================================================
-    // メディアコントロール
-    // ==========================================================================
+    // --- メディアコントロール ---
     function toggleMic() {
       if (!localStream) return;
       isMicOn = !isMicOn;
       localStream.getAudioTracks().forEach(t => t.enabled = isMicOn);
 
       const btn = document.getElementById('micBtn');
-      btn.innerHTML = `<span class="material-symbols-outlined">${isMicOn ? 'mic' : 'mic_off'}</span>マイク${isMicOn ? 'ON' : 'OFF'}`;
+      btn.innerHTML = `<span class="material-symbols-outlined">${isMicOn ? 'mic' : 'mic_off'}</span><span class="btn-text-mobile">マイク</span>`;
       btn.classList.toggle('btn-danger', !isMicOn);
       document.getElementById('localTileMic').textContent = isMicOn ? 'mic' : 'mic_off';
 
@@ -1360,7 +1447,7 @@
       localStream.getVideoTracks().forEach(t => t.enabled = isCamOn);
 
       const btn = document.getElementById('camBtn');
-      btn.innerHTML = `<span class="material-symbols-outlined">${isCamOn ? 'videocam' : 'videocam_off'}</span>カメラ${isCamOn ? 'ON' : 'OFF'}`;
+      btn.innerHTML = `<span class="material-symbols-outlined">${isCamOn ? 'videocam' : 'videocam_off'}</span><span class="btn-text-mobile">カメラ</span>`;
       btn.classList.toggle('btn-danger', !isCamOn);
       document.getElementById('localVideo').style.opacity = isCamOn ? '1' : '0';
 
@@ -1412,6 +1499,7 @@
       document.getElementById('shareScreenBtn').classList.remove('btn-active');
     }
 
+    // --- チャット・ファイル ---
     function sendChatMessage() {
       const input = document.getElementById('chatInput');
       const text = input.value.trim();
@@ -1489,11 +1577,11 @@
     function addDownloadItem(name, url) {
       const container = document.getElementById('fileItemsList');
       const div = document.createElement('div');
-      div.style.cssText = 'background:var(--md-surface-cnt); padding:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;';
+      div.style.cssText = 'background:var(--md-surface-cnt); padding:8px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;';
       div.innerHTML = `
-        <span style="font-size:0.85rem; font-weight:bold;">${name}</span>
+        <span style="font-size:0.82rem; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px;">${name}</span>
         <a href="${url}" download="${name}" class="btn btn-primary btn-xs" style="text-decoration:none;">
-          <span class="material-symbols-outlined" style="font-size:16px;">download</span>DL
+          <span class="material-symbols-outlined" style="font-size:15px;">download</span>DL
         </a>
       `;
       container.prepend(div);
@@ -1516,10 +1604,10 @@
         container.innerHTML += `
           <div class="user-item">
             <span>${p.userName || '参加者'}</span>
-            <div style="display:flex; align-items:center; gap:8px;">
+            <div style="display:flex; align-items:center; gap:6px;">
               <span class="material-symbols-outlined" style="font-size:18px;">${p.isMuted ? 'mic_off' : 'mic'}</span>
-              <button class="btn btn-danger btn-xs" onclick="startKickVote('${id}')" title="投票キックを開始">
-                <span class="material-symbols-outlined" style="font-size:14px;">how_to_vote</span>投票キック
+              <button class="btn btn-danger btn-xs" onclick="startKickVote('${id}')" title="投票キック">
+                <span class="material-symbols-outlined" style="font-size:13px;">how_to_vote</span>キック
               </button>
             </div>
           </div>
@@ -1529,14 +1617,20 @@
       document.getElementById('userCount').textContent = Object.keys(peers).length + 1;
     }
 
+    // --- UI切り替え ---
     function setUIState(state, text) {
       document.getElementById('statusDot').className = 'status-dot ' + state;
       document.getElementById('roomStatusText').textContent = text;
       const joined = (state === 'connected' || state === 'waiting');
-      document.getElementById('joinBtn').style.display = joined ? 'none' : 'inline-flex';
-      document.getElementById('leaveBtn').style.display = joined ? 'inline-flex' : 'none';
-      document.getElementById('roomNameInput').disabled = joined;
-      document.getElementById('userNameInput').disabled = joined;
+
+      // 参加後はヘッダーの入力欄を隠してスリム化
+      document.getElementById('joinControls').style.display = joined ? 'none' : 'flex';
+      document.getElementById('inRoomControls').style.display = joined ? 'flex' : 'none';
+    }
+
+    function toggleMobileSidebar() {
+      const sidebar = document.getElementById('appSidebar');
+      sidebar.classList.toggle('mobile-open');
     }
 
     function leaveMeshRoom() {
@@ -1545,7 +1639,7 @@
     }
 
     function copyInviteUrl() {
-      const room = document.getElementById('roomNameInput').value.trim();
+      const room = document.getElementById('roomNameInput').value.trim() || currentRoomName;
       const url = new URL(window.location.href);
       if (room) url.searchParams.set('room', room);
       navigator.clipboard.writeText(url.href).then(() => showToast('招待URLをコピーしました'));
@@ -1573,7 +1667,7 @@
       if (type === 'error') t.style.background = 'var(--md-error-cnt)';
       t.textContent = text;
       c.appendChild(t);
-      setTimeout(() => t.remove(), 4000);
+      setTimeout(() => t.remove(), 3500);
     }
   </script>
 </body>
