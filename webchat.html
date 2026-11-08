@@ -4,430 +4,177 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>P2P Mesh Room</title>
-  <!-- PeerJS -->
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-  <!-- YouTube IFrame API -->
   <script src="https://www.youtube.com/iframe_api"></script>
-  <!-- Google Material Symbols -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
 
   <style>
     :root {
-      --md-bg: #141218;
-      --md-surface: #1d1a22;
-      --md-surface-cnt: #211f26;
-      --md-surface-high: #2b2930;
-      --md-surface-highest: #36343b;
-      --md-primary: #d0bcff;
-      --md-on-primary: #381e72;
-      --md-primary-cnt: #4f378b;
-      --md-on-primary-cnt: #eaddff;
-      --md-sec-cnt: #4a4458;
-      --md-on-sec-cnt: #e8def8;
-      --md-outline: #938f99;
-      --md-outline-var: #49454f;
-      --md-error: #f2b8b5;
-      --md-error-cnt: #8c1d18;
-      --md-success: #a8f5a2;
-      --md-on-surface: #e6e1e5;
-      --md-on-surface-var: #cac4d0;
-      --r-sm: 8px;
-      --r-md: 12px;
-      --r-lg: 16px;
-      --r-full: 9999px;
+      --md-bg: #141218; --md-surface: #1d1a22; --md-surface-cnt: #211f26;
+      --md-surface-high: #2b2930; --md-surface-highest: #36343b;
+      --md-primary: #d0bcff; --md-on-primary: #381e72; --md-primary-cnt: #4f378b;
+      --md-on-primary-cnt: #eaddff; --md-sec-cnt: #4a4458; --md-on-sec-cnt: #e8def8;
+      --md-outline: #938f99; --md-outline-var: #49454f; --md-error: #f2b8b5;
+      --md-error-cnt: #8c1d18; --md-success: #a8f5a2; --md-on-surface: #e6e1e5;
+      --md-on-surface-var: #cac4d0; --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-full: 9999px;
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
     html, body {
-      width: 100%;
-      height: 100%;
-      height: 100dvh;
-      overflow: hidden;
-      background-color: var(--md-bg);
-      color: var(--md-on-surface);
+      width: 100%; height: 100%; height: 100dvh; overflow: hidden;
+      background: var(--md-bg); color: var(--md-on-surface);
       font-family: Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      touch-action: manipulation;
+      touch-action: manipulation; display: flex; flex-direction: column;
     }
-
-    body { display: flex; flex-direction: column; }
-
-    .material-symbols-outlined {
-      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-      vertical-align: middle;
-      font-size: 20px;
-    }
-
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400; vertical-align: middle; font-size: 20px; }
+    
     header {
-      flex-shrink: 0;
-      background-color: var(--md-surface);
-      padding: 8px 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      border-bottom: 1px solid var(--md-outline-var);
-      z-index: 30;
-      min-height: 52px;
+      flex-shrink: 0; background: var(--md-surface); padding: 8px 16px; display: flex;
+      justify-content: space-between; align-items: center; gap: 8px;
+      border-bottom: 1px solid var(--md-outline-var); z-index: 30; min-height: 52px;
     }
-
-    .brand-title {
-      font-size: 1.05rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      color: var(--md-primary);
-      white-space: nowrap;
-    }
-
-    .status-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 3px 10px;
-      border-radius: var(--r-full);
-      background: var(--md-surface-high);
-      font-size: 0.75rem;
-      color: var(--md-on-surface-var);
-    }
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #747f8d;
-    }
+    .brand-title { font-size: 1.05rem; font-weight: 600; display: flex; align-items: center; gap: 6px; color: var(--md-primary); white-space: nowrap; }
+    .status-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: var(--r-full); background: var(--md-surface-high); font-size: 0.75rem; color: var(--md-on-surface-var); }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #747f8d; }
     .status-dot.connected { background: var(--md-success); box-shadow: 0 0 8px var(--md-success); }
     .status-dot.waiting { background: #faa81a; }
-
-    .header-controls {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-
-    .md-field {
-      display: flex;
-      align-items: center;
-      background: var(--md-surface-cnt);
-      border: 1px solid var(--md-outline-var);
-      border-radius: var(--r-sm);
-      padding: 5px 10px;
-      gap: 4px;
-    }
-    .md-field input {
-      background: transparent;
-      border: none;
-      color: var(--md-on-surface);
-      font-size: 0.85rem;
-      outline: none;
-    }
-
+    .header-controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .md-field { display: flex; align-items: center; background: var(--md-surface-cnt); border: 1px solid var(--md-outline-var); border-radius: var(--r-sm); padding: 5px 10px; gap: 4px; }
+    .md-field input { background: transparent; border: none; color: var(--md-on-surface); font-size: 0.85rem; outline: none; }
+    
     .btn {
-      border: none;
-      border-radius: var(--r-full);
-      padding: 7px 14px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      transition: background 0.2s, transform 0.1s;
-      white-space: nowrap;
-      user-select: none;
+      border: none; border-radius: var(--r-full); padding: 7px 14px; font-size: 0.82rem;
+      font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+      transition: background 0.2s, transform 0.1s; white-space: nowrap; user-select: none;
     }
     .btn:active { transform: scale(0.96); }
     .btn-primary { background: var(--md-primary); color: var(--md-on-primary); }
     .btn-tonal { background: var(--md-sec-cnt); color: var(--md-on-sec-cnt); }
     .btn-danger { background: var(--md-error-cnt); color: var(--md-error); }
     .btn-active { background: var(--md-primary-cnt); color: var(--md-on-primary-cnt); }
-    .btn-xs { padding: 4px 10px; font-size: 0.75rem; border-radius: var(--r-full); }
+    .btn-xs { padding: 4px 10px; font-size: 0.75rem; }
     .btn-icon-only { padding: 7px; border-radius: 50%; }
 
-    .main-container {
-      display: flex;
-      flex: 1;
-      min-height: 0;
-      position: relative;
-    }
-
-    .stage-section {
-      flex: 1;
-      min-width: 0;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      background: #0b0a0e;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .main-stage {
-      flex: 1;
-      min-height: 0;
-      position: relative;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 8px;
-      overflow: hidden;
-    }
-
+    .main-container { display: flex; flex: 1; min-height: 0; position: relative; }
+    .stage-section { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: #0b0a0e; position: relative; overflow: hidden; }
+    .main-stage { flex: 1; min-height: 0; position: relative; display: flex; justify-content: center; align-items: center; padding: 8px; }
     .aspect-screen {
-      width: 100%;
-      height: 100%;
-      max-width: 100%;
-      max-height: 100%;
-      aspect-ratio: 16 / 9;
-      background: #000;
-      border-radius: var(--r-md);
-      overflow: hidden;
-      position: relative;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.85);
+      width: 100%; height: 100%; aspect-ratio: 16 / 9; background: #000;
+      border-radius: var(--r-md); overflow: hidden; position: relative; display: flex;
+      justify-content: center; align-items: center; box-shadow: 0 4px 24px rgba(0,0,0,0.85);
       border: 1px solid var(--md-outline-var);
     }
-
     #stageVideo { width: 100%; height: 100%; object-fit: contain; }
 
-    .avatar-placeholder {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      background: #17151e;
-      gap: 12px;
-      z-index: 1;
-      user-select: none;
+    .avatar-placeholder, .tile-avatar-placeholder {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      display: flex; justify-content: center; align-items: center; background: #17151e; z-index: 1; user-select: none;
     }
-    .tile-avatar-placeholder {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: #17151e;
-      z-index: 1;
-      user-select: none;
-    }
-
+    .avatar-placeholder { flex-direction: column; gap: 12px; }
     .avatar-circle {
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--md-primary-cnt), var(--md-sec-cnt));
-      color: #ffffff;
-      font-weight: 700;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
-      position: relative;
-      transition: transform 0.2s;
+      border-radius: 50%; color: #fff; font-weight: 700; display: flex;
+      justify-content: center; align-items: center; box-shadow: 0 4px 16px rgba(0,0,0,0.5); position: relative;
     }
-
     .stage-avatar-circle { width: 105px; height: 105px; font-size: 2.5rem; }
     .tile-avatar-circle { width: 44px; height: 44px; font-size: 1.25rem; }
+    .avatar-name { font-size: 0.95rem; font-weight: 600; color: var(--md-on-surface); display: flex; align-items: center; gap: 4px; }
 
-    .avatar-name {
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: var(--md-on-surface);
-      display: flex;
-      align-items: center;
-      gap: 4px;
+    .camera-tile.speaking .tile-avatar-circle::after, .aspect-screen.speaking .stage-avatar-circle::after {
+      content: ''; position: absolute; top: -5px; left: -5px; right: -5px; bottom: -5px;
+      border-radius: 50%; border: 2px solid var(--md-success); animation: avatarRipple 1.1s infinite ease-out;
     }
+    @keyframes avatarRipple { 0% { transform: scale(0.95); opacity: 1; } 100% { transform: scale(1.35); opacity: 0; } }
 
-    .camera-tile.speaking .tile-avatar-circle::after,
-    .aspect-screen.speaking .stage-avatar-circle::after {
-      content: '';
-      position: absolute;
-      top: -5px; left: -5px; right: -5px; bottom: -5px;
-      border-radius: 50%;
-      border: 2px solid var(--md-success);
-      animation: avatarRipple 1.1s infinite ease-out;
-    }
-
-    @keyframes avatarRipple {
-      0% { transform: scale(0.95); opacity: 1; }
-      100% { transform: scale(1.35); opacity: 0; }
-    }
-
-    #ytContainer {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      z-index: 5; background: #000; visibility: hidden; opacity: 0;
-      pointer-events: none; transition: opacity 0.2s ease;
-    }
+    #ytContainer { position: absolute; inset: 0; z-index: 5; background: #000; visibility: hidden; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
     #ytContainer.active { visibility: visible; opacity: 1; pointer-events: auto; }
     #player { width: 100%; height: 100%; }
 
-    .switch-to-yt-banner {
-      position: absolute; top: 14px; right: 14px;
-      background: rgba(33, 31, 38, 0.85); backdrop-filter: blur(8px);
-      border: 1px solid var(--md-primary); color: var(--md-primary);
-      padding: 6px 14px; border-radius: var(--r-full); font-size: 0.8rem;
-      font-weight: bold; cursor: pointer; z-index: 25; display: none;
-      align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    .switch-to-yt-banner, .unmute-banner {
+      position: absolute; border-radius: var(--r-full); font-size: 0.8rem; font-weight: bold;
+      cursor: pointer; z-index: 25; display: none; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
+    .switch-to-yt-banner { top: 14px; right: 14px; background: rgba(33, 31, 38, 0.85); backdrop-filter: blur(8px); border: 1px solid var(--md-primary); color: var(--md-primary); padding: 6px 14px; }
+    .unmute-banner { top: 12px; left: 50%; transform: translateX(-50%); background: var(--md-primary); color: var(--md-on-primary); padding: 6px 16px; white-space: nowrap; }
 
-    .unmute-banner {
-      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
-      background: var(--md-primary); color: var(--md-on-primary);
-      padding: 6px 16px; border-radius: var(--r-full); font-size: 0.8rem;
-      font-weight: bold; cursor: pointer; z-index: 25; display: none;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4); white-space: nowrap;
-    }
-
-    .camera-strip {
-      height: 110px; flex-shrink: 0; background: var(--md-surface-cnt);
-      border-top: 1px solid var(--md-outline-var); padding: 6px 12px;
-      display: flex; gap: 8px; overflow-x: auto; align-items: center;
-      -webkit-overflow-scrolling: touch; z-index: 12;
-    }
-
-    .camera-tile {
-      height: 100%; aspect-ratio: 16 / 9; background: #000;
-      border-radius: var(--r-sm); position: relative; overflow: hidden;
-      flex-shrink: 0; cursor: pointer; border: 2px solid transparent;
-      transition: border-color 0.2s;
-    }
+    .camera-strip { height: 110px; flex-shrink: 0; background: var(--md-surface-cnt); border-top: 1px solid var(--md-outline-var); padding: 6px 12px; display: flex; gap: 8px; overflow-x: auto; align-items: center; z-index: 12; }
+    .camera-tile { height: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: var(--r-sm); position: relative; overflow: hidden; flex-shrink: 0; cursor: pointer; border: 2px solid transparent; }
     .camera-tile.speaking { border-color: var(--md-success) !important; box-shadow: 0 0 10px var(--md-success); }
     .camera-tile.focused { border-color: var(--md-primary); }
     .camera-tile video { width: 100%; height: 100%; object-fit: cover; }
     .camera-tile.local video { transform: scaleX(-1); }
-
-    .tile-badge {
-      position: absolute; bottom: 4px; left: 4px;
-      background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(4px);
-      padding: 1px 6px; border-radius: var(--r-full); font-size: 0.68rem;
-      color: #fff; display: flex; align-items: center; gap: 3px; z-index: 3;
-    }
+    .tile-badge { position: absolute; bottom: 4px; left: 4px; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); padding: 1px 6px; border-radius: var(--r-full); font-size: 0.68rem; color: #fff; display: flex; align-items: center; gap: 3px; z-index: 3; }
 
     .volume-toolbar {
-      flex-shrink: 0; background: var(--md-surface-cnt);
-      border-top: 1px solid var(--md-outline-var); padding: 4px 14px;
-      display: flex; align-items: center; justify-content: center;
-      gap: 16px; font-size: 0.75rem; color: var(--md-on-surface-var); z-index: 12;
+      flex-shrink: 0; background: var(--md-surface-cnt); border-top: 1px solid var(--md-outline-var);
+      padding: 4px 14px; display: flex; align-items: center; justify-content: center; gap: 16px;
+      font-size: 0.75rem; color: var(--md-on-surface-var); z-index: 12; flex-wrap: wrap;
     }
     .vol-item { display: flex; align-items: center; gap: 6px; }
     .vol-item input[type="range"] { width: 75px; accent-color: var(--md-primary); cursor: pointer; }
 
     .controls-bar {
-      height: 56px; flex-shrink: 0; background: var(--md-surface);
-      border-top: 1px solid var(--md-outline-var); display: flex;
-      justify-content: center; align-items: center; gap: 6px;
-      padding: 0 8px; z-index: 20; overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
+      height: 56px; flex-shrink: 0; background: var(--md-surface); border-top: 1px solid var(--md-outline-var);
+      display: flex; justify-content: center; align-items: center; gap: 6px; padding: 0 8px; z-index: 20; overflow-x: auto;
     }
 
-    .sidebar {
-      width: 320px; flex-shrink: 0; background: var(--md-surface);
-      border-left: 1px solid var(--md-outline-var); display: flex;
-      flex-direction: column; z-index: 25;
-    }
-
-    .sidebar-header-mobile {
-      display: none; padding: 10px 16px; border-bottom: 1px solid var(--md-outline-var);
-      justify-content: space-between; align-items: center;
-    }
-
+    .sidebar { width: 320px; flex-shrink: 0; background: var(--md-surface); border-left: 1px solid var(--md-outline-var); display: flex; flex-direction: column; z-index: 25; }
+    .sidebar-header-mobile { display: none; padding: 10px 16px; border-bottom: 1px solid var(--md-outline-var); justify-content: space-between; align-items: center; }
     .tabs { display: flex; border-bottom: 1px solid var(--md-outline-var); flex-shrink: 0; }
     .tab-btn {
-      flex: 1; padding: 10px 4px; background: transparent; border: none;
-      color: var(--md-on-surface-var); font-size: 0.78rem; font-weight: 600;
-      cursor: pointer; display: flex; justify-content: center; align-items: center;
-      gap: 4px; border-bottom: 3px solid transparent;
+      flex: 1; padding: 10px 4px; background: transparent; border: none; color: var(--md-on-surface-var);
+      font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 4px; border-bottom: 3px solid transparent;
     }
     .tab-btn.active { color: var(--md-primary); border-bottom-color: var(--md-primary); background: rgba(208, 188, 255, 0.05); }
-
     .tab-panel { flex: 1; min-height: 0; display: none; flex-direction: column; }
     .tab-panel.active { display: flex; }
 
-    .messages-container {
-      flex: 1; min-height: 0; padding: 10px; overflow-y: auto;
-      display: flex; flex-direction: column; gap: 8px;
-    }
+    .messages-container { flex: 1; min-height: 0; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
     .msg { padding: 7px 12px; border-radius: var(--r-md); font-size: 0.85rem; max-width: 85%; word-break: break-all; }
     .msg.remote { background: var(--md-surface-high); align-self: flex-start; }
     .msg.local { background: var(--md-primary-cnt); color: var(--md-on-primary-cnt); align-self: flex-end; }
     .msg.system { background: transparent; color: var(--md-outline); font-size: 0.72rem; align-self: center; text-align: center; }
     .msg-sender { font-size: 0.68rem; color: var(--md-primary); margin-bottom: 2px; }
-
     .chat-input-box { flex-shrink: 0; padding: 8px; border-top: 1px solid var(--md-outline-var); display: flex; gap: 6px; }
 
-    .user-list { padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
-    .user-item {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 8px 12px; background: var(--md-surface-cnt); border-radius: var(--r-sm); font-size: 0.85rem;
-    }
+    .user-list { padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+    .user-item { display: flex; flex-direction: column; padding: 10px; background: var(--md-surface-cnt); border-radius: var(--r-sm); gap: 8px; }
+    .user-item-header { display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; }
+    .user-vol-row { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--md-on-surface-var); background: var(--md-surface-high); padding: 4px 8px; border-radius: var(--r-sm); }
+    .user-vol-row input[type="range"] { flex: 1; accent-color: var(--md-primary); cursor: pointer; }
 
-    .file-drop-area {
-      margin: 12px; border: 2px dashed var(--md-outline-var); border-radius: var(--r-md);
-      padding: 18px; text-align: center; color: var(--md-outline); cursor: pointer; font-size: 0.8rem;
-    }
-
-    .modal-overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); z-index: 100;
-      display: none; justify-content: center; align-items: center; padding: 12px;
-    }
-    .modal-card {
-      width: 100%; max-width: 540px; background: var(--md-surface-high);
-      border-radius: var(--r-lg); padding: 18px; display: flex; flex-direction: column;
-      gap: 12px; max-height: 85vh;
-    }
+    .file-drop-area { margin: 12px; border: 2px dashed var(--md-outline-var); border-radius: var(--r-md); padding: 18px; text-align: center; color: var(--md-outline); cursor: pointer; font-size: 0.8rem; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); z-index: 100; display: none; justify-content: center; align-items: center; padding: 12px; }
+    .modal-card { width: 100%; max-width: 540px; background: var(--md-surface-high); border-radius: var(--r-lg); padding: 18px; display: flex; flex-direction: column; gap: 12px; max-height: 85vh; }
     .search-results { overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
-    .search-item {
-      display: flex; gap: 10px; padding: 8px; border-radius: var(--r-sm);
-      cursor: pointer; background: var(--md-surface-cnt); align-items: center;
-    }
+    .search-item { display: flex; gap: 10px; padding: 8px; border-radius: var(--r-sm); cursor: pointer; background: var(--md-surface-cnt); align-items: center; }
     .search-item:hover { background: var(--md-surface-highest); }
     .search-item img { width: 96px; height: 54px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
 
     .vote-kick-banner {
-      position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
-      background: var(--md-surface-highest); border: 1px solid var(--md-primary);
-      padding: 10px 16px; border-radius: var(--r-lg); z-index: 40;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.8); display: none; flex-direction: column;
-      gap: 6px; width: calc(100% - 24px); max-width: 360px; text-align: center;
+      position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: var(--md-surface-highest);
+      border: 1px solid var(--md-primary); padding: 10px 16px; border-radius: var(--r-lg); z-index: 40;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.8); display: none; flex-direction: column; gap: 6px; width: calc(100% - 24px); max-width: 360px; text-align: center;
     }
-
-    .toast-container {
-      position: fixed; bottom: 70px; left: 12px; right: 12px; z-index: 99;
-      display: flex; flex-direction: column; gap: 6px; pointer-events: none;
-    }
-    .toast {
-      background: var(--md-surface-high); color: var(--md-on-surface);
-      padding: 8px 14px; border-radius: var(--r-sm); font-size: 0.8rem;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5); align-self: flex-start; pointer-events: auto;
-    }
+    .toast-container { position: fixed; bottom: 70px; left: 12px; right: 12px; z-index: 99; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+    .toast { background: var(--md-surface-high); color: var(--md-on-surface); padding: 8px 14px; border-radius: var(--r-sm); font-size: 0.8rem; box-shadow: 0 4px 12px rgba(0,0,0,0.5); align-self: flex-start; pointer-events: auto; }
 
     @media (max-width: 768px) {
       input, select, textarea { font-size: 16px !important; }
       header { padding: 6px 12px; min-height: 48px; }
-      .brand-text { display: none; }
+      .brand-text, .btn-text-mobile { display: none; }
       .sidebar {
-        position: absolute; bottom: 0; left: 0; width: 100%; height: 78%;
-        max-height: 78vh; z-index: 60; border-radius: 20px 20px 0 0;
-        border-left: none; border-top: 1px solid var(--md-outline-var);
-        box-shadow: 0 -8px 32px rgba(0,0,0,0.85); transform: translateY(100%);
-        transition: transform 0.28s cubic-bezier(0.1, 0.9, 0.2, 1);
+        position: absolute; bottom: 0; left: 0; width: 100%; height: 78%; max-height: 78vh;
+        z-index: 60; border-radius: 20px 20px 0 0; border-left: none; border-top: 1px solid var(--md-outline-var);
+        box-shadow: 0 -8px 32px rgba(0,0,0,0.85); transform: translateY(100%); transition: transform 0.28s cubic-bezier(0.1, 0.9, 0.2, 1);
       }
       .sidebar.mobile-open { transform: translateY(0); }
       .sidebar-header-mobile { display: flex; }
       .camera-strip { height: 85px; }
-      .btn-text-mobile { display: none; }
       .controls-bar { height: 52px; gap: 4px; padding: 0 4px; }
       .controls-bar .btn { padding: 6px 9px; }
       .volume-toolbar { gap: 10px; font-size: 0.7rem; padding: 4px 8px; }
-      .vol-item input[type="range"] { width: 60px; }
+      .vol-item input[type="range"] { width: 55px; }
       .stage-avatar-circle { width: 75px; height: 75px; font-size: 1.8rem; }
     }
   </style>
@@ -443,28 +190,19 @@
         <span id="roomStatusText">未接続</span>
       </div>
     </div>
-
     <div id="joinControls" class="header-controls">
-      <div class="md-field">
-        <input type="text" id="roomNameInput" placeholder="部屋名" size="6">
-      </div>
-      <div class="md-field">
-        <input type="text" id="userNameInput" placeholder="名前" size="6">
-      </div>
+      <div class="md-field"><input type="text" id="roomNameInput" placeholder="部屋名" size="6"></div>
+      <div class="md-field"><input type="text" id="userNameInput" placeholder="名前" size="6"></div>
       <button id="joinBtn" class="btn btn-primary" onclick="joinMeshRoom()">
-        <span class="material-symbols-outlined">login</span>
-        <span class="btn-text-mobile">参加</span>
+        <span class="material-symbols-outlined">login</span><span class="btn-text-mobile">参加</span>
       </button>
     </div>
-
     <div id="inRoomControls" class="header-controls" style="display:none;">
       <button class="btn btn-tonal" onclick="copyInviteUrl()" title="招待URLをコピー">
-        <span class="material-symbols-outlined">link</span>
-        <span class="btn-text-mobile">招待</span>
+        <span class="material-symbols-outlined">link</span><span class="btn-text-mobile">招待</span>
       </button>
       <button class="btn btn-danger" onclick="leaveMeshRoom()" title="退室">
-        <span class="material-symbols-outlined">logout</span>
-        <span class="btn-text-mobile">退室</span>
+        <span class="material-symbols-outlined">logout</span><span class="btn-text-mobile">退室</span>
       </button>
     </div>
   </header>
@@ -491,40 +229,28 @@
         <div id="unmuteBanner" class="unmute-banner" onclick="forceUnmuteYouTube()">
           <span class="material-symbols-outlined">volume_up</span> タップで音声再生
         </div>
-
         <div id="switchToYtBtn" class="switch-to-yt-banner" onclick="switchToYouTubeStage()">
           <span class="material-symbols-outlined">smart_display</span> YouTube画面に戻る
         </div>
-
         <div class="aspect-screen" id="aspectScreen">
           <video id="stageVideo" autoplay playsinline></video>
-
           <div id="stageAvatar" class="avatar-placeholder" style="display:none;">
-            <div class="avatar-circle stage-avatar-circle" id="stageAvatarCircle">
-              <span id="stageAvatarText">自</span>
-            </div>
+            <div class="avatar-circle stage-avatar-circle" id="stageAvatarCircle"><span id="stageAvatarText">自</span></div>
             <div class="avatar-name" id="stageAvatarName">
               <span id="stageAvatarNameText">自分</span>
               <span class="material-symbols-outlined" style="font-size:16px; color:var(--md-error);">videocam_off</span>
             </div>
           </div>
-
-          <div id="ytContainer">
-            <div id="player"></div>
-          </div>
+          <div id="ytContainer"><div id="player"></div></div>
         </div>
       </div>
 
       <div class="camera-strip" id="cameraStrip">
         <div class="camera-tile local focused" id="tile-local" onclick="focusVideo('local')">
           <video id="localVideo" autoplay playsinline muted></video>
-
           <div class="tile-avatar-placeholder" id="avatar-local" style="display:none;">
-            <div class="avatar-circle tile-avatar-circle" id="avatarCircle-local">
-              <span id="avatarText-local">自</span>
-            </div>
+            <div class="avatar-circle tile-avatar-circle" id="avatarCircle-local"><span id="avatarText-local">自</span></div>
           </div>
-
           <div class="tile-badge">
             <span id="localTileName">自分</span>
             <span id="localTileMic" class="material-symbols-outlined" style="font-size:13px;">mic</span>
@@ -532,41 +258,41 @@
         </div>
       </div>
 
+      <!-- マスター音量 & リミッター（最大・最小音量制御） -->
       <div class="volume-toolbar">
         <div class="vol-item">
           <span class="material-symbols-outlined" style="font-size:16px;">smart_display</span>
           <span>動画</span>
           <input type="range" id="ytVolumeSlider" min="0" max="100" value="40" oninput="changeYouTubeVolume(this.value)">
-          <span id="ytVolVal" style="width:24px;">40%</span>
+          <span id="ytVolVal" style="width:28px;">40%</span>
         </div>
         <div class="vol-item">
-          <span class="material-symbols-outlined" style="font-size:16px;">record_voice_over</span>
-          <span>会話増幅</span>
-          <input type="range" id="callVolumeSlider" min="50" max="250" value="120" oninput="changeCallVolume(this.value)">
-          <span id="callVolVal" style="width:28px;">1.2x</span>
+          <span class="material-symbols-outlined" style="font-size:16px;">volume_up</span>
+          <span>会話マスター</span>
+          <input type="range" id="callVolumeSlider" min="0" max="250" value="120" oninput="changeMasterVolume(this.value)">
+          <span id="callVolVal" style="width:34px;">1.2x</span>
+        </div>
+        <div class="vol-item" title="突発的な大声を抑えて耳を守り、音割れを防ぎます">
+          <span class="material-symbols-outlined" style="font-size:16px; color:var(--md-success);">health_and_safety</span>
+          <span style="color:var(--md-success);">音量リミッター保護</span>
         </div>
       </div>
 
       <div class="controls-bar">
         <button id="micBtn" class="btn btn-tonal" onclick="toggleMic()" title="マイクON/OFF">
-          <span class="material-symbols-outlined">mic</span>
-          <span class="btn-text-mobile">マイク</span>
+          <span class="material-symbols-outlined">mic</span><span class="btn-text-mobile">マイク</span>
         </button>
         <button id="camBtn" class="btn btn-tonal" onclick="toggleCam()" title="カメラON/OFF">
-          <span class="material-symbols-outlined">videocam</span>
-          <span class="btn-text-mobile">カメラ</span>
+          <span class="material-symbols-outlined">videocam</span><span class="btn-text-mobile">カメラ</span>
         </button>
-        <button id="mobileChatToggleBtn" class="btn btn-tonal" onclick="toggleMobileSidebar()" title="チャット・参加者">
-          <span class="material-symbols-outlined">chat</span>
-          <span class="btn-text-mobile">チャット</span>
+        <button class="btn btn-tonal" onclick="toggleMobileSidebar()" title="チャット・参加者">
+          <span class="material-symbols-outlined">chat</span><span class="btn-text-mobile">チャット</span>
         </button>
-        <button id="ytToggleStageBtn" class="btn btn-tonal" onclick="toggleYouTubeStageOrModal()" title="YouTube同時視聴">
-          <span class="material-symbols-outlined">smart_display</span>
-          <span class="btn-text-mobile">動画</span>
+        <button class="btn btn-tonal" onclick="toggleYouTubeStageOrModal()" title="YouTube同時視聴">
+          <span class="material-symbols-outlined">smart_display</span><span class="btn-text-mobile">動画</span>
         </button>
         <button id="shareScreenBtn" class="btn btn-tonal" onclick="toggleScreenShare()" title="画面共有">
-          <span class="material-symbols-outlined">screen_share</span>
-          <span class="btn-text-mobile">共有</span>
+          <span class="material-symbols-outlined">screen_share</span><span class="btn-text-mobile">共有</span>
         </button>
         <button id="ttsToggleBtn" class="btn btn-tonal" onclick="cycleTtsMode()" title="ずんだもん読み上げ">
           <span class="material-symbols-outlined">record_voice_over</span>
@@ -580,11 +306,8 @@
     <div class="sidebar" id="appSidebar">
       <div class="sidebar-header-mobile">
         <span style="font-weight:bold; font-size:0.9rem;">メニュー</span>
-        <button class="btn btn-tonal btn-icon-only" onclick="toggleMobileSidebar()">
-          <span class="material-symbols-outlined">close</span>
-        </button>
+        <button class="btn btn-tonal btn-icon-only" onclick="toggleMobileSidebar()"><span class="material-symbols-outlined">close</span></button>
       </div>
-
       <div class="tabs">
         <button id="tabChatBtn" class="tab-btn active" onclick="switchSidebarTab('chat')">
           <span class="material-symbols-outlined">chat</span>チャット
@@ -603,9 +326,7 @@
         </div>
         <div class="chat-input-box">
           <input type="text" id="chatInput" class="md-field" style="flex:1;" placeholder="メッセージ..." onkeydown="if(event.key==='Enter') sendChatMessage()">
-          <button class="btn btn-primary" onclick="sendChatMessage()">
-            <span class="material-symbols-outlined">send</span>
-          </button>
+          <button class="btn btn-primary" onclick="sendChatMessage()"><span class="material-symbols-outlined">send</span></button>
         </div>
       </div>
 
@@ -614,7 +335,7 @@
       </div>
 
       <div id="tabFile" class="tab-panel">
-        <div class="file-drop-area" onclick="document.getElementById('fileInput').click()" ondragover="event.preventDefault()" ondrop="handleDropFile(event)">
+        <div class="file-drop-area" onclick="$('fileInput').click()" ondragover="event.preventDefault()" ondrop="handleDropFile(event)">
           <span class="material-symbols-outlined" style="font-size:28px; display:block; margin-bottom:4px;">upload_file</span>
           ファイルを転送
           <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)">
@@ -630,18 +351,12 @@
         <h3 style="font-size:1rem; color:var(--md-primary); display:flex; align-items:center; gap:6px;">
           <span class="material-symbols-outlined">smart_display</span>YouTube 検索・再生
         </h3>
-        <button class="btn btn-tonal btn-icon-only" onclick="closeYouTubeModal()">
-          <span class="material-symbols-outlined">close</span>
-        </button>
+        <button class="btn btn-tonal btn-icon-only" onclick="toggleModal('ytModal', false)"><span class="material-symbols-outlined">close</span></button>
       </div>
-
       <div style="display:flex; gap:6px;">
         <input type="text" id="ytSearchInput" class="md-field" style="flex:1;" placeholder="キーワード または YouTube URL" onkeydown="if(event.key==='Enter') searchYouTube()">
-        <button class="btn btn-primary" onclick="searchYouTube()">
-          <span class="material-symbols-outlined">search</span>
-        </button>
+        <button class="btn btn-primary" onclick="searchYouTube()"><span class="material-symbols-outlined">search</span></button>
       </div>
-
       <div class="search-results" id="ytSearchResults">
         <div style="font-size:0.8rem; color:var(--md-outline); text-align:center; padding:16px;">
           キーワードを入力して検索するか、動画URLを直接貼り付けてください。
@@ -656,13 +371,9 @@
         <h3 style="font-size:1rem; color:var(--md-primary); display:flex; align-items:center; gap:6px;">
           <span class="material-symbols-outlined">screen_share</span>スマホ画面共有メニュー
         </h3>
-        <button class="btn btn-tonal btn-icon-only" onclick="closeMobileShareModal()">
-          <span class="material-symbols-outlined">close</span>
-        </button>
+        <button class="btn btn-tonal btn-icon-only" onclick="toggleModal('mobileShareModal', false)"><span class="material-symbols-outlined">close</span></button>
       </div>
-      <p style="font-size:0.78rem; color:var(--md-outline); line-height:1.4;">
-        ブラウザ制限のため、以下の方法で相手の大画面に配信できます：
-      </p>
+      <p style="font-size:0.78rem; color:var(--md-outline); line-height:1.4;">ブラウザ制限のため、以下の方法で相手の大画面に配信できます：</p>
       <div style="display:flex; flex-direction:column; gap:8px;">
         <button class="btn btn-primary" style="justify-content:flex-start; padding:12px 16px;" onclick="triggerScreenShotShare()">
           <span class="material-symbols-outlined">photo_library</span>
@@ -686,143 +397,102 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <script>
-    // YouTube Data API Key
-    // ※ 本番利用時はGoogle Cloud Consoleで「HTTPリファラー制限」を設定してください
-    const YT_API_KEY = "AIzaSyBBZjIxmoP0ep6QgT1a4440dczYwqV278I";
+    // --- 軽量DOM操作ヘルパー ---
+    const $ = id => document.getElementById(id);
+    const el = (tag, attrs = {}, ...children) => {
+      const node = document.createElement(tag);
+      for (const [k, v] of Object.entries(attrs)) {
+        if (k === 'style' && typeof v === 'object') Object.assign(node.style, v);
+        else if (k.startsWith('on')) node[k] = v;
+        else if (k === 'text') node.textContent = v;
+        else node.setAttribute(k, v);
+      }
+      for (const c of children.flat()) {
+        if (c != null) node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+      }
+      return node;
+    };
 
-    // ファイル転送のDoS防止定数 (最大50MB)
+    const YT_API_KEY = "AIzaSyBBZjIxmoP0ep6QgT1a4440dczYwqV278I";
     const MAX_FILE_SIZE = 50 * 1024 * 1024;
     const FILE_CHUNK_SIZE = 16 * 1024;
     const MAX_CHUNKS = Math.ceil(MAX_FILE_SIZE / FILE_CHUNK_SIZE) + 20;
 
-    const PEER_CONFIG = {
-      config: {
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
-        ]
+    const PEER_CONFIG = { config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] } };
+
+    let myPeerId = null, myUserName = 'ゲスト', currentRoomName = '', isHost = false, peer = null;
+    const peers = {}, kickedPeers = new Set(), receivedFiles = {}, ttsAudioCache = new Map(), ttsQueue = [];
+    let localStream = null, screenStream = null, isMicOn = true, isCamOn = true, isScreenSharing = false;
+    let isUnloading = false, isTabHidden = false, mockScreenCanvas = null, mockScreenTimer = null;
+    let ytPlayer = null, isYtReady = false, isRemoteAction = false, isYtLoaded = false;
+    let currentStageMode = 'camera', currentFocusedPeerId = 'local', currentYtVolume = 40;
+    let isTtsOn = true, isSpeaking = false, currentVote = null, voteTimerInterval = null, isReconnecting = false;
+
+    // --- Web Audio 音声パイプライン（マスターゲイン ＋ 最大音量リミッター） ---
+    let audioContext = null, masterCallGainNode = null, masterLimiterNode = null;
+    let currentMasterGain = 1.2;
+
+    function getAudioPipeline() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        masterCallGainNode = audioContext.createGain();
+        masterCallGainNode.gain.value = currentMasterGain;
+
+        // 最大音量抑制＆音割れ防止のリミッター（コンプレッサー）
+        masterLimiterNode = audioContext.createDynamicsCompressor();
+        masterLimiterNode.threshold.value = -16; // -16dBで急激な大声を制限
+        masterLimiterNode.knee.value = 24;
+        masterLimiterNode.ratio.value = 16;
+        masterLimiterNode.attack.value = 0.003;
+        masterLimiterNode.release.value = 0.25;
+
+        masterCallGainNode.connect(masterLimiterNode);
+        masterLimiterNode.connect(audioContext.destination);
       }
-    };
-
-    let myPeerId = null;
-    let myUserName = 'ゲスト';
-    let currentRoomName = '';
-    let isHost = false;
-    let peer = null;
-
-    const peers = {};
-    const kickedPeers = new Set();
-
-    let localStream = null;
-    let screenStream = null;
-    let isMicOn = true;
-    let isCamOn = true;
-    let isScreenSharing = false;
-
-    let isUnloading = false;
-    let isTabHidden = false;
-
-    let mockScreenCanvas = null;
-    let mockScreenTimer = null;
-
-    let ytPlayer = null;
-    let isYtReady = false;
-    let isRemoteAction = false;
-    let isYtLoaded = false;
-    let currentStageMode = 'camera';
-    let currentFocusedPeerId = 'local';
-    let currentYtVolume = 40;
-
-    let audioContext = null;
-    let currentCallGain = 1.2;
-
-    let isTtsOn = true;
-    const ttsQueue = [];
-    let isSpeaking = false;
-    const ttsAudioCache = new Map();
-
-    let currentVote = null;
-    let voteTimerInterval = null;
-    let isReconnecting = false;
-
-    function sanitizeFileName(name) {
-      if (typeof name !== 'string') return 'download_file';
-      return name.replace(/[/\\?%*:|"<>]/g, '_').slice(0, 80);
-    }
-
-    function getAvatarGradient(name) {
-      const gradients = [
-        'linear-gradient(135deg, #4f378b, #7961b2)',
-        'linear-gradient(135deg, #006874, #008b9b)',
-        'linear-gradient(135deg, #8c1d18, #b3261e)',
-        'linear-gradient(135deg, #7c5800, #a37500)',
-        'linear-gradient(135deg, #2b6a4c, #3d936b)',
-        'linear-gradient(135deg, #00639b, #1185c9)',
-        'linear-gradient(135deg, #833989, #ad4cb5)'
-      ];
-      let hash = 0;
-      for (let i = 0; i < (name || '').length; i++) hash += name.charCodeAt(i);
-      return gradients[Math.abs(hash) % gradients.length];
+      if (audioContext.state === 'suspended') audioContext.resume();
+      return { ctx: audioContext, master: masterCallGainNode };
     }
 
     function ensureAudioContextResumed() {
-      if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioContext.state === 'suspended') {
-        audioContext.resume();
-      }
+      if (audioContext && audioContext.state === 'suspended') audioContext.resume();
+    }
+
+    function sanitizeFileName(name) {
+      return typeof name === 'string' ? name.replace(/[/\\?%*:|"<>]/g, '_').slice(0, 80) : 'file';
+    }
+
+    function getAvatarGradient(name) {
+      const g = [
+        'linear-gradient(135deg,#4f378b,#7961b2)', 'linear-gradient(135deg,#006874,#008b9b)',
+        'linear-gradient(135deg,#8c1d18,#b3261e)', 'linear-gradient(135deg,#7c5800,#a37500)',
+        'linear-gradient(135deg,#2b6a4c,#3d936b)', 'linear-gradient(135deg,#00639b,#1185c9)', 'linear-gradient(135deg,#833989,#ad4cb5)'
+      ];
+      let h = 0; for (let i = 0; i < (name || '').length; i++) h += name.charCodeAt(i);
+      return g[Math.abs(h) % g.length];
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
-      ['click', 'touchstart', 'keydown'].forEach(evt => {
-        window.addEventListener(evt, ensureAudioContextResumed, { once: true });
-      });
-
+      ['click', 'touchstart', 'keydown'].forEach(e => window.addEventListener(e, ensureAudioContextResumed, { once: true }));
       await setupMedia();
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('room')) document.getElementById('roomNameInput').value = params.get('room');
-      document.getElementById('userNameInput').value = 'ゲスト' + Math.floor(Math.random() * 900 + 100);
+      const p = new URLSearchParams(window.location.search);
+      if (p.get('room')) $('roomNameInput').value = p.get('room');
+      $('userNameInput').value = 'ゲスト' + Math.floor(Math.random() * 900 + 100);
 
       document.addEventListener('visibilitychange', () => {
         isTabHidden = (document.visibilityState === 'hidden');
-        if (!isTabHidden) {
-          safeReconnect();
-          if (audioContext && audioContext.state === 'suspended') audioContext.resume();
-        }
+        if (!isTabHidden) { safeReconnect(); ensureAudioContextResumed(); }
       });
-
-      window.addEventListener('beforeunload', () => {
-        isUnloading = true;
-        if (peer && !peer.destroyed) peer.destroy();
-      });
-
-      if (window.YT && window.YT.Player) {
-        initYouTubePlayer();
-      }
+      window.addEventListener('beforeunload', () => { isUnloading = true; if (peer && !peer.destroyed) peer.destroy(); });
+      if (window.YT && window.YT.Player) initYouTubePlayer();
     });
 
     function createDummyMediaStream() {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const dst = ctx.createMediaStreamDestination();
-      const gain = ctx.createGain();
-      gain.gain.value = 0;
-      osc.connect(gain);
-      gain.connect(dst);
-      osc.start();
-      const audioTrack = dst.stream.getAudioTracks()[0];
-
-      const canvas = document.createElement('canvas');
-      canvas.width = 320;
-      canvas.height = 180;
-      const cctx = canvas.getContext('2d');
-      cctx.fillStyle = '#111116';
-      cctx.fillRect(0, 0, 320, 180);
-      const canvasStream = canvas.captureStream(5);
-      const videoTrack = canvasStream.getVideoTracks()[0];
-
-      return new MediaStream([audioTrack, videoTrack]);
+      const { ctx } = getAudioPipeline();
+      const osc = ctx.createOscillator(), dst = ctx.createMediaStreamDestination(), gain = ctx.createGain();
+      gain.gain.value = 0; osc.connect(gain); gain.connect(dst); osc.start();
+      const canvas = el('canvas', { width: 320, height: 180 });
+      const cctx = canvas.getContext('2d'); cctx.fillStyle = '#111116'; cctx.fillRect(0, 0, 320, 180);
+      return new MediaStream([dst.stream.getAudioTracks()[0], canvas.captureStream(5).getVideoTracks()[0]]);
     }
 
     async function setupMedia() {
@@ -831,63 +501,38 @@
       } catch (err) {
         try {
           localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
-          const dummy = createDummyMediaStream();
-          localStream.addTrack(dummy.getVideoTracks()[0]);
-          isCamOn = false;
+          localStream.addTrack(createDummyMediaStream().getVideoTracks()[0]); isCamOn = false;
         } catch (e) {
-          localStream = createDummyMediaStream();
-          isMicOn = false;
-          isCamOn = false;
+          localStream = createDummyMediaStream(); isMicOn = false; isCamOn = false;
         }
       }
-      document.getElementById('localVideo').srcObject = localStream;
+      $('localVideo').srcObject = localStream;
       setupSpeakingDetector('local', localStream);
       updateLocalAvatarUI();
     }
 
     function updateLocalAvatarUI() {
-      const initial = (myUserName || '自').charAt(0);
-      document.getElementById('avatarText-local').textContent = initial;
-      document.getElementById('avatarCircle-local').style.background = getAvatarGradient(myUserName);
-
-      const avatarLocal = document.getElementById('avatar-local');
-      const vidLocal = document.getElementById('localVideo');
-
-      if (!isCamOn) {
-        avatarLocal.style.display = 'flex';
-        vidLocal.style.opacity = '0';
-      } else {
-        avatarLocal.style.display = 'none';
-        vidLocal.style.opacity = '1';
-      }
-
-      if (currentFocusedPeerId === 'local') {
-        updateStageView();
-      }
+      $('avatarText-local').textContent = (myUserName || '自').charAt(0);
+      $('avatarCircle-local').style.background = getAvatarGradient(myUserName);
+      $('avatar-local').style.display = isCamOn ? 'none' : 'flex';
+      $('localVideo').style.opacity = isCamOn ? '1' : '0';
+      if (currentFocusedPeerId === 'local') updateStageView();
     }
 
     async function getRoomHostId(roomName) {
-      const enc = new TextEncoder();
-      const data = enc.encode(`p2p_mesh_room_v16:${roomName.trim()}`);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const key = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
-      return `room-${key}-host`;
+      const d = new TextEncoder().encode(`p2p_mesh_room_v16:${roomName.trim()}`);
+      const h = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', d))).map(b => b.toString(16).padStart(2, '0')).join('');
+      return `room-${h.substring(0, 16)}-host`;
     }
 
     async function joinMeshRoom() {
-      ensureAudioContextResumed();
-      const room = document.getElementById('roomNameInput').value.trim();
-      const name = document.getElementById('userNameInput').value.trim();
+      getAudioPipeline();
+      const room = $('roomNameInput').value.trim(), name = $('userNameInput').value.trim();
       if (!room || !name) return alert('部屋名と名前を入力してください');
-
-      myUserName = name;
-      currentRoomName = room;
-      document.getElementById('localTileName').textContent = myUserName + ' (自分)';
-      document.getElementById('joinBtn').disabled = true;
-
+      myUserName = name; currentRoomName = room;
+      $('localTileName').textContent = myUserName + ' (自分)';
+      $('joinBtn').disabled = true;
       updateLocalAvatarUI();
-
       const hostId = await getRoomHostId(room);
       tryAsHost(hostId);
     }
@@ -895,151 +540,127 @@
     function tryAsHost(hostId) {
       if (peer && !peer.destroyed) peer.destroy();
       peer = new Peer(hostId, PEER_CONFIG);
-
       peer.on('open', (id) => {
-        isHost = true;
-        myPeerId = id;
-        setupPeerCommon();
+        isHost = true; myPeerId = id; setupPeerCommon();
         setUIState('waiting', `部屋: ${currentRoomName}`);
-        showToast('部屋を作成しました (ホスト)');
-        updateUserListUI();
+        showToast('部屋を作成しました (ホスト)'); updateUserListUI();
       });
-
       peer.on('error', (err) => {
-        if (err.type === 'unavailable-id') {
-          setTimeout(() => joinAsGuest(hostId), 150);
-        } else {
-          document.getElementById('joinBtn').disabled = false;
-        }
+        if (err.type === 'unavailable-id') setTimeout(() => joinAsGuest(hostId), 150);
+        else $('joinBtn').disabled = false;
       });
     }
 
     function joinAsGuest(hostId) {
       if (peer && !peer.destroyed) peer.destroy();
       peer = new Peer(PEER_CONFIG);
-
       peer.on('open', (id) => {
-        isHost = false;
-        myPeerId = id;
-        setupPeerCommon();
+        isHost = false; myPeerId = id; setupPeerCommon();
         setUIState('waiting', `部屋: ${currentRoomName}`);
         connectToSinglePeer(hostId);
-
-        setTimeout(() => {
-          if (Object.keys(peers).length === 0 && !isHost) {
-            tryAsHost(hostId);
-          }
-        }, 4000);
+        setTimeout(() => { if (Object.keys(peers).length === 0 && !isHost) tryAsHost(hostId); }, 4000);
       });
-
-      peer.on('error', () => {
-        document.getElementById('joinBtn').disabled = false;
-      });
+      peer.on('error', () => { $('joinBtn').disabled = false; });
     }
 
     function safeReconnect() {
       if (isReconnecting || !peer || peer.destroyed || !peer.disconnected) return;
       isReconnecting = true;
-      setTimeout(() => {
-        if (peer && !peer.destroyed && peer.disconnected) {
-          peer.reconnect();
-        }
-        isReconnecting = false;
-      }, 2000);
+      setTimeout(() => { if (peer && !peer.destroyed && peer.disconnected) peer.reconnect(); isReconnecting = false; }, 2000);
     }
 
     function setupPeerCommon() {
-      peer.on('disconnected', () => safeReconnect());
-
-      peer.on('call', (call) => {
+      peer.on('disconnected', safeReconnect);
+      peer.on('call', call => {
         if (kickedPeers.has(call.peer)) return call.close();
         call.answer(localStream);
         setupCallEvents(call);
       });
-
-      peer.on('connection', (conn) => {
+      peer.on('connection', conn => {
         if (kickedPeers.has(conn.peer)) return conn.close();
         setupConnEvents(conn);
       });
     }
 
-    function connectToSinglePeer(targetPeerId) {
-      if (kickedPeers.has(targetPeerId) || (peers[targetPeerId] && peers[targetPeerId].conn)) return;
-
-      const conn = peer.connect(targetPeerId, { reliable: true });
-      setupConnEvents(conn);
-
-      const call = peer.call(targetPeerId, localStream);
-      setupCallEvents(call);
+    function connectToSinglePeer(targetId) {
+      if (kickedPeers.has(targetId) || (peers[targetId] && peers[targetId].conn)) return;
+      setupConnEvents(peer.connect(targetId, { reliable: true }));
+      setupCallEvents(peer.call(targetId, localStream));
     }
 
     function setupCallEvents(call) {
       const pId = call.peer;
-      if (!peers[pId]) peers[pId] = {};
+      if (!peers[pId]) peers[pId] = { userVolume: 100 };
       peers[pId].call = call;
-
-      call.on('stream', (remoteStream) => {
-        peers[pId].stream = remoteStream;
-        addCameraTile(pId, remoteStream, peers[pId].userName || '参加者');
-        setupSpeakingDetector(pId, remoteStream);
-        setupAudioBoost(pId, remoteStream);
+      call.on('stream', stream => {
+        peers[pId].stream = stream;
+        addCameraTile(pId, stream, peers[pId].userName || '参加者');
+        setupSpeakingDetector(pId, stream);
+        setupPeerAudio(pId, stream);
         setUIState('connected', `通話中: ${currentRoomName}`);
       });
-
       call.on('close', () => removePeer(pId));
     }
 
-    function setupAudioBoost(id, stream) {
+    // 個別音量 & マスターゲイン接続
+    function setupPeerAudio(id, stream) {
       try {
-        ensureAudioContextResumed();
-        if (!audioContext || stream.getAudioTracks().length === 0) return;
+        const { ctx, master } = getAudioPipeline();
+        if (stream.getAudioTracks().length === 0) return;
 
-        const src = audioContext.createMediaStreamSource(stream);
-        const gain = audioContext.createGain();
-        gain.gain.value = currentCallGain;
-        src.connect(gain);
-        gain.connect(audioContext.destination);
+        const src = ctx.createMediaStreamSource(stream);
+        const userGain = ctx.createGain();
+        const currentVol = peers[id]?.userVolume ?? 100;
+        userGain.gain.value = currentVol / 100;
 
-        peers[id].gainNode = gain;
+        src.connect(userGain);
+        userGain.connect(master);
+
+        peers[id].userGainNode = userGain;
       } catch (e) {}
+    }
+
+    // 個別音量スライダーの変更
+    function changeUserVolume(id, val) {
+      const v = Number(val);
+      if (peers[id]) {
+        peers[id].userVolume = v;
+        if (peers[id].userGainNode) peers[id].userGainNode.gain.value = v / 100;
+        const span = $(`user-vol-val-${id}`);
+        if (span) span.textContent = `${v}%`;
+      }
+    }
+
+    // マスター会話音量の変更
+    function changeMasterVolume(val) {
+      currentMasterGain = Number(val) / 100;
+      $('callVolVal').textContent = `${currentMasterGain.toFixed(1)}x`;
+      if (masterCallGainNode) masterCallGainNode.gain.value = currentMasterGain;
     }
 
     function setupConnEvents(conn) {
       const pId = conn.peer;
-      if (!peers[pId]) peers[pId] = {};
+      if (!peers[pId]) peers[pId] = { userVolume: 100 };
       peers[pId].conn = conn;
 
       conn.on('open', () => {
-        conn.send({
-          type: 'intro',
-          userName: myUserName,
-          isHost: isHost,
-          isMuted: !isMicOn,
-          isCamOff: !isCamOn
-        });
-
+        conn.send({ type: 'intro', userName: myUserName, isHost, isMuted: !isMicOn, isCamOff: !isCamOn });
         if (isHost) {
-          const peerIds = Object.keys(peers).filter(id => id !== pId && !kickedPeers.has(id));
-          conn.send({ type: 'mesh-members', members: peerIds });
-
+          conn.send({ type: 'mesh-members', members: Object.keys(peers).filter(id => id !== pId && !kickedPeers.has(id)) });
           if (isYtLoaded && ytPlayer && ytPlayer.getVideoData) {
             conn.send({
-              type: 'yt-state',
-              videoId: ytPlayer.getVideoData().video_id,
-              time: ytPlayer.getCurrentTime(),
-              isPlaying: ytPlayer.getPlayerState() === YT.PlayerState.PLAYING
+              type: 'yt-state', videoId: ytPlayer.getVideoData().video_id,
+              time: ytPlayer.getCurrentTime(), isPlaying: ytPlayer.getPlayerState() === YT.PlayerState.PLAYING
             });
           }
         }
       });
-
-      conn.on('data', (data) => handlePeerData(pId, data));
+      conn.on('data', data => handlePeerData(pId, data));
       conn.on('close', () => removePeer(pId));
     }
 
     function handlePeerData(fromPeerId, data) {
       if (!data || typeof data !== 'object') return;
-
       switch (data.type) {
         case 'intro':
           peers[fromPeerId].userName = typeof data.userName === 'string' ? data.userName.slice(0, 30) : '参加者';
@@ -1051,43 +672,30 @@
           updateUserListUI();
           showToast(`${peers[fromPeerId].userName} が参加`);
           break;
-
         case 'mesh-members':
-          if (Array.isArray(data.members)) {
-            data.members.forEach(otherId => {
-              if (typeof otherId === 'string' && otherId !== myPeerId && !kickedPeers.has(otherId)) {
-                connectToSinglePeer(otherId);
-              }
-            });
-          }
+          if (Array.isArray(data.members)) data.members.forEach(id => { if (id !== myPeerId && !kickedPeers.has(id)) connectToSinglePeer(id); });
           break;
-
         case 'chat':
           if (typeof data.text === 'string' && data.text.trim()) {
-            const safeName = peers[fromPeerId]?.userName || data.userName || '参加者';
-            appendChatMessage(data.text, 'remote', safeName);
+            appendChatMessage(data.text, 'remote', peers[fromPeerId]?.userName || data.userName || '参加者');
             queueFastZundamonSpeech(data.text);
           }
           break;
-
         case 'status-update':
           if (peers[fromPeerId]) {
             peers[fromPeerId].isMuted = !!data.isMuted;
             peers[fromPeerId].isCamOff = !!data.isCamOff;
-            updateTileIcons(fromPeerId, peers[fromPeerId].isMuted, peers[fromPeerId].isCamOff);
+            updateTileIcons(fromPeerId, data.isMuted, data.isCamOff);
             updateUserListUI();
             if (currentFocusedPeerId === fromPeerId) updateStageView();
           }
           break;
-
         case 'yt-load':
           if (typeof data.videoId === 'string') openYouTubeScreen(data.videoId);
           break;
-
         case 'yt-action':
           handleRemoteYouTubeAction(data);
           break;
-
         case 'yt-state':
           if (typeof data.videoId === 'string') {
             openYouTubeScreen(data.videoId);
@@ -1099,140 +707,74 @@
             }, 1200);
           }
           break;
-
-        case 'vote-kick-start':
-          handleVoteKickStart(fromPeerId, data);
-          break;
-
-        case 'vote-kick-vote':
-          handleVoteKickVote(fromPeerId, data);
-          break;
-
-        case 'file-meta':
-          handleFileMeta(data);
-          break;
-
-        case 'file-chunk':
-          handleFileChunk(data);
-          break;
+        case 'vote-kick-start': handleVoteKickStart(fromPeerId, data); break;
+        case 'vote-kick-vote': handleVoteKickVote(fromPeerId, data); break;
+        case 'file-meta': handleFileMeta(data); break;
+        case 'file-chunk': handleFileChunk(data); break;
       }
     }
 
-    // 決定論的アルゴリズムによるホスト選出（全員が同じ結果を算出して整合性を担保）
     function checkAndElectNewHost(removedPeerId) {
-      const remainingPeerIds = [myPeerId, ...Object.keys(peers).filter(id => id !== removedPeerId && !kickedPeers.has(id))];
-      remainingPeerIds.sort();
-
-      const newHostId = remainingPeerIds[0];
+      const remaining = [myPeerId, ...Object.keys(peers).filter(id => id !== removedPeerId && !kickedPeers.has(id))].sort();
+      const newHostId = remaining[0];
       const amINewHost = (newHostId === myPeerId);
-
       if (isHost !== amINewHost) {
         isHost = amINewHost;
-        if (isHost) {
-          showToast('あなたが新しいホストになりました 👑');
-          queueFastZundamonSpeech('ホストに昇格したのだ');
-        }
+        if (isHost) { showToast('あなたが新しいホストになりました 👑'); queueFastZundamonSpeech('ホストに昇格したのだ'); }
       }
-
-      Object.keys(peers).forEach(id => {
-        peers[id].isHost = (id === newHostId);
-      });
+      Object.keys(peers).forEach(id => peers[id].isHost = (id === newHostId));
       updateUserListUI();
     }
 
     function startKickVote(targetId) {
       if (currentVote) return showToast('すでに投票が進行中です', 'error');
-      const target = peers[targetId];
-      if (!target) return;
-
+      const target = peers[targetId]; if (!target) return;
       if (!confirm(`${target.userName} をキックするための投票を開始しますか？`)) return;
 
       const totalVoters = Object.keys(peers).length;
-      const requiredYes = Math.floor(totalVoters / 2) + 1;
-
       const voteData = {
-        type: 'vote-kick-start',
-        voteId: Math.random().toString(36).substring(2, 9),
-        targetId: targetId,
-        targetName: target.userName,
-        initiator: myUserName,
-        requiredYes: requiredYes
+        type: 'vote-kick-start', voteId: Math.random().toString(36).substring(2, 9),
+        targetId, targetName: target.userName, initiator: myUserName, requiredYes: Math.floor(totalVoters / 2) + 1
       };
-
       broadcast(voteData);
       handleVoteKickStart(myPeerId, voteData);
     }
 
     function handleVoteKickStart(fromPeerId, data) {
       if (!peers[data.targetId] && data.targetId !== myPeerId) return;
+      currentVote = { voteId: data.voteId, targetId: data.targetId, targetName: data.targetName, requiredYes: data.requiredYes, yesCount: 0, noCount: 0, votedPeers: new Set(), timeLeft: 20 };
+      $('voteTargetName').textContent = data.targetName;
+      $('voteYesCount').textContent = '0'; $('voteNoCount').textContent = '0';
+      $('voteKickBanner').style.display = 'flex';
 
-      currentVote = {
-        voteId: data.voteId,
-        targetId: data.targetId,
-        targetName: data.targetName,
-        requiredYes: data.requiredYes,
-        yesCount: 0,
-        noCount: 0,
-        votedPeers: new Set(),
-        timeLeft: 20
-      };
-
-      const banner = document.getElementById('voteKickBanner');
-      document.getElementById('voteTargetName').textContent = data.targetName;
-      document.getElementById('voteYesCount').textContent = '0';
-      document.getElementById('voteNoCount').textContent = '0';
-      banner.style.display = 'flex';
-
-      if (myPeerId === data.targetId) {
-        document.getElementById('voteActionsArea').style.display = 'none';
-        document.getElementById('voteStatusLine').textContent = 'あなたに対するキック投票中...';
-      } else {
-        document.getElementById('voteActionsArea').style.display = 'flex';
-        document.getElementById('voteStatusLine').textContent = `残り 20 秒 (必要: ${data.requiredYes}票)`;
-      }
+      const isTarget = (myPeerId === data.targetId);
+      $('voteActionsArea').style.display = isTarget ? 'none' : 'flex';
+      $('voteStatusLine').textContent = isTarget ? 'あなたに対するキック投票中...' : `残り 20 秒 (必要: ${data.requiredYes}票)`;
 
       clearInterval(voteTimerInterval);
       voteTimerInterval = setInterval(() => {
         if (!currentVote) return clearInterval(voteTimerInterval);
         currentVote.timeLeft--;
-        document.getElementById('voteStatusLine').textContent = `残り ${currentVote.timeLeft} 秒 (必要: ${currentVote.requiredYes}票)`;
-
-        if (currentVote.timeLeft <= 0) {
-          clearInterval(voteTimerInterval);
-          closeVoteKickUI('投票は否決されました');
-        }
+        $('voteStatusLine').textContent = `残り ${currentVote.timeLeft} 秒 (必要: ${currentVote.requiredYes}票)`;
+        if (currentVote.timeLeft <= 0) { clearInterval(voteTimerInterval); closeVoteKickUI('投票は否決されました'); }
       }, 1000);
     }
 
     function castKickVote(choice) {
       if (!currentVote || currentVote.votedPeers.has(myPeerId)) return;
       currentVote.votedPeers.add(myPeerId);
-      document.getElementById('voteActionsArea').style.display = 'none';
-
-      const payload = {
-        type: 'vote-kick-vote',
-        voteId: currentVote.voteId,
-        choice: choice,
-        from: myPeerId
-      };
+      $('voteActionsArea').style.display = 'none';
+      const payload = { type: 'vote-kick-vote', voteId: currentVote.voteId, choice, from: myPeerId };
       broadcast(payload);
       handleVoteKickVote(myPeerId, payload);
     }
 
-    // 接続元ピアIDと送信者を検証し、不正な偽装投票を遮断
     function handleVoteKickVote(fromPeerId, data) {
-      if (!currentVote || currentVote.voteId !== data.voteId) return;
-      if (fromPeerId !== data.from) return; // ピア偽装の遮断
-      if (currentVote.votedPeers.has(fromPeerId)) return; // 二重投票防止
-
+      if (!currentVote || currentVote.voteId !== data.voteId || fromPeerId !== data.from || currentVote.votedPeers.has(fromPeerId)) return;
       currentVote.votedPeers.add(fromPeerId);
-
-      if (data.choice === 'yes') currentVote.yesCount++;
-      else currentVote.noCount++;
-
-      document.getElementById('voteYesCount').textContent = currentVote.yesCount;
-      document.getElementById('voteNoCount').textContent = currentVote.noCount;
-
+      if (data.choice === 'yes') currentVote.yesCount++; else currentVote.noCount++;
+      $('voteYesCount').textContent = currentVote.yesCount;
+      $('voteNoCount').textContent = currentVote.noCount;
       if (currentVote.yesCount >= currentVote.requiredYes) {
         clearInterval(voteTimerInterval);
         executeKickLocally(currentVote.targetId, currentVote.targetName);
@@ -1242,463 +784,245 @@
     function executeKickLocally(targetId, targetName) {
       closeVoteKickUI(`投票の結果、${targetName} がキックされました`);
       kickedPeers.add(targetId);
-
-      if (myPeerId === targetId) {
-        alert('キック投票が可決されたため、退出させられました。');
-        leaveMeshRoom();
-      } else {
-        if (peers[targetId]) {
-          if (peers[targetId].conn) peers[targetId].conn.close();
-          if (peers[targetId].call) peers[targetId].call.close();
-          removePeer(targetId);
-        }
+      if (myPeerId === targetId) { alert('キック投票が可決されたため退室させられました'); leaveMeshRoom(); }
+      else if (peers[targetId]) {
+        if (peers[targetId].conn) peers[targetId].conn.close();
+        if (peers[targetId].call) peers[targetId].call.close();
+        removePeer(targetId);
       }
     }
 
     function closeVoteKickUI(msg) {
-      document.getElementById('voteKickBanner').style.display = 'none';
+      $('voteKickBanner').style.display = 'none';
       clearInterval(voteTimerInterval);
       currentVote = null;
       if (msg) showToast(msg);
     }
 
-    function removePeer(peerId) {
-      checkAndElectNewHost(peerId);
-      if (peers[peerId]) delete peers[peerId];
-      removeCameraTile(peerId);
+    function removePeer(pId) {
+      checkAndElectNewHost(pId);
+      if (peers[pId]) delete peers[pId];
+      const tile = $(`tile-${pId}`); if (tile) tile.remove();
       updateUserListUI();
-      if (currentFocusedPeerId === peerId) focusVideo('local');
+      if (currentFocusedPeerId === pId) focusVideo('local');
       if (Object.keys(peers).length === 0 && !isHost) setUIState('waiting', '待機中');
     }
 
     function broadcast(data) {
-      Object.keys(peers).forEach(id => {
-        if (peers[id].conn && peers[id].conn.open) {
-          peers[id].conn.send(data);
-        }
-      });
+      Object.values(peers).forEach(p => { if (p.conn && p.conn.open) p.conn.send(data); });
     }
 
-    // 安全なDOM構築によるカメラタイルの作成
+    // カメラタイル作成（軽量DOM構築）
     function addCameraTile(id, stream, name) {
-      if (document.getElementById(`tile-${id}`)) return;
-      const strip = document.getElementById('cameraStrip');
-
-      const tile = document.createElement('div');
-      tile.className = 'camera-tile';
-      tile.id = `tile-${id}`;
-      tile.onclick = () => focusVideo(id);
-
+      if ($(`tile-${id}`)) return;
       const initial = (name || '参').charAt(0);
       const gradient = getAvatarGradient(name);
 
-      const vid = document.createElement('video');
-      vid.id = `vid-${id}`;
-      vid.autoplay = true;
-      vid.playsInline = true;
-
-      const placeholder = document.createElement('div');
-      placeholder.className = 'tile-avatar-placeholder';
-      placeholder.id = `avatar-${id}`;
-      placeholder.style.display = 'none';
-
-      const circle = document.createElement('div');
-      circle.className = 'avatar-circle tile-avatar-circle';
-      circle.id = `avatarCircle-${id}`;
-      circle.style.background = gradient;
-
-      const avatarTxt = document.createElement('span');
-      avatarTxt.id = `avatarText-${id}`;
-      avatarTxt.textContent = initial;
-      circle.appendChild(avatarTxt);
-      placeholder.appendChild(circle);
-
-      const badge = document.createElement('div');
-      badge.className = 'tile-badge';
-
-      const nameSpan = document.createElement('span');
-      nameSpan.id = `name-${id}`;
-      nameSpan.textContent = name;
-
-      const micIcon = document.createElement('span');
-      micIcon.id = `mic-${id}`;
-      micIcon.className = 'material-symbols-outlined';
-      micIcon.style.fontSize = '13px';
-      micIcon.textContent = 'mic';
-
-      badge.appendChild(nameSpan);
-      badge.appendChild(micIcon);
-
-      tile.appendChild(vid);
-      tile.appendChild(placeholder);
-      tile.appendChild(badge);
-
-      strip.appendChild(tile);
-      vid.srcObject = stream;
-
-      if (strip.children.length === 2 && currentStageMode === 'camera') focusVideo(id);
+      const tile = el('div', { className: 'camera-tile', id: `tile-${id}`, onclick: () => focusVideo(id) },
+        el('video', { id: `vid-${id}`, autoplay: '', playsinline: '' }),
+        el('div', { className: 'tile-avatar-placeholder', id: `avatar-${id}`, style: { display: 'none' } },
+          el('div', { className: 'avatar-circle tile-avatar-circle', id: `avatarCircle-${id}`, style: { background: gradient } },
+            el('span', { id: `avatarText-${id}`, text: initial })
+          )
+        ),
+        el('div', { className: 'tile-badge' },
+          el('span', { id: `name-${id}`, text: name }),
+          el('span', { id: `mic-${id}`, className: 'material-symbols-outlined', style: { fontSize: '13px' }, text: 'mic' })
+        )
+      );
+      $('cameraStrip').appendChild(tile);
+      $(`vid-${id}`).srcObject = stream;
+      if ($('cameraStrip').children.length === 2 && currentStageMode === 'camera') focusVideo(id);
       updateUserListUI();
     }
 
-    function removeCameraTile(id) {
-      const tile = document.getElementById(`tile-${id}`);
-      if (tile) tile.remove();
-    }
-
     function updateTileName(id, name) {
-      const el = document.getElementById(`name-${id}`);
-      if (el) el.textContent = name;
-      const initial = (name || '参').charAt(0);
-      const txt = document.getElementById(`avatarText-${id}`);
-      if (txt) txt.textContent = initial;
-      const circle = document.getElementById(`avatarCircle-${id}`);
-      if (circle) circle.style.background = getAvatarGradient(name);
+      const n = $(`name-${id}`), t = $(`avatarText-${id}`), c = $(`avatarCircle-${id}`);
+      if (n) n.textContent = name;
+      if (t) t.textContent = (name || '参').charAt(0);
+      if (c) c.style.background = getAvatarGradient(name);
     }
 
     function updateTileIcons(id, isMuted, isCamOff) {
-      const mic = document.getElementById(`mic-${id}`);
+      const mic = $(`mic-${id}`), av = $(`avatar-${id}`), vid = $(`vid-${id}`);
       if (mic) mic.textContent = isMuted ? 'mic_off' : 'mic';
-
-      const avatar = document.getElementById(`avatar-${id}`);
-      const vid = document.getElementById(`vid-${id}`);
-
-      if (avatar && vid) {
-        if (isCamOff) {
-          avatar.style.display = 'flex';
-          vid.style.opacity = '0';
-        } else {
-          avatar.style.display = 'none';
-          vid.style.opacity = '1';
-        }
-      }
+      if (av && vid) { av.style.display = isCamOff ? 'flex' : 'none'; vid.style.opacity = isCamOff ? '0' : '1'; }
     }
 
     function focusVideo(id) {
-      currentStageMode = 'camera';
-      currentFocusedPeerId = id;
+      currentStageMode = 'camera'; currentFocusedPeerId = id;
       document.querySelectorAll('.camera-tile').forEach(t => t.classList.remove('focused'));
-      const targetTile = document.getElementById(`tile-${id}`);
-      if (targetTile) targetTile.classList.add('focused');
-
+      const target = $(`tile-${id}`); if (target) target.classList.add('focused');
       updateStageView();
-
-      const returnBtn = document.getElementById('switchToYtBtn');
-      if (isYtLoaded) {
-        returnBtn.style.display = 'inline-flex';
-      }
+      if (isYtLoaded) $('switchToYtBtn').style.display = 'inline-flex';
     }
 
     function updateStageView() {
-      const stageVideo = document.getElementById('stageVideo');
-      const ytContainer = document.getElementById('ytContainer');
-      const stageAvatar = document.getElementById('stageAvatar');
-
-      ytContainer.classList.remove('active');
-
+      $('ytContainer').classList.remove('active');
       const id = currentFocusedPeerId;
-      let targetName = '';
-      let isCamOff = false;
-      let stream = null;
-
-      if (id === 'local') {
-        targetName = myUserName + ' (自分)';
-        isCamOff = !isCamOn && !isScreenSharing;
-        stream = isScreenSharing && screenStream ? screenStream : localStream;
-      } else if (peers[id]) {
-        targetName = peers[id].userName || '参加者';
-        isCamOff = !!peers[id].isCamOff;
-        stream = peers[id].stream;
-      }
+      let targetName = (id === 'local') ? `${myUserName} (自分)` : (peers[id]?.userName || '参加者');
+      let isCamOff = (id === 'local') ? (!isCamOn && !isScreenSharing) : !!peers[id]?.isCamOff;
+      let stream = (id === 'local') ? (isScreenSharing && screenStream ? screenStream : localStream) : peers[id]?.stream;
 
       if (isCamOff) {
-        stageVideo.style.display = 'none';
-        stageAvatar.style.display = 'flex';
-
-        const initial = (targetName || '自').charAt(0);
-        document.getElementById('stageAvatarText').textContent = initial;
-        document.getElementById('stageAvatarCircle').style.background = getAvatarGradient(targetName);
-        document.getElementById('stageAvatarNameText').textContent = targetName;
+        $('stageVideo').style.display = 'none';
+        $('stageAvatar').style.display = 'flex';
+        $('stageAvatarText').textContent = targetName.charAt(0);
+        $('stageAvatarCircle').style.background = getAvatarGradient(targetName);
+        $('stageAvatarNameText').textContent = targetName;
       } else {
-        stageAvatar.style.display = 'none';
-        stageVideo.style.display = 'block';
-
+        $('stageAvatar').style.display = 'none';
+        $('stageVideo').style.display = 'block';
         if (stream) {
-          stageVideo.srcObject = stream;
-          stageVideo.style.transform = (id === 'local' && !isScreenSharing) ? 'scaleX(-1)' : 'none';
+          $('stageVideo').srcObject = stream;
+          $('stageVideo').style.transform = (id === 'local' && !isScreenSharing) ? 'scaleX(-1)' : 'none';
         }
       }
     }
 
     function switchToYouTubeStage() {
       currentStageMode = 'youtube';
-      document.getElementById('stageVideo').style.display = 'none';
-      document.getElementById('stageAvatar').style.display = 'none';
-      document.getElementById('ytContainer').classList.add('active');
-      document.getElementById('switchToYtBtn').style.display = 'none';
+      $('stageVideo').style.display = 'none'; $('stageAvatar').style.display = 'none';
+      $('ytContainer').classList.add('active'); $('switchToYtBtn').style.display = 'none';
       document.querySelectorAll('.camera-tile').forEach(t => t.classList.remove('focused'));
     }
 
     function toggleYouTubeStageOrModal() {
-      if (isYtLoaded && currentStageMode === 'camera') {
-        switchToYouTubeStage();
-      } else {
-        openYouTubeModal();
-      }
+      if (isYtLoaded && currentStageMode === 'camera') switchToYouTubeStage();
+      else toggleModal('ytModal', true);
     }
 
     function setupSpeakingDetector(id, stream) {
       try {
-        ensureAudioContextResumed();
-        if (!audioContext || stream.getAudioTracks().length === 0) return;
+        const { ctx } = getAudioPipeline();
+        if (stream.getAudioTracks().length === 0) return;
+        const src = ctx.createMediaStreamSource(stream), analyser = ctx.createAnalyser();
+        analyser.fftSize = 256; src.connect(analyser);
+        const data = new Uint8Array(analyser.frequencyBinCount);
 
-        const src = audioContext.createMediaStreamSource(stream);
-        const analyser = audioContext.createAnalyser();
-        analyser.fftSize = 256;
-        src.connect(analyser);
-
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-        function checkVolume() {
-          analyser.getByteFrequencyData(dataArray);
-          let sum = 0;
-          for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-          const avg = sum / dataArray.length;
-          const isSpeakingNow = avg > 22;
-
-          const tile = document.getElementById(`tile-${id}`);
-          if (tile) tile.classList.toggle('speaking', isSpeakingNow);
-
-          if (currentFocusedPeerId === id) {
-            document.getElementById('aspectScreen').classList.toggle('speaking', isSpeakingNow);
-          }
-          requestAnimationFrame(checkVolume);
-        }
-        checkVolume();
+        const check = () => {
+          analyser.getByteFrequencyData(data);
+          let sum = 0; for (let i = 0; i < data.length; i++) sum += data[i];
+          const isSpeakingNow = (sum / data.length) > 22;
+          const tile = $(`tile-${id}`); if (tile) tile.classList.toggle('speaking', isSpeakingNow);
+          if (currentFocusedPeerId === id) $('aspectScreen').classList.toggle('speaking', isSpeakingNow);
+          requestAnimationFrame(check);
+        };
+        check();
       } catch (e) {}
     }
 
     function changeYouTubeVolume(val) {
-      currentYtVolume = val;
-      document.getElementById('ytVolVal').textContent = `${val}%`;
-      if (ytPlayer && ytPlayer.setVolume) {
-        ytPlayer.setVolume(val);
-      }
-    }
-
-    function changeCallVolume(val) {
-      currentCallGain = val / 100;
-      document.getElementById('callVolVal').textContent = `${(val / 100).toFixed(1)}x`;
-      Object.values(peers).forEach(p => {
-        if (p.gainNode) {
-          p.gainNode.gain.value = currentCallGain;
-        }
-      });
+      currentYtVolume = Number(val);
+      $('ytVolVal').textContent = `${val}%`;
+      if (ytPlayer && ytPlayer.setVolume) ytPlayer.setVolume(val);
     }
 
     function initYouTubePlayer() {
       if (ytPlayer || !window.YT || !window.YT.Player) return;
       ytPlayer = new YT.Player('player', {
-        host: 'https://www.youtube-nocookie.com',
-        height: '100%',
-        width: '100%',
-        videoId: 'dQw4w9WgXcQ',
-        playerVars: {
-          playsinline: 1,
-          controls: 1,
-          rel: 0,
-          enablejsapi: 1,
-          origin: (window.location.origin && window.location.origin !== 'null') ? window.location.origin : undefined
-        },
+        host: 'https://www.youtube-nocookie.com', height: '100%', width: '100%', videoId: 'dQw4w9WgXcQ',
+        playerVars: { playsinline: 1, controls: 1, rel: 0, enablejsapi: 1, origin: (window.location.origin && window.location.origin !== 'null') ? window.location.origin : undefined },
         events: {
-          onReady: (e) => {
-            isYtReady = true;
-            e.target.setVolume(currentYtVolume);
-          },
+          onReady: e => { isYtReady = true; e.target.setVolume(currentYtVolume); },
           onStateChange: onPlayerStateChange,
-          onError: onPlayerError
+          onError: e => {
+            if ([101, 150].includes(e.data)) showToast('この動画は外部サイトでの再生が制限されています', 'error');
+            else showToast('動画の読み込みに失敗しました', 'error');
+          }
         }
       });
     }
-
-    window.onYouTubeIframeAPIReady = function() {
-      initYouTubePlayer();
-    };
-
-    function onPlayerError(e) {
-      if (e.data === 101 || e.data === 150) {
-        showToast('この動画は外部サイトでの再生が制限されています', 'error');
-      } else if (e.data === 100 || e.data === 2) {
-        showToast('動画の読み込みに失敗しました (削除またはURL無効)', 'error');
-      }
-    }
+    window.onYouTubeIframeAPIReady = initYouTubePlayer;
 
     function openYouTubeScreen(videoId) {
-      isYtLoaded = true;
-      switchToYouTubeStage();
-
+      isYtLoaded = true; switchToYouTubeStage();
       if (isYtReady && ytPlayer && ytPlayer.loadVideoById) {
         isRemoteAction = true;
         ytPlayer.loadVideoById(videoId);
         ytPlayer.setVolume(currentYtVolume);
-        setTimeout(() => { isRemoteAction = false; }, 1000);
+        setTimeout(() => isRemoteAction = false, 1000);
       }
     }
 
-    function onPlayerStateChange(event) {
-      if (isUnloading || isTabHidden || document.hidden || isRemoteAction || Object.keys(peers).length === 0) return;
+    function onPlayerStateChange(e) {
+      if (isUnloading || isTabHidden || isRemoteAction || Object.keys(peers).length === 0) return;
       const time = ytPlayer.getCurrentTime();
-
-      if (event.data === YT.PlayerState.PLAYING) {
-        broadcast({ type: 'yt-action', action: 'play', time: time });
-      } else if (event.data === YT.PlayerState.PAUSED) {
-        broadcast({ type: 'yt-action', action: 'pause', time: time });
-      }
+      if (e.data === YT.PlayerState.PLAYING) broadcast({ type: 'yt-action', action: 'play', time });
+      else if (e.data === YT.PlayerState.PAUSED) broadcast({ type: 'yt-action', action: 'pause', time });
     }
 
     function handleRemoteYouTubeAction(data) {
       if (!isYtReady || !ytPlayer) return;
       isRemoteAction = true;
-
-      if (typeof data.time === 'number' && Math.abs(ytPlayer.getCurrentTime() - data.time) > 1.5) {
-        ytPlayer.seekTo(data.time, true);
-      }
-
+      if (typeof data.time === 'number' && Math.abs(ytPlayer.getCurrentTime() - data.time) > 1.5) ytPlayer.seekTo(data.time, true);
       if (data.action === 'play') {
         const p = ytPlayer.playVideo();
-        if (p && p.catch) {
-          p.catch(() => {
-            ytPlayer.mute();
-            ytPlayer.playVideo();
-            document.getElementById('unmuteBanner').style.display = 'block';
-          });
-        }
-      } else if (data.action === 'pause') {
-        ytPlayer.pauseVideo();
-      }
-      setTimeout(() => { isRemoteAction = false; }, 800);
+        if (p && p.catch) p.catch(() => { ytPlayer.mute(); ytPlayer.playVideo(); $('unmuteBanner').style.display = 'block'; });
+      } else if (data.action === 'pause') ytPlayer.pauseVideo();
+      setTimeout(() => isRemoteAction = false, 800);
     }
 
     function forceUnmuteYouTube() {
-      if (ytPlayer) {
-        ytPlayer.unMute();
-        ytPlayer.setVolume(currentYtVolume);
-      }
-      document.getElementById('unmuteBanner').style.display = 'none';
+      if (ytPlayer) { ytPlayer.unMute(); ytPlayer.setVolume(currentYtVolume); }
+      $('unmuteBanner').style.display = 'none';
     }
 
-    function openYouTubeModal() { document.getElementById('ytModal').style.display = 'flex'; }
-    function closeYouTubeModal() { document.getElementById('ytModal').style.display = 'none'; }
-
     function parseYouTubeId(input) {
-      const match = input.match(/(youtu\.be\/|youtube\.com\/(watch\?(.*&)?v=|(embed|v)\/))([^?&"'>]+)/);
-      const id = match ? match[5] : input;
+      const m = input.match(/(youtu\.be\/|youtube\.com\/(watch\?(.*&)?v=|(embed|v)\/))([^?&"'>]+)/);
+      const id = m ? m[5] : input;
       return /^[a-zA-Z0-9_-]{11}$/.test(id) ? id : null;
     }
 
-    // 安全なDOM構築による検索結果レンダリング
     async function searchYouTube() {
-      const q = document.getElementById('ytSearchInput').value.trim();
-      if (!q) return;
-
+      const q = $('ytSearchInput').value.trim(); if (!q) return;
       const directId = parseYouTubeId(q);
-      if (directId) {
-        selectAndBroadcastVideo(directId, '指定動画');
-        closeYouTubeModal();
-        return;
-      }
+      if (directId) { selectAndBroadcastVideo(directId, '指定動画'); toggleModal('ytModal', false); return; }
 
-      const resultsBox = document.getElementById('ytSearchResults');
-      resultsBox.textContent = '';
-      const loadingDiv = document.createElement('div');
-      loadingDiv.style.cssText = 'text-align:center; padding:16px;';
-      loadingDiv.textContent = '検索中...';
-      resultsBox.appendChild(loadingDiv);
+      const box = $('ytSearchResults');
+      box.replaceChildren(el('div', { style: { textAlign: 'center', padding: '16px' }, text: '検索中...' }));
 
       try {
-        const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=10&q=${encodeURIComponent(q)}&key=${YT_API_KEY}`;
-        const res = await fetch(url);
+        const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=10&q=${encodeURIComponent(q)}&key=${YT_API_KEY}`);
         const data = await res.json();
+        if (!res.ok || data.error) throw new Error();
 
-        if (!res.ok || data.error) throw new Error(data.error ? data.error.message : 'APIエラー');
-
-        resultsBox.textContent = '';
-        if (!data.items || data.items.length === 0) {
-          const empty = document.createElement('div');
-          empty.style.cssText = 'text-align:center; padding:14px; color:var(--md-error);';
-          empty.textContent = '動画が見つかりませんでした';
-          resultsBox.appendChild(empty);
+        box.replaceChildren();
+        if (!data.items?.length) {
+          box.appendChild(el('div', { style: { textAlign: 'center', padding: '14px', color: 'var(--md-error)' }, text: '動画が見つかりませんでした' }));
           return;
         }
 
         data.items.forEach(item => {
-          const vId = item.id.videoId;
-          const title = item.snippet.title;
-          const author = item.snippet.channelTitle;
-          const thumb = item.snippet.thumbnails.medium ? item.snippet.thumbnails.medium.url : item.snippet.thumbnails.default.url;
-
-          const div = document.createElement('div');
-          div.className = 'search-item';
-
-          const img = document.createElement('img');
-          img.src = thumb;
-
-          const infoDiv = document.createElement('div');
-          infoDiv.style.cssText = 'flex:1; overflow:hidden;';
-
-          const titleDiv = document.createElement('div');
-          titleDiv.style.cssText = 'font-size:0.82rem; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;';
-          titleDiv.textContent = title;
-
-          const authorDiv = document.createElement('div');
-          authorDiv.style.cssText = 'font-size:0.72rem; color:var(--md-outline);';
-          authorDiv.textContent = author;
-
-          infoDiv.appendChild(titleDiv);
-          infoDiv.appendChild(authorDiv);
-          div.appendChild(img);
-          div.appendChild(infoDiv);
-
-          div.onclick = () => {
-            selectAndBroadcastVideo(vId, title);
-            closeYouTubeModal();
-          };
-          resultsBox.appendChild(div);
+          const vId = item.id.videoId, title = item.snippet.title, author = item.snippet.channelTitle;
+          const thumb = item.snippet.thumbnails.medium?.url || item.snippet.thumbnails.default?.url;
+          const itemNode = el('div', { className: 'search-item', onclick: () => { selectAndBroadcastVideo(vId, title); toggleModal('ytModal', false); } },
+            el('img', { src: thumb }),
+            el('div', { style: { flex: '1', overflow: 'hidden' } },
+              el('div', { style: { fontSize: '0.82rem', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }, text: title }),
+              el('div', { style: { fontSize: '0.72rem', color: 'var(--md-outline)' }, text: author })
+            )
+          );
+          box.appendChild(itemNode);
         });
-      } catch (err) {
-        resultsBox.textContent = '';
-        const errDiv = document.createElement('div');
-        errDiv.style.cssText = 'text-align:center; padding:14px;';
-        
-        const p1 = document.createElement('p');
-        p1.style.cssText = 'color:var(--md-error); font-size:0.82rem; margin-bottom:8px;';
-        p1.textContent = '検索に失敗しました';
-
-        const p2 = document.createElement('p');
-        p2.style.cssText = 'font-size:0.75rem; color:var(--md-outline);';
-        p2.textContent = '動画URLを直接貼り付けて検索してください。';
-
-        errDiv.appendChild(p1);
-        errDiv.appendChild(p2);
-        resultsBox.appendChild(errDiv);
+      } catch (e) {
+        box.replaceChildren(el('div', { style: { textAlign: 'center', padding: '14px' } },
+          el('p', { style: { color: 'var(--md-error)', fontSize: '0.82rem', marginBottom: '8px' }, text: '検索に失敗しました' }),
+          el('p', { style: { fontSize: '0.75rem', color: 'var(--md-outline)' }, text: '動画URLを直接貼り付けて検索してください。' })
+        ));
       }
     }
 
     function selectAndBroadcastVideo(videoId, title) {
       openYouTubeScreen(videoId);
-      broadcast({ type: 'yt-load', videoId: videoId });
+      broadcast({ type: 'yt-load', videoId });
       showToast(`再生: ${title}`);
     }
 
     function cycleTtsMode() {
       isTtsOn = !isTtsOn;
-      const btn = document.getElementById('ttsToggleBtn');
-      btn.textContent = '';
-      const icon = document.createElement('span');
-      icon.className = 'material-symbols-outlined';
-      icon.textContent = isTtsOn ? 'record_voice_over' : 'voice_over_off';
-      btn.appendChild(icon);
-
-      btn.classList.toggle('btn-active', isTtsOn);
+      $('ttsToggleBtn').replaceChildren(el('span', { className: 'material-symbols-outlined', text: isTtsOn ? 'record_voice_over' : 'voice_over_off' }));
+      $('ttsToggleBtn').classList.toggle('btn-active', isTtsOn);
       showToast(isTtsOn ? 'ずんだもん読み上げ ON' : '読み上げ OFF');
     }
 
@@ -1706,7 +1030,6 @@
       if (!isTtsOn) return;
       const clean = text.replace(/https?:\/\/\S+/g, 'URL').replace(/w{2,}/gi, 'わら').slice(0, 15).trim();
       if (!clean) return;
-
       ttsQueue.push(clean);
       processFastTtsQueue();
     }
@@ -1715,29 +1038,18 @@
       if (isSpeaking || ttsQueue.length === 0) return;
       isSpeaking = true;
       const text = ttsQueue.shift();
-
       try {
         let streamUrl = ttsAudioCache.get(text);
-
         if (!streamUrl) {
           const res = await fetch(`https://api.tts.quest/v3/voicevox/synthesis?speaker=3&text=${encodeURIComponent(text)}`);
           const data = await res.json();
-          if (data.success && data.mp3StreamingUrl) {
-            streamUrl = data.mp3StreamingUrl;
-            ttsAudioCache.set(text, streamUrl);
-          }
+          if (data.success && data.mp3StreamingUrl) { streamUrl = data.mp3StreamingUrl; ttsAudioCache.set(text, streamUrl); }
         }
-
         if (streamUrl) {
           const audio = new Audio(streamUrl);
-          await new Promise(resolve => {
-            audio.onended = resolve;
-            audio.onerror = resolve;
-            audio.play().catch(resolve);
-          });
+          await new Promise(r => { audio.onended = r; audio.onerror = r; audio.play().catch(r); });
         }
-      } catch (err) {}
-
+      } catch (e) {}
       isSpeaking = false;
       processFastTtsQueue();
     }
@@ -1746,21 +1058,12 @@
       if (!localStream) return;
       isMicOn = !isMicOn;
       localStream.getAudioTracks().forEach(t => t.enabled = isMicOn);
-
-      const btn = document.getElementById('micBtn');
-      btn.textContent = '';
-      const icon = document.createElement('span');
-      icon.className = 'material-symbols-outlined';
-      icon.textContent = isMicOn ? 'mic' : 'mic_off';
-      const label = document.createElement('span');
-      label.className = 'btn-text-mobile';
-      label.textContent = 'マイク';
-      btn.appendChild(icon);
-      btn.appendChild(label);
-
-      btn.classList.toggle('btn-danger', !isMicOn);
-      document.getElementById('localTileMic').textContent = isMicOn ? 'mic' : 'mic_off';
-
+      $('micBtn').replaceChildren(
+        el('span', { className: 'material-symbols-outlined', text: isMicOn ? 'mic' : 'mic_off' }),
+        el('span', { className: 'btn-text-mobile', text: 'マイク' })
+      );
+      $('micBtn').classList.toggle('btn-danger', !isMicOn);
+      $('localTileMic').textContent = isMicOn ? 'mic' : 'mic_off';
       broadcast({ type: 'status-update', isMuted: !isMicOn, isCamOff: !isCamOn });
     }
 
@@ -1768,229 +1071,117 @@
       if (!localStream) return;
       isCamOn = !isCamOn;
       localStream.getVideoTracks().forEach(t => t.enabled = isCamOn);
-
-      const btn = document.getElementById('camBtn');
-      btn.textContent = '';
-      const icon = document.createElement('span');
-      icon.className = 'material-symbols-outlined';
-      icon.textContent = isCamOn ? 'videocam' : 'videocam_off';
-      const label = document.createElement('span');
-      label.className = 'btn-text-mobile';
-      label.textContent = 'カメラ';
-      btn.appendChild(icon);
-      btn.appendChild(label);
-
-      btn.classList.toggle('btn-danger', !isCamOn);
-
+      $('camBtn').replaceChildren(
+        el('span', { className: 'material-symbols-outlined', text: isCamOn ? 'videocam' : 'videocam_off' }),
+        el('span', { className: 'btn-text-mobile', text: 'カメラ' })
+      );
+      $('camBtn').classList.toggle('btn-danger', !isCamOn);
       updateLocalAvatarUI();
       broadcast({ type: 'status-update', isMuted: !isMicOn, isCamOff: !isCamOn });
     }
 
     async function toggleScreenShare() {
-      if (isScreenSharing) {
-        stopScreenShare();
-        return;
-      }
-
-      if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+      if (isScreenSharing) return stopScreenShare();
+      if (navigator.mediaDevices?.getDisplayMedia) {
         try {
           screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
           applyCustomVideoStream(screenStream);
-          const screenTrack = screenStream.getVideoTracks()[0];
-          screenTrack.onended = stopScreenShare;
+          screenStream.getVideoTracks()[0].onended = stopScreenShare;
           return;
-        } catch (e) {
-          if (e.name === 'NotAllowedError') return;
-        }
+        } catch (e) { if (e.name === 'NotAllowedError') return; }
       }
-
-      openMobileShareModal();
+      toggleModal('mobileShareModal', true);
     }
 
-    function openMobileShareModal() { document.getElementById('mobileShareModal').style.display = 'flex'; }
-    function closeMobileShareModal() { document.getElementById('mobileShareModal').style.display = 'none'; }
-
-    function triggerScreenShotShare() {
-      closeMobileShareModal();
-      document.getElementById('screenShotInput').click();
-    }
-
+    function triggerScreenShotShare() { toggleModal('mobileShareModal', false); $('screenShotInput').click(); }
     function handleScreenShotSelected(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const img = new Image();
-      const reader = new FileReader();
-
-      reader.onload = (event) => {
+      const file = e.target.files[0]; if (!file) return;
+      const img = new Image(), reader = new FileReader();
+      reader.onload = ev => {
         img.onload = () => {
-          if (!mockScreenCanvas) mockScreenCanvas = document.createElement('canvas');
-          mockScreenCanvas.width = img.width;
-          mockScreenCanvas.height = img.height;
+          if (!mockScreenCanvas) mockScreenCanvas = el('canvas');
+          mockScreenCanvas.width = img.width; mockScreenCanvas.height = img.height;
           const ctx = mockScreenCanvas.getContext('2d');
-
-          function draw() { ctx.drawImage(img, 0, 0); }
-          draw();
-
+          const draw = () => ctx.drawImage(img, 0, 0); draw();
           clearInterval(mockScreenTimer);
           mockScreenTimer = setInterval(draw, 200);
-
           screenStream = mockScreenCanvas.captureStream(10);
           applyCustomVideoStream(screenStream);
           showToast('画像を画面共有として配信中');
         };
-        img.src = event.target.result;
+        img.src = ev.target.result;
       };
-      reader.readAsDataURL(file);
-      e.target.value = '';
+      reader.readAsDataURL(file); e.target.value = '';
     }
 
     async function triggerEnvironmentCameraShare() {
-      closeMobileShareModal();
+      toggleModal('mobileShareModal', false);
       try {
-        screenStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" } },
-          audio: false
-        });
+        screenStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
         applyCustomVideoStream(screenStream);
         showToast('外カメラで画面を配信中');
-      } catch (err) {
-        showToast('外カメラを起動できませんでした', 'error');
-      }
+      } catch (err) { showToast('外カメラを起動できませんでした', 'error'); }
     }
 
     function applyCustomVideoStream(stream) {
-      const videoTrack = stream.getVideoTracks()[0];
-
+      const track = stream.getVideoTracks()[0];
       Object.values(peers).forEach(p => {
-        if (p.call && p.call.peerConnection) {
-          const sender = p.call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-          if (sender) sender.replaceTrack(videoTrack);
-        }
+        const sender = p.call?.peerConnection?.getSenders().find(s => s.track?.kind === 'video');
+        if (sender) sender.replaceTrack(track);
       });
-
-      document.getElementById('localVideo').srcObject = stream;
+      $('localVideo').srcObject = stream;
       isScreenSharing = true;
-      document.getElementById('shareScreenBtn').classList.add('btn-active');
-      document.getElementById('shareScreenBtn').textContent = '';
-      
-      const icon = document.createElement('span');
-      icon.className = 'material-symbols-outlined';
-      icon.textContent = 'stop_screen_share';
-      const label = document.createElement('span');
-      label.className = 'btn-text-mobile';
-      label.textContent = '停止';
-      document.getElementById('shareScreenBtn').appendChild(icon);
-      document.getElementById('shareScreenBtn').appendChild(label);
-
-      updateLocalAvatarUI();
-      focusVideo('local');
+      $('shareScreenBtn').classList.add('btn-active');
+      $('shareScreenBtn').replaceChildren(el('span', { className: 'material-symbols-outlined', text: 'stop_screen_share' }), el('span', { className: 'btn-text-mobile', text: '停止' }));
+      updateLocalAvatarUI(); focusVideo('local');
     }
 
     function stopScreenShare() {
-      if (mockScreenTimer) {
-        clearInterval(mockScreenTimer);
-        mockScreenTimer = null;
-      }
-      if (screenStream) {
-        screenStream.getTracks().forEach(t => t.stop());
-        screenStream = null;
-      }
-
-      const localVideoTrack = localStream.getVideoTracks()[0];
+      if (mockScreenTimer) { clearInterval(mockScreenTimer); mockScreenTimer = null; }
+      if (screenStream) { screenStream.getTracks().forEach(t => t.stop()); screenStream = null; }
+      const localTrack = localStream.getVideoTracks()[0];
       Object.values(peers).forEach(p => {
-        if (p.call && p.call.peerConnection && localVideoTrack) {
-          const sender = p.call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-          if (sender) sender.replaceTrack(localVideoTrack);
-        }
+        const sender = p.call?.peerConnection?.getSenders().find(s => s.track?.kind === 'video');
+        if (sender && localTrack) sender.replaceTrack(localTrack);
       });
-
-      document.getElementById('localVideo').srcObject = localStream;
+      $('localVideo').srcObject = localStream;
       isScreenSharing = false;
-      document.getElementById('shareScreenBtn').classList.remove('btn-active');
-      document.getElementById('shareScreenBtn').textContent = '';
-      
-      const icon = document.createElement('span');
-      icon.className = 'material-symbols-outlined';
-      icon.textContent = 'screen_share';
-      const label = document.createElement('span');
-      label.className = 'btn-text-mobile';
-      label.textContent = '共有';
-      document.getElementById('shareScreenBtn').appendChild(icon);
-      document.getElementById('shareScreenBtn').appendChild(label);
-
-      updateLocalAvatarUI();
-      showToast('画面共有を終了しました');
+      $('shareScreenBtn').classList.remove('btn-active');
+      $('shareScreenBtn').replaceChildren(el('span', { className: 'material-symbols-outlined', text: 'screen_share' }), el('span', { className: 'btn-text-mobile', text: '共有' }));
+      updateLocalAvatarUI(); showToast('画面共有を終了しました');
     }
 
-    // チャット送信
     function sendChatMessage() {
-      const input = document.getElementById('chatInput');
-      const text = input.value.trim();
+      const input = $('chatInput'), text = input.value.trim();
       if (!text) return;
-
-      broadcast({ type: 'chat', text: text, userName: myUserName });
+      broadcast({ type: 'chat', text, userName: myUserName });
       appendChatMessage(text, 'local', myUserName);
       input.value = '';
     }
 
-    // 安全なDOM構築によるチャット描画（XSS対策）
-    function appendChatMessage(text, senderType, senderName) {
-      const box = document.getElementById('messagesContainer');
-      const msg = document.createElement('div');
-      msg.className = `msg ${senderType}`;
-
-      if (senderType === 'remote') {
-        const sender = document.createElement('div');
-        sender.className = 'msg-sender';
-        sender.textContent = senderName;
-        msg.appendChild(sender);
-      }
-
-      const content = document.createElement('div');
-      content.textContent = text;
-      msg.appendChild(content);
-
+    function appendChatMessage(text, type, name) {
+      const box = $('messagesContainer');
+      const msg = el('div', { className: `msg ${type}` },
+        type === 'remote' ? el('div', { className: 'msg-sender', text: name }) : null,
+        el('div', { text })
+      );
       box.appendChild(msg);
       box.scrollTop = box.scrollHeight;
     }
 
-    const receivedFiles = {};
-    function handleFileSelect(e) {
-      const f = e.target.files[0];
-      if (f) sendFileToPeers(f);
-    }
-    function handleDropFile(e) {
-      e.preventDefault();
-      const f = e.dataTransfer.files[0];
-      if (f) sendFileToPeers(f);
-    }
+    function handleFileSelect(e) { if (e.target.files[0]) sendFileToPeers(e.target.files[0]); }
+    function handleDropFile(e) { e.preventDefault(); if (e.dataTransfer.files[0]) sendFileToPeers(e.dataTransfer.files[0]); }
 
     function sendFileToPeers(file) {
       if (Object.keys(peers).length === 0) return alert('接続中の相手がいません');
       if (file.size > MAX_FILE_SIZE) return alert('ファイルサイズが大きすぎます (最大 50MB)');
 
-      const fileId = Math.random().toString(36).substring(2, 8);
-      const CHUNK = FILE_CHUNK_SIZE;
-      const total = Math.ceil(file.size / CHUNK);
+      const fileId = Math.random().toString(36).substring(2, 8), total = Math.ceil(file.size / FILE_CHUNK_SIZE);
+      broadcast({ type: 'file-meta', id: fileId, name: sanitizeFileName(file.name), size: file.size, mime: file.type?.slice(0, 50) || '', total });
 
-      broadcast({
-        type: 'file-meta',
-        id: fileId,
-        name: sanitizeFileName(file.name),
-        size: file.size,
-        mime: file.type ? file.type.slice(0, 50) : '',
-        total: total
-      });
-
-      let current = 0;
-      const reader = new FileReader();
-
-      function readSlice() {
-        const slice = file.slice(current * CHUNK, Math.min((current + 1) * CHUNK, file.size));
-        reader.readAsArrayBuffer(slice);
-      }
-      reader.onload = (e) => {
+      let current = 0; const reader = new FileReader();
+      const readSlice = () => reader.readAsArrayBuffer(file.slice(current * FILE_CHUNK_SIZE, Math.min((current + 1) * FILE_CHUNK_SIZE, file.size)));
+      reader.onload = e => {
         broadcast({ type: 'file-chunk', id: fileId, index: current, data: e.target.result });
         current++;
         if (current < total) setTimeout(readSlice, 2);
@@ -1999,196 +1190,112 @@
       readSlice();
     }
 
-    // ファイル受信メタ情報の検証（DoS/不正データ対策）
     function handleFileMeta(data) {
-      if (!data || typeof data.id !== 'string') return;
-      if (typeof data.size !== 'number' || data.size <= 0 || data.size > MAX_FILE_SIZE) {
-        return showToast('不正またはサイズ超過のファイル転送を破棄しました', 'error');
-      }
-      if (typeof data.total !== 'number' || data.total <= 0 || data.total > MAX_CHUNKS) {
-        return;
-      }
-
+      if (!data?.id || typeof data.size !== 'number' || data.size <= 0 || data.size > MAX_FILE_SIZE || data.total > MAX_CHUNKS) return;
       const safeName = sanitizeFileName(data.name);
       receivedFiles[data.id] = {
-        name: safeName,
-        size: data.size,
-        mime: typeof data.mime === 'string' ? data.mime : '',
-        total: data.total,
-        count: 0,
-        receivedIndices: new Set(),
-        chunks: new Array(data.total),
-        timeoutTimer: setTimeout(() => {
-          delete receivedFiles[data.id];
-        }, 300000) // 5分で自動解放
+        name: safeName, size: data.size, mime: typeof data.mime === 'string' ? data.mime : '',
+        total: data.total, count: 0, receivedIndices: new Set(), chunks: new Array(data.total),
+        timeout: setTimeout(() => delete receivedFiles[data.id], 300000)
       };
       showToast(`受信中: ${safeName}`);
     }
 
-    // チャンク受信時の厳格な範囲チェック
     function handleFileChunk(data) {
-      const f = receivedFiles[data.id];
-      if (!f) return;
-      if (typeof data.index !== 'number' || data.index < 0 || data.index >= f.total) return;
-      if (!(data.data instanceof ArrayBuffer) || data.data.byteLength > FILE_CHUNK_SIZE * 2) return;
-      if (f.receivedIndices.has(data.index)) return; // 重複 chunk の無視
-
+      const f = receivedFiles[data.id]; if (!f) return;
+      if (data.index < 0 || data.index >= f.total || !(data.data instanceof ArrayBuffer) || data.data.byteLength > FILE_CHUNK_SIZE * 2 || f.receivedIndices.has(data.index)) return;
       f.receivedIndices.add(data.index);
       f.chunks[data.index] = data.data;
       f.count++;
-
       if (f.count === f.total) {
-        clearTimeout(f.timeoutTimer);
-        const blob = new Blob(f.chunks, { type: f.mime || 'application/octet-stream' });
-        const url = URL.createObjectURL(blob);
-        addDownloadItem(f.name, url);
+        clearTimeout(f.timeout);
+        addDownloadItem(f.name, URL.createObjectURL(new Blob(f.chunks, { type: f.mime || 'application/octet-stream' })));
         delete receivedFiles[data.id];
       }
     }
 
-    // 安全なDOM構築によるファイルダウンロード項目の追加
     function addDownloadItem(name, url) {
-      const container = document.getElementById('fileItemsList');
-      const div = document.createElement('div');
-      div.style.cssText = 'background:var(--md-surface-cnt); padding:8px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;';
-
-      const nameSpan = document.createElement('span');
-      nameSpan.style.cssText = 'font-size:0.82rem; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px;';
-      nameSpan.textContent = name;
-
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = name;
-      link.className = 'btn btn-primary btn-xs';
-      link.style.textDecoration = 'none';
-
-      const icon = document.createElement('span');
-      icon.className = 'material-symbols-outlined';
-      icon.style.fontSize = '15px';
-      icon.textContent = 'download';
-
-      link.appendChild(icon);
-      link.appendChild(document.createTextNode('DL'));
-
-      div.appendChild(nameSpan);
-      div.appendChild(link);
-      container.prepend(div);
-      switchSidebarTab('file');
+      const box = $('fileItemsList');
+      const item = el('div', { style: { background: 'var(--md-surface-cnt)', padding: '8px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+        el('span', { style: { fontSize: '0.82rem', fontWeight: 'bold', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '180px' }, text: name }),
+        el('a', { href: url, download: name, className: 'btn btn-primary btn-xs', style: { textDecoration: 'none' } },
+          el('span', { className: 'material-symbols-outlined', style: { fontSize: '15px' }, text: 'download' }), 'DL'
+        )
+      );
+      box.prepend(item); switchSidebarTab('file');
     }
 
-    // 安全なDOM構築によるユーザーリスト描画
+    // --- 参加者一覧 & 個別音量スライダーの生成 ---
     function updateUserListUI() {
-      const container = document.getElementById('userListContainer');
-      container.textContent = '';
+      const box = $('userListContainer');
+      box.replaceChildren();
 
       // 自分
-      const localItem = document.createElement('div');
-      localItem.className = 'user-item';
+      box.appendChild(el('div', { className: 'user-item' },
+        el('div', { className: 'user-item-header' },
+          el('span', { text: `${myUserName} (自分) ${isHost ? '👑' : ''}` }),
+          el('span', { className: 'material-symbols-outlined', style: { fontSize: '18px' }, text: isMicOn ? 'mic' : 'mic_off' })
+        )
+      ));
 
-      const localNameSpan = document.createElement('span');
-      localNameSpan.textContent = `${myUserName} (自分) ${isHost ? '👑' : ''}`;
-
-      const localMicIcon = document.createElement('span');
-      localMicIcon.className = 'material-symbols-outlined';
-      localMicIcon.style.fontSize = '18px';
-      localMicIcon.textContent = isMicOn ? 'mic' : 'mic_off';
-
-      localItem.appendChild(localNameSpan);
-      localItem.appendChild(localMicIcon);
-      container.appendChild(localItem);
-
-      // 他の参加者
-      Object.keys(peers).forEach(id => {
-        const p = peers[id];
-        const item = document.createElement('div');
-        item.className = 'user-item';
-
-        const nameSpan = document.createElement('span');
-        nameSpan.textContent = `${p.userName || '参加者'} ${p.isHost ? '👑' : ''}`;
-
-        const controlsDiv = document.createElement('div');
-        controlsDiv.style.cssText = 'display:flex; align-items:center; gap:6px;';
-
-        const micIcon = document.createElement('span');
-        micIcon.className = 'material-symbols-outlined';
-        micIcon.style.fontSize = '18px';
-        micIcon.textContent = p.isMuted ? 'mic_off' : 'mic';
-
-        const kickBtn = document.createElement('button');
-        kickBtn.className = 'btn btn-danger btn-xs';
-        kickBtn.title = '投票キック';
-        kickBtn.onclick = () => startKickVote(id);
-
-        const kickIcon = document.createElement('span');
-        kickIcon.className = 'material-symbols-outlined';
-        kickIcon.style.fontSize = '13px';
-        kickIcon.textContent = 'how_to_vote';
-
-        kickBtn.appendChild(kickIcon);
-        kickBtn.appendChild(document.createTextNode('キック'));
-
-        controlsDiv.appendChild(micIcon);
-        controlsDiv.appendChild(kickBtn);
-
-        item.appendChild(nameSpan);
-        item.appendChild(controlsDiv);
-        container.appendChild(item);
+      // 相手（個別音量スライダー付き）
+      Object.entries(peers).forEach(([id, p]) => {
+        const vol = p.userVolume ?? 100;
+        box.appendChild(el('div', { className: 'user-item' },
+          el('div', { className: 'user-item-header' },
+            el('span', { text: `${p.userName || '参加者'} ${p.isHost ? '👑' : ''}` }),
+            el('div', { style: { display: 'flex', alignItems: 'center', gap: '6px' } },
+              el('span', { className: 'material-symbols-outlined', style: { fontSize: '18px' }, text: p.isMuted ? 'mic_off' : 'mic' }),
+              el('button', { className: 'btn btn-danger btn-xs', title: '投票キック', onclick: () => startKickVote(id) },
+                el('span', { className: 'material-symbols-outlined', style: { fontSize: '13px' }, text: 'how_to_vote' }), 'キック'
+              )
+            )
+          ),
+          el('div', { className: 'user-vol-row' },
+            el('span', { className: 'material-symbols-outlined', style: { fontSize: '15px' }, text: 'record_voice_over' }),
+            el('span', { text: '音量' }),
+            el('input', { type: 'range', min: '0', max: '200', value: String(vol), oninput: e => changeUserVolume(id, e.target.value) }),
+            el('span', { id: `user-vol-val-${id}`, style: { minWidth: '34px', textAlign: 'right' }, text: `${vol}%` })
+          )
+        ));
       });
 
-      document.getElementById('userCount').textContent = Object.keys(peers).length + 1;
+      $('userCount').textContent = Object.keys(peers).length + 1;
     }
 
     function setUIState(state, text) {
-      document.getElementById('statusDot').className = 'status-dot ' + state;
-      document.getElementById('roomStatusText').textContent = text;
+      $('statusDot').className = 'status-dot ' + state;
+      $('roomStatusText').textContent = text;
       const joined = (state === 'connected' || state === 'waiting');
-
-      document.getElementById('joinControls').style.display = joined ? 'none' : 'flex';
-      document.getElementById('inRoomControls').style.display = joined ? 'flex' : 'none';
+      $('joinControls').style.display = joined ? 'none' : 'flex';
+      $('inRoomControls').style.display = joined ? 'flex' : 'none';
     }
 
-    function toggleMobileSidebar() {
-      const sidebar = document.getElementById('appSidebar');
-      sidebar.classList.toggle('mobile-open');
-    }
-
-    function leaveMeshRoom() {
-      isUnloading = true;
-      if (peer && !peer.destroyed) peer.destroy();
-      location.reload();
-    }
+    function toggleModal(id, show) { $(id).style.display = show ? 'flex' : 'none'; }
+    function toggleMobileSidebar() { $('appSidebar').classList.toggle('mobile-open'); }
+    function leaveMeshRoom() { isUnloading = true; if (peer && !peer.destroyed) peer.destroy(); location.reload(); }
 
     function copyInviteUrl() {
-      const room = document.getElementById('roomNameInput').value.trim() || currentRoomName;
-      const url = new URL(window.location.href);
-      if (room) url.searchParams.set('room', room);
+      const room = $('roomNameInput').value.trim() || currentRoomName;
+      const url = new URL(window.location.href); if (room) url.searchParams.set('room', room);
       navigator.clipboard.writeText(url.href).then(() => showToast('招待URLをコピーしました'));
     }
 
     function switchSidebarTab(tab) {
       ['chat', 'users', 'file'].forEach(t => {
-        const el = document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}`);
-        const btn = document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}Btn`);
-        if (el) el.classList.toggle('active', t === tab);
-        if (btn) btn.classList.toggle('active', t === tab);
+        $(`tab${t.charAt(0).toUpperCase() + t.slice(1)}`).classList.toggle('active', t === tab);
+        $(`tab${t.charAt(0).toUpperCase() + t.slice(1)}Btn`).classList.toggle('active', t === tab);
       });
     }
 
     function toggleFullScreen() {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(e => alert(e.message));
-      } else {
-        document.exitFullscreen();
-      }
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(e => alert(e.message));
+      else document.exitFullscreen();
     }
 
     function showToast(text, type = 'normal') {
-      const c = document.getElementById('toastContainer');
-      const t = document.createElement('div');
-      t.className = 'toast';
-      if (type === 'error') t.style.background = 'var(--md-error-cnt)';
-      t.textContent = text;
-      c.appendChild(t);
+      const t = el('div', { className: 'toast', style: type === 'error' ? { background: 'var(--md-error-cnt)' } : {}, text });
+      $('toastContainer').appendChild(t);
       setTimeout(() => t.remove(), 3500);
     }
   </script>
