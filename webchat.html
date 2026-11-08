@@ -1028,4 +1028,1186 @@
       } catch (err) {
         try {
           localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
-          const dummy = createDummyMediaSt
+          const dummy = createDummyMediaStream();
+          localStream.addTrack(dummy.getVideoTracks()[0]);
+          isCamOn = false;
+        } catch (e) {
+          localStream = createDummyMediaStream();
+          isMicOn = false;
+          isCamOn = false;
+        }
+      }
+      document.getElementById('localVideo').srcObject = localStream;
+      setupSpeakingDetector('local', localStream);
+      updateLocalAvatarUI();
+    }
+
+    // ローカルのアバターマーク表示状態を更新
+    function updateLocalAvatarUI() {
+      const initial = (myUserName || '自').charAt(0);
+      document.getElementById('avatarText-local').textContent = initial;
+      document.getElementById('avatarCircle-local').style.background = getAvatarGradient(myUserName);
+
+      const avatarLocal = document.getElementById('avatar-local');
+      const vidLocal = document.getElementById('localVideo');
+
+      if (!isCamOn) {
+        avatarLocal.style.display = 'flex';
+        vidLocal.style.opacity = '0';
+      } else {
+        avatarLocal.style.display = 'none';
+        vidLocal.style.opacity = '1';
+      }
+
+      if (currentFocusedPeerId === 'local') {
+        updateStageView();
+      }
+    }
+
+    async function getRoomHostId(roomName) {
+      const enc = new TextEncoder();
+      const data = enc.encode(`p2p_mesh_room_v16:${roomName.trim()}`);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const key = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
+      return `room-${key}-host`;
+    }
+
+    async function joinMeshRoom() {
+      ensureAudioContextResumed();
+      const room = document.getElementById('roomNameInput').value.trim();
+      const name = document.getElementById('userNameInput').value.trim();
+      if (!room || !name) return alert('部屋名と名前を入力してください');
+
+      myUserName = name;
+      currentRoomName = room;
+      document.getElementById('localTileName').textContent = myUserName + ' (自分)';
+      document.getElementById('joinBtn').disabled = true;
+
+      updateLocalAvatarUI();
+
+      const hostId = await getRoomHostId(room);
+      tryAsHost(hostId);
+    }
+
+    function tryAsHost(hostId) {
+      if (peer && !peer.destroyed) peer.destroy();
+      peer = new Peer(hostId, PEER_CONFIG);
+
+      peer.on('open', (id) => {
+        isHost = true;
+        myPeerId = id;
+        setupPeerCommon();
+        setUIState('waiting', `部屋: ${currentRoomName}`);
+        showToast('部屋を作成しました (ホスト)');
+        updateUserListUI();
+      });
+
+      peer.on('error', (err) => {
+        if (err.type === 'unavailable-id') {
+          setTimeout(() => joinAsGuest(hostId), 150);
+        } else {
+          document.getElementById('joinBtn').disabled = false;
+        }
+      });
+    }
+
+    function joinAsGuest(hostId) {
+      if (peer && !peer.destroyed) peer.destroy();
+      peer = new Peer(PEER_CONFIG);
+
+      peer.on('open', (id) => {
+        isHost = false;
+        myPeerId = id;
+        setupPeerCommon();
+        setUIState('waiting', `部屋: ${currentRoomName}`);
+        connectToSinglePeer(hostId);
+
+        setTimeout(() => {
+          if (Object.keys(peers).length === 0 && !isHost) {
+            tryAsHost(hostId);
+          }
+        }, 4000);
+      });
+
+      peer.on('error', () => {
+        document.getElementById('joinBtn').disabled = false;
+      });
+    }
+
+    function safeReconnect() {
+      if (isReconnecting || !peer || peer.destroyed || !peer.disconnected) return;
+      isReconnecting = true;
+      setTimeout(() => {
+        if (peer && !peer.destroyed && peer.disconnected) {
+          peer.reconnect();
+        }
+        isReconnecting = false;
+      }, 2000);
+    }
+
+    function setupPeerCommon() {
+      peer.on('disconnected', () => safeReconnect());
+
+      peer.on('call', (call) => {
+        if (kickedPeers.has(call.peer)) return call.close();
+        call.answer(localStream);
+        setupCallEvents(call);
+      });
+
+      peer.on('connection', (conn) => {
+        if (kickedPeers.has(conn.peer)) return conn.close();
+        setupConnEvents(conn);
+      });
+    }
+
+    function connectToSinglePeer(targetPeerId) {
+      if (kickedPeers.has(targetPeerId) || (peers[targetPeerId] && peers[targetPeerId].conn)) return;
+
+      const conn = peer.connect(targetPeerId, { reliable: true });
+      setupConnEvents(conn);
+
+      const call = peer.call(targetPeerId, localStream);
+      setupCallEvents(call);
+    }
+
+    function setupCallEvents(call) {
+      const pId = call.peer;
+      if (!peers[pId]) peers[pId] = {};
+      peers[pId].call = call;
+
+      call.on('stream', (remoteStream) => {
+        peers[pId].stream = remoteStream;
+        addCameraTile(pId, remoteStream, peers[pId].userName || '参加者');
+        setupSpeakingDetector(pId, remoteStream);
+        setupAudioBoost(pId, remoteStream);
+        setUIState('connected', `通話中: ${currentRoomName}`);
+      });
+
+      call.on('close', () => removePeer(pId));
+    }
+
+    function setupAudioBoost(id, stream) {
+      try {
+        ensureAudioContextResumed();
+        if (!audioContext || stream.getAudioTracks().length === 0) return;
+
+        const src = audioContext.createMediaStreamSource(stream);
+        const gain = audioContext.createGain();
+        gain.gain.value = currentCallGain;
+        src.connect(gain);
+        gain.connect(audioContext.destination);
+
+        peers[id].gainNode = gain;
+      } catch (e) {}
+    }
+
+    function setupConnEvents(conn) {
+      const pId = conn.peer;
+      if (!peers[pId]) peers[pId] = {};
+      peers[pId].conn = conn;
+
+      conn.on('open', () => {
+        conn.send({
+          type: 'intro',
+          userName: myUserName,
+          isHost: isHost,
+          isMuted: !isMicOn,
+          isCamOff: !isCamOn
+        });
+
+        if (isHost) {
+          const peerIds = Object.keys(peers).filter(id => id !== pId && !kickedPeers.has(id));
+          conn.send({ type: 'mesh-members', members: peerIds });
+
+          if (isYtLoaded && ytPlayer && ytPlayer.getVideoData) {
+            conn.send({
+              type: 'yt-state',
+              videoId: ytPlayer.getVideoData().video_id,
+              time: ytPlayer.getCurrentTime(),
+              isPlaying: ytPlayer.getPlayerState() === YT.PlayerState.PLAYING
+            });
+          }
+        }
+      });
+
+      conn.on('data', (data) => handlePeerData(pId, data));
+      conn.on('close', () => removePeer(pId));
+    }
+
+    function handlePeerData(fromPeerId, data) {
+      switch (data.type) {
+        case 'intro':
+          peers[fromPeerId].userName = data.userName;
+          peers[fromPeerId].isHost = !!data.isHost;
+          peers[fromPeerId].isMuted = !!data.isMuted;
+          peers[fromPeerId].isCamOff = !!data.isCamOff;
+          updateTileName(fromPeerId, data.userName);
+          updateTileIcons(fromPeerId, data.isMuted, data.isCamOff);
+          updateUserListUI();
+          showToast(`${data.userName} が参加`);
+          break;
+
+        case 'mesh-members':
+          data.members.forEach(otherId => {
+            if (otherId !== myPeerId && !kickedPeers.has(otherId)) connectToSinglePeer(otherId);
+          });
+          break;
+
+        case 'chat':
+          appendChatMessage(data.text, 'remote', data.userName);
+          queueFastZundamonSpeech(data.text);
+          break;
+
+        case 'status-update':
+          if (peers[fromPeerId]) {
+            peers[fromPeerId].isMuted = data.isMuted;
+            peers[fromPeerId].isCamOff = data.isCamOff;
+            updateTileIcons(fromPeerId, data.isMuted, data.isCamOff);
+            updateUserListUI();
+            if (currentFocusedPeerId === fromPeerId) updateStageView();
+          }
+          break;
+
+        case 'yt-load':
+          openYouTubeScreen(data.videoId);
+          break;
+
+        case 'yt-action':
+          handleRemoteYouTubeAction(data);
+          break;
+
+        case 'yt-state':
+          openYouTubeScreen(data.videoId);
+          setTimeout(() => {
+            if (ytPlayer && ytPlayer.seekTo) {
+              ytPlayer.seekTo(data.time, true);
+              if (data.isPlaying) ytPlayer.playVideo();
+            }
+          }, 1200);
+          break;
+
+        case 'vote-kick-start':
+          handleVoteKickStart(data);
+          break;
+
+        case 'vote-kick-vote':
+          handleVoteKickVote(data);
+          break;
+
+        case 'vote-kick-success':
+          handleVoteKickSuccess(data);
+          break;
+
+        case 'host-migrated':
+          handleHostMigrated(data.newHostId, data.newHostName);
+          break;
+
+        case 'file-meta':
+          handleFileMeta(data);
+          break;
+
+        case 'file-chunk':
+          handleFileChunk(data);
+          break;
+      }
+    }
+
+    function checkAndElectNewHost(removedPeerId) {
+      const wasHost = (peers[removedPeerId] && peers[removedPeerId].isHost) || removedPeerId.endsWith('-host');
+      if (!wasHost && !isHost) return;
+
+      const remainingPeerIds = [myPeerId, ...Object.keys(peers).filter(id => id !== removedPeerId && !kickedPeers.has(id))];
+      remainingPeerIds.sort();
+
+      const newHostId = remainingPeerIds[0];
+
+      if (newHostId === myPeerId) {
+        if (!isHost) {
+          isHost = true;
+          broadcast({ type: 'host-migrated', newHostId: myPeerId, newHostName: myUserName });
+          handleHostMigrated(myPeerId, myUserName);
+        }
+      }
+    }
+
+    function handleHostMigrated(newHostId, newHostName) {
+      Object.keys(peers).forEach(id => {
+        peers[id].isHost = (id === newHostId);
+      });
+      if (newHostId === myPeerId) {
+        isHost = true;
+        showToast('あなたが新しいホストになりました 👑');
+        queueFastZundamonSpeech('ホストに昇格したのだ');
+      } else {
+        isHost = false;
+        showToast(`${newHostName} さんが新ホストになりました 👑`);
+        queueFastZundamonSpeech(`${newHostName}さんが新しいホストになったのだ`);
+      }
+      updateUserListUI();
+    }
+
+    function startKickVote(targetId) {
+      if (currentVote) return showToast('すでに投票が進行中です', 'error');
+      const target = peers[targetId];
+      if (!target) return;
+
+      if (!confirm(`${target.userName} をキックするための投票を開始しますか？`)) return;
+
+      const totalVoters = Object.keys(peers).length;
+      const requiredYes = Math.floor(totalVoters / 2) + 1;
+
+      const voteData = {
+        type: 'vote-kick-start',
+        voteId: Math.random().toString(36).substring(2, 9),
+        targetId: targetId,
+        targetName: target.userName,
+        initiator: myUserName,
+        requiredYes: requiredYes
+      };
+
+      broadcast(voteData);
+      handleVoteKickStart(voteData);
+    }
+
+    function handleVoteKickStart(data) {
+      currentVote = {
+        voteId: data.voteId,
+        targetId: data.targetId,
+        targetName: data.targetName,
+        requiredYes: data.requiredYes,
+        yesCount: 0,
+        noCount: 0,
+        votedUsers: new Set(),
+        timeLeft: 20
+      };
+
+      const banner = document.getElementById('voteKickBanner');
+      document.getElementById('voteTargetName').textContent = data.targetName;
+      document.getElementById('voteYesCount').textContent = '0';
+      document.getElementById('voteNoCount').textContent = '0';
+      banner.style.display = 'flex';
+
+      if (myPeerId === data.targetId) {
+        document.getElementById('voteActionsArea').style.display = 'none';
+        document.getElementById('voteStatusLine').textContent = 'あなたに対するキック投票中...';
+      } else {
+        document.getElementById('voteActionsArea').style.display = 'flex';
+        document.getElementById('voteStatusLine').textContent = `残り 20 秒 (必要: ${data.requiredYes}票)`;
+      }
+
+      clearInterval(voteTimerInterval);
+      voteTimerInterval = setInterval(() => {
+        if (!currentVote) return clearInterval(voteTimerInterval);
+        currentVote.timeLeft--;
+        document.getElementById('voteStatusLine').textContent = `残り ${currentVote.timeLeft} 秒 (必要: ${currentVote.requiredYes}票)`;
+
+        if (currentVote.timeLeft <= 0) {
+          clearInterval(voteTimerInterval);
+          closeVoteKickUI('投票は否決されました');
+        }
+      }, 1000);
+    }
+
+    function castKickVote(choice) {
+      if (!currentVote || currentVote.votedUsers.has(myPeerId)) return;
+      currentVote.votedUsers.add(myPeerId);
+      document.getElementById('voteActionsArea').style.display = 'none';
+
+      const payload = {
+        type: 'vote-kick-vote',
+        voteId: currentVote.voteId,
+        choice: choice,
+        from: myPeerId
+      };
+      broadcast(payload);
+      handleVoteKickVote(payload);
+    }
+
+    function handleVoteKickVote(data) {
+      if (!currentVote || currentVote.voteId !== data.voteId) return;
+
+      if (data.choice === 'yes') currentVote.yesCount++;
+      else currentVote.noCount++;
+
+      document.getElementById('voteYesCount').textContent = currentVote.yesCount;
+      document.getElementById('voteNoCount').textContent = currentVote.noCount;
+
+      if (currentVote.yesCount >= currentVote.requiredYes) {
+        clearInterval(voteTimerInterval);
+        const successData = {
+          type: 'vote-kick-success',
+          targetId: currentVote.targetId,
+          targetName: currentVote.targetName
+        };
+        broadcast(successData);
+        handleVoteKickSuccess(successData);
+      }
+    }
+
+    function handleVoteKickSuccess(data) {
+      closeVoteKickUI(`投票の結果、${data.targetName} がキックされました`);
+      kickedPeers.add(data.targetId);
+
+      if (myPeerId === data.targetId) {
+        alert('キック投票が可決されたため、退出させられました。');
+        leaveMeshRoom();
+      } else {
+        if (peers[data.targetId]) {
+          if (peers[data.targetId].conn) peers[data.targetId].conn.close();
+          if (peers[data.targetId].call) peers[data.targetId].call.close();
+          removePeer(data.targetId);
+        }
+      }
+    }
+
+    function closeVoteKickUI(msg) {
+      document.getElementById('voteKickBanner').style.display = 'none';
+      clearInterval(voteTimerInterval);
+      currentVote = null;
+      if (msg) showToast(msg);
+    }
+
+    function removePeer(peerId) {
+      checkAndElectNewHost(peerId);
+      if (peers[peerId]) delete peers[peerId];
+      removeCameraTile(peerId);
+      updateUserListUI();
+      if (currentFocusedPeerId === peerId) focusVideo('local');
+      if (Object.keys(peers).length === 0 && !isHost) setUIState('waiting', '待機中');
+    }
+
+    function broadcast(data) {
+      Object.keys(peers).forEach(id => {
+        if (peers[id].conn && peers[id].conn.open) {
+          peers[id].conn.send(data);
+        }
+      });
+    }
+
+    // --- カメラタイル追加 (アバターマーク付き) ---
+    function addCameraTile(id, stream, name) {
+      if (document.getElementById(`tile-${id}`)) return;
+      const strip = document.getElementById('cameraStrip');
+
+      const tile = document.createElement('div');
+      tile.className = 'camera-tile';
+      tile.id = `tile-${id}`;
+      tile.onclick = () => focusVideo(id);
+
+      const initial = (name || '参').charAt(0);
+      const gradient = getAvatarGradient(name);
+
+      tile.innerHTML = `
+        <video id="vid-${id}" autoplay playsinline></video>
+        <div class="tile-avatar-placeholder" id="avatar-${id}" style="display:none;">
+          <div class="avatar-circle tile-avatar-circle" id="avatarCircle-${id}" style="background:${gradient};">
+            <span id="avatarText-${id}">${initial}</span>
+          </div>
+        </div>
+        <div class="tile-badge">
+          <span id="name-${id}">${name}</span>
+          <span id="mic-${id}" class="material-symbols-outlined" style="font-size:13px;">mic</span>
+        </div>
+      `;
+      strip.appendChild(tile);
+      document.getElementById(`vid-${id}`).srcObject = stream;
+
+      if (strip.children.length === 2 && currentStageMode === 'camera') focusVideo(id);
+      updateUserListUI();
+    }
+
+    function removeCameraTile(id) {
+      const tile = document.getElementById(`tile-${id}`);
+      if (tile) tile.remove();
+    }
+
+    function updateTileName(id, name) {
+      const el = document.getElementById(`name-${id}`);
+      if (el) el.textContent = name;
+      const initial = (name || '参').charAt(0);
+      const txt = document.getElementById(`avatarText-${id}`);
+      if (txt) txt.textContent = initial;
+      const circle = document.getElementById(`avatarCircle-${id}`);
+      if (circle) circle.style.background = getAvatarGradient(name);
+    }
+
+    // カメラOFF時にアバターマークを切り替える処理
+    function updateTileIcons(id, isMuted, isCamOff) {
+      const mic = document.getElementById(`mic-${id}`);
+      if (mic) mic.textContent = isMuted ? 'mic_off' : 'mic';
+
+      const avatar = document.getElementById(`avatar-${id}`);
+      const vid = document.getElementById(`vid-${id}`);
+
+      if (avatar && vid) {
+        if (isCamOff) {
+          avatar.style.display = 'flex';
+          vid.style.opacity = '0';
+        } else {
+          avatar.style.display = 'none';
+          vid.style.opacity = '1';
+        }
+      }
+    }
+
+    function focusVideo(id) {
+      currentStageMode = 'camera';
+      currentFocusedPeerId = id;
+      document.querySelectorAll('.camera-tile').forEach(t => t.classList.remove('focused'));
+      const targetTile = document.getElementById(`tile-${id}`);
+      if (targetTile) targetTile.classList.add('focused');
+
+      updateStageView();
+
+      const returnBtn = document.getElementById('switchToYtBtn');
+      if (isYtLoaded) {
+        returnBtn.style.display = 'inline-flex';
+      }
+    }
+
+    // メインステージの映像/アバターマークの表示更新
+    function updateStageView() {
+      const stageVideo = document.getElementById('stageVideo');
+      const ytContainer = document.getElementById('ytContainer');
+      const stageAvatar = document.getElementById('stageAvatar');
+      const aspectScreen = document.getElementById('aspectScreen');
+
+      ytContainer.classList.remove('active');
+
+      const id = currentFocusedPeerId;
+      let targetName = '';
+      let isCamOff = false;
+      let stream = null;
+
+      if (id === 'local') {
+        targetName = myUserName + ' (自分)';
+        isCamOff = !isCamOn && !isScreenSharing;
+        stream = isScreenSharing && screenStream ? screenStream : localStream;
+      } else if (peers[id]) {
+        targetName = peers[id].userName || '参加者';
+        isCamOff = !!peers[id].isCamOff;
+        stream = peers[id].stream;
+      }
+
+      if (isCamOff) {
+        stageVideo.style.display = 'none';
+        stageAvatar.style.display = 'flex';
+
+        const initial = (targetName || '自').charAt(0);
+        document.getElementById('stageAvatarText').textContent = initial;
+        document.getElementById('stageAvatarCircle').style.background = getAvatarGradient(targetName);
+        document.getElementById('stageAvatarNameText').textContent = targetName;
+      } else {
+        stageAvatar.style.display = 'none';
+        stageVideo.style.display = 'block';
+
+        if (stream) {
+          stageVideo.srcObject = stream;
+          stageVideo.style.transform = (id === 'local' && !isScreenSharing) ? 'scaleX(-1)' : 'none';
+        }
+      }
+    }
+
+    function switchToYouTubeStage() {
+      currentStageMode = 'youtube';
+      document.getElementById('stageVideo').style.display = 'none';
+      document.getElementById('stageAvatar').style.display = 'none';
+      document.getElementById('ytContainer').classList.add('active');
+      document.getElementById('switchToYtBtn').style.display = 'none';
+      document.querySelectorAll('.camera-tile').forEach(t => t.classList.remove('focused'));
+    }
+
+    function toggleYouTubeStageOrModal() {
+      if (isYtLoaded && currentStageMode === 'camera') {
+        switchToYouTubeStage();
+      } else {
+        openYouTubeModal();
+      }
+    }
+
+    // 発話検知（アバターサークルの波紋アニメーションも連動）
+    function setupSpeakingDetector(id, stream) {
+      try {
+        ensureAudioContextResumed();
+        if (!audioContext || stream.getAudioTracks().length === 0) return;
+
+        const src = audioContext.createMediaStreamSource(stream);
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        src.connect(analyser);
+
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+        function checkVolume() {
+          analyser.getByteFrequencyData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+          const avg = sum / dataArray.length;
+          const isSpeakingNow = avg > 22;
+
+          const tile = document.getElementById(`tile-${id}`);
+          if (tile) tile.classList.toggle('speaking', isSpeakingNow);
+
+          if (currentFocusedPeerId === id) {
+            document.getElementById('aspectScreen').classList.toggle('speaking', isSpeakingNow);
+          }
+          requestAnimationFrame(checkVolume);
+        }
+        checkVolume();
+      } catch (e) {}
+    }
+
+    function changeYouTubeVolume(val) {
+      currentYtVolume = val;
+      document.getElementById('ytVolVal').textContent = `${val}%`;
+      if (ytPlayer && ytPlayer.setVolume) {
+        ytPlayer.setVolume(val);
+      }
+    }
+
+    function changeCallVolume(val) {
+      currentCallGain = val / 100;
+      document.getElementById('callVolVal').textContent = `${(val / 100).toFixed(1)}x`;
+      Object.values(peers).forEach(p => {
+        if (p.gainNode) {
+          p.gainNode.gain.value = currentCallGain;
+        }
+      });
+    }
+
+    // --- YouTube 同時視聴 ---
+    function initYouTubePlayer() {
+      if (ytPlayer || !window.YT || !window.YT.Player) return;
+      ytPlayer = new YT.Player('player', {
+        host: 'https://www.youtube-nocookie.com',
+        height: '100%',
+        width: '100%',
+        videoId: 'dQw4w9WgXcQ',
+        playerVars: {
+          playsinline: 1,
+          controls: 1,
+          rel: 0,
+          enablejsapi: 1,
+          origin: (window.location.origin && window.location.origin !== 'null') ? window.location.origin : undefined
+        },
+        events: {
+          onReady: (e) => {
+            isYtReady = true;
+            e.target.setVolume(currentYtVolume);
+          },
+          onStateChange: onPlayerStateChange,
+          onError: onPlayerError
+        }
+      });
+    }
+
+    window.onYouTubeIframeAPIReady = function() {
+      initYouTubePlayer();
+    };
+
+    function onPlayerError(e) {
+      if (e.data === 101 || e.data === 150) {
+        showToast('この動画は外部サイトでの再生が制限されています', 'error');
+      } else if (e.data === 100 || e.data === 2) {
+        showToast('動画の読み込みに失敗しました (削除またはURL無効)', 'error');
+      }
+    }
+
+    function openYouTubeScreen(videoId) {
+      isYtLoaded = true;
+      switchToYouTubeStage();
+
+      if (isYtReady && ytPlayer && ytPlayer.loadVideoById) {
+        isRemoteAction = true;
+        ytPlayer.loadVideoById(videoId);
+        ytPlayer.setVolume(currentYtVolume);
+        setTimeout(() => { isRemoteAction = false; }, 1000);
+      }
+    }
+
+    function onPlayerStateChange(event) {
+      if (isUnloading || isTabHidden || document.hidden || isRemoteAction || Object.keys(peers).length === 0) return;
+      const time = ytPlayer.getCurrentTime();
+
+      if (event.data === YT.PlayerState.PLAYING) {
+        broadcast({ type: 'yt-action', action: 'play', time: time });
+      } else if (event.data === YT.PlayerState.PAUSED) {
+        broadcast({ type: 'yt-action', action: 'pause', time: time });
+      }
+    }
+
+    function handleRemoteYouTubeAction(data) {
+      if (!isYtReady || !ytPlayer) return;
+      isRemoteAction = true;
+
+      if (Math.abs(ytPlayer.getCurrentTime() - data.time) > 1.5) {
+        ytPlayer.seekTo(data.time, true);
+      }
+
+      if (data.action === 'play') {
+        const p = ytPlayer.playVideo();
+        if (p && p.catch) {
+          p.catch(() => {
+            ytPlayer.mute();
+            ytPlayer.playVideo();
+            document.getElementById('unmuteBanner').style.display = 'block';
+          });
+        }
+      } else if (data.action === 'pause') {
+        ytPlayer.pauseVideo();
+      }
+      setTimeout(() => { isRemoteAction = false; }, 800);
+    }
+
+    function forceUnmuteYouTube() {
+      if (ytPlayer) {
+        ytPlayer.unMute();
+        ytPlayer.setVolume(currentYtVolume);
+      }
+      document.getElementById('unmuteBanner').style.display = 'none';
+    }
+
+    function openYouTubeModal() { document.getElementById('ytModal').style.display = 'flex'; }
+    function closeYouTubeModal() { document.getElementById('ytModal').style.display = 'none'; }
+
+    function parseYouTubeId(input) {
+      const match = input.match(/(youtu\.be\/|youtube\.com\/(watch\?(.*&)?v=|(embed|v)\/))([^?&"'>]+)/);
+      return match ? match[5] : input;
+    }
+
+    async function searchYouTube() {
+      const q = document.getElementById('ytSearchInput').value.trim();
+      if (!q) return;
+
+      const directId = parseYouTubeId(q);
+      if (directId.length === 11) {
+        selectAndBroadcastVideo(directId, '指定動画');
+        closeYouTubeModal();
+        return;
+      }
+
+      const resultsBox = document.getElementById('ytSearchResults');
+      resultsBox.innerHTML = '<div style="text-align:center; padding:16px;">検索中...</div>';
+
+      try {
+        const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=10&q=${encodeURIComponent(q)}&key=${YT_API_KEY}`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (!res.ok || data.error) throw new Error(data.error ? data.error.message : 'APIエラー');
+
+        if (!data.items || data.items.length === 0) {
+          resultsBox.innerHTML = '<div style="text-align:center; padding:14px; color:var(--md-error);">動画が見つかりませんでした</div>';
+          return;
+        }
+
+        resultsBox.innerHTML = '';
+        data.items.forEach(item => {
+          const vId = item.id.videoId;
+          const title = item.snippet.title;
+          const author = item.snippet.channelTitle;
+          const thumb = item.snippet.thumbnails.medium ? item.snippet.thumbnails.medium.url : item.snippet.thumbnails.default.url;
+
+          const div = document.createElement('div');
+          div.className = 'search-item';
+          div.innerHTML = `
+            <img src="${thumb}">
+            <div style="flex:1; overflow:hidden;">
+              <div style="font-size:0.82rem; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${title}</div>
+              <div style="font-size:0.72rem; color:var(--md-outline);">${author}</div>
+            </div>
+          `;
+          div.onclick = () => {
+            selectAndBroadcastVideo(vId, title);
+            closeYouTubeModal();
+          };
+          resultsBox.appendChild(div);
+        });
+      } catch (err) {
+        resultsBox.innerHTML = `
+          <div style="text-align:center; padding:14px;">
+            <p style="color:var(--md-error); font-size:0.82rem; margin-bottom:8px;">検索に失敗しました</p>
+            <p style="font-size:0.75rem; color:var(--md-outline);">動画URLを直接貼り付けて検索してください。</p>
+          </div>
+        `;
+      }
+    }
+
+    function selectAndBroadcastVideo(videoId, title) {
+      openYouTubeScreen(videoId);
+      broadcast({ type: 'yt-load', videoId: videoId });
+      showToast(`再生: ${title}`);
+    }
+
+    // --- ずんだもん読み上げ ---
+    function cycleTtsMode() {
+      isTtsOn = !isTtsOn;
+      const btn = document.getElementById('ttsToggleBtn');
+      btn.innerHTML = `<span class="material-symbols-outlined">${isTtsOn ? 'record_voice_over' : 'voice_over_off'}</span><span class="btn-text-mobile">${isTtsOn ? 'ON' : 'OFF'}</span>`;
+      btn.classList.toggle('btn-active', isTtsOn);
+      showToast(isTtsOn ? 'ずんだもん読み上げ ON' : '読み上げ OFF');
+    }
+
+    function queueFastZundamonSpeech(text) {
+      if (!isTtsOn) return;
+      const clean = text.replace(/https?:\/\/\S+/g, 'URL').replace(/w{2,}/gi, 'わら').slice(0, 15).trim();
+      if (!clean) return;
+
+      ttsQueue.push(clean);
+      processFastTtsQueue();
+    }
+
+    async function processFastTtsQueue() {
+      if (isSpeaking || ttsQueue.length === 0) return;
+      isSpeaking = true;
+      const text = ttsQueue.shift();
+
+      try {
+        let streamUrl = ttsAudioCache.get(text);
+
+        if (!streamUrl) {
+          const res = await fetch(`https://api.tts.quest/v3/voicevox/synthesis?speaker=3&text=${encodeURIComponent(text)}`);
+          const data = await res.json();
+          if (data.success && data.mp3StreamingUrl) {
+            streamUrl = data.mp3StreamingUrl;
+            ttsAudioCache.set(text, streamUrl);
+          }
+        }
+
+        if (streamUrl) {
+          const audio = new Audio(streamUrl);
+          await new Promise(resolve => {
+            audio.onended = resolve;
+            audio.onerror = resolve;
+            audio.play().catch(resolve);
+          });
+        }
+      } catch (err) {}
+
+      isSpeaking = false;
+      processFastTtsQueue();
+    }
+
+    // --- メディアコントロール (アバターマーク連動) ---
+    function toggleMic() {
+      if (!localStream) return;
+      isMicOn = !isMicOn;
+      localStream.getAudioTracks().forEach(t => t.enabled = isMicOn);
+
+      const btn = document.getElementById('micBtn');
+      btn.innerHTML = `<span class="material-symbols-outlined">${isMicOn ? 'mic' : 'mic_off'}</span><span class="btn-text-mobile">マイク</span>`;
+      btn.classList.toggle('btn-danger', !isMicOn);
+      document.getElementById('localTileMic').textContent = isMicOn ? 'mic' : 'mic_off';
+
+      broadcast({ type: 'status-update', isMuted: !isMicOn, isCamOff: !isCamOn });
+    }
+
+    function toggleCam() {
+      if (!localStream) return;
+      isCamOn = !isCamOn;
+      localStream.getVideoTracks().forEach(t => t.enabled = isCamOn);
+
+      const btn = document.getElementById('camBtn');
+      btn.innerHTML = `<span class="material-symbols-outlined">${isCamOn ? 'videocam' : 'videocam_off'}</span><span class="btn-text-mobile">カメラ</span>`;
+      btn.classList.toggle('btn-danger', !isCamOn);
+
+      updateLocalAvatarUI();
+      broadcast({ type: 'status-update', isMuted: !isMicOn, isCamOff: !isCamOn });
+    }
+
+    // --- 画面共有 ---
+    async function toggleScreenShare() {
+      if (isScreenSharing) {
+        stopScreenShare();
+        return;
+      }
+
+      if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+        try {
+          screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+          applyCustomVideoStream(screenStream);
+          const screenTrack = screenStream.getVideoTracks()[0];
+          screenTrack.onended = stopScreenShare;
+          return;
+        } catch (e) {
+          if (e.name === 'NotAllowedError') return;
+        }
+      }
+
+      openMobileShareModal();
+    }
+
+    function openMobileShareModal() { document.getElementById('mobileShareModal').style.display = 'flex'; }
+    function closeMobileShareModal() { document.getElementById('mobileShareModal').style.display = 'none'; }
+
+    function triggerScreenShotShare() {
+      closeMobileShareModal();
+      document.getElementById('screenShotInput').click();
+    }
+
+    function handleScreenShotSelected(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const img = new Image();
+      const reader = new FileReader();
+
+      reader.onload = (event) => {
+        img.onload = () => {
+          if (!mockScreenCanvas) mockScreenCanvas = document.createElement('canvas');
+          mockScreenCanvas.width = img.width;
+          mockScreenCanvas.height = img.height;
+          const ctx = mockScreenCanvas.getContext('2d');
+
+          function draw() { ctx.drawImage(img, 0, 0); }
+          draw();
+
+          clearInterval(mockScreenTimer);
+          mockScreenTimer = setInterval(draw, 200);
+
+          screenStream = mockScreenCanvas.captureStream(10);
+          applyCustomVideoStream(screenStream);
+          showToast('画像を画面共有として配信中');
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+      e.target.value = '';
+    }
+
+    async function triggerEnvironmentCameraShare() {
+      closeMobileShareModal();
+      try {
+        screenStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false
+        });
+        applyCustomVideoStream(screenStream);
+        showToast('外カメラで画面を配信中');
+      } catch (err) {
+        showToast('外カメラを起動できませんでした', 'error');
+      }
+    }
+
+    function applyCustomVideoStream(stream) {
+      const videoTrack = stream.getVideoTracks()[0];
+
+      Object.values(peers).forEach(p => {
+        if (p.call && p.call.peerConnection) {
+          const sender = p.call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+          if (sender) sender.replaceTrack(videoTrack);
+        }
+      });
+
+      document.getElementById('localVideo').srcObject = stream;
+      isScreenSharing = true;
+      document.getElementById('shareScreenBtn').classList.add('btn-active');
+      document.getElementById('shareScreenBtn').innerHTML = `<span class="material-symbols-outlined">stop_screen_share</span><span class="btn-text-mobile">停止</span>`;
+
+      updateLocalAvatarUI();
+      focusVideo('local');
+    }
+
+    function stopScreenShare() {
+      if (mockScreenTimer) {
+        clearInterval(mockScreenTimer);
+        mockScreenTimer = null;
+      }
+      if (screenStream) {
+        screenStream.getTracks().forEach(t => t.stop());
+        screenStream = null;
+      }
+
+      const localVideoTrack = localStream.getVideoTracks()[0];
+      Object.values(peers).forEach(p => {
+        if (p.call && p.call.peerConnection && localVideoTrack) {
+          const sender = p.call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+          if (sender) sender.replaceTrack(localVideoTrack);
+        }
+      });
+
+      document.getElementById('localVideo').srcObject = localStream;
+      isScreenSharing = false;
+      document.getElementById('shareScreenBtn').classList.remove('btn-active');
+      document.getElementById('shareScreenBtn').innerHTML = `<span class="material-symbols-outlined">screen_share</span><span class="btn-text-mobile">共有</span>`;
+
+      updateLocalAvatarUI();
+      showToast('画面共有を終了しました');
+    }
+
+    // --- チャット・ファイル ---
+    function sendChatMessage() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      broadcast({ type: 'chat', text: text, userName: myUserName });
+      appendChatMessage(text, 'local', myUserName);
+      input.value = '';
+    }
+
+    function appendChatMessage(text, senderType, senderName) {
+      const box = document.getElementById('messagesContainer');
+      const msg = document.createElement('div');
+      msg.className = `msg ${senderType}`;
+      msg.innerHTML = `
+        ${senderType === 'remote' ? `<div class="msg-sender">${senderName}</div>` : ''}
+        <div>${text}</div>
+      `;
+      box.appendChild(msg);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    const receivedFiles = {};
+    function handleFileSelect(e) {
+      const f = e.target.files[0];
+      if (f) sendFileToPeers(f);
+    }
+    function handleDropFile(e) {
+      e.preventDefault();
+      const f = e.dataTransfer.files[0];
+      if (f) sendFileToPeers(f);
+    }
+
+    function sendFileToPeers(file) {
+      if (Object.keys(peers).length === 0) return alert('接続中の相手がいません');
+      const fileId = Math.random().toString(36).substring(2, 8);
+      const CHUNK = 16 * 1024;
+      const total = Math.ceil(file.size / CHUNK);
+
+      broadcast({ type: 'file-meta', id: fileId, name: file.name, size: file.size, mime: file.type, total: total });
+      let current = 0;
+      const reader = new FileReader();
+
+      function readSlice() {
+        const slice = file.slice(current * CHUNK, Math.min((current + 1) * CHUNK, file.size));
+        reader.readAsArrayBuffer(slice);
+      }
+      reader.onload = (e) => {
+        broadcast({ type: 'file-chunk', id: fileId, index: current, data: e.target.result });
+        current++;
+        if (current < total) setTimeout(readSlice, 2);
+        else showToast(`送信完了: ${file.name}`);
+      };
+      readSlice();
+    }
+
+    function handleFileMeta(data) {
+      receivedFiles[data.id] = { name: data.name, size: data.size, mime: data.mime, total: data.total, count: 0, chunks: [] };
+      showToast(`受信中: ${data.name}`);
+    }
+
+    function handleFileChunk(data) {
+      const f = receivedFiles[data.id];
+      if (!f) return;
+      f.chunks[data.index] = data.data;
+      f.count++;
+      if (f.count === f.total) {
+        const blob = new Blob(f.chunks, { type: f.mime || 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        addDownloadItem(f.name, url);
+        delete receivedFiles[data.id];
+      }
+    }
+
+    function addDownloadItem(name, url) {
+      const container = document.getElementById('fileItemsList');
+      const div = document.createElement('div');
+      div.style.cssText = 'background:var(--md-surface-cnt); padding:8px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;';
+      div.innerHTML = `
+        <span style="font-size:0.82rem; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px;">${name}</span>
+        <a href="${url}" download="${name}" class="btn btn-primary btn-xs" style="text-decoration:none;">
+          <span class="material-symbols-outlined" style="font-size:15px;">download</span>DL
+        </a>
+      `;
+      container.prepend(div);
+      switchSidebarTab('file');
+    }
+
+    function updateUserListUI() {
+      const container = document.getElementById('userListContainer');
+      container.innerHTML = '';
+
+      container.innerHTML += `
+        <div class="user-item">
+          <span>${myUserName} (自分) ${isHost ? '👑' : ''}</span>
+          <span class="material-symbols-outlined" style="font-size:18px;">${isMicOn ? 'mic' : 'mic_off'}</span>
+        </div>
+      `;
+
+      Object.keys(peers).forEach(id => {
+        const p = peers[id];
+        const hostBadge = p.isHost ? ' 👑' : '';
+        container.innerHTML += `
+          <div class="user-item">
+            <span>${p.userName || '参加者'}${hostBadge}</span>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span class="material-symbols-outlined" style="font-size:18px;">${p.isMuted ? 'mic_off' : 'mic'}</span>
+              <button class="btn btn-danger btn-xs" onclick="startKickVote('${id}')" title="投票キック">
+                <span class="material-symbols-outlined" style="font-size:13px;">how_to_vote</span>キック
+              </button>
+            </div>
+          </div>
+        `;
+      });
+
+      document.getElementById('userCount').textContent = Object.keys(peers).length + 1;
+    }
+
+    function setUIState(state, text) {
+      document.getElementById('statusDot').className = 'status-dot ' + state;
+      document.getElementById('roomStatusText').textContent = text;
+      const joined = (state === 'connected' || state === 'waiting');
+
+      document.getElementById('joinControls').style.display = joined ? 'none' : 'flex';
+      document.getElementById('inRoomControls').style.display = joined ? 'flex' : 'none';
+    }
+
+    function toggleMobileSidebar() {
+      const sidebar = document.getElementById('appSidebar');
+      sidebar.classList.toggle('mobile-open');
+    }
+
+    function leaveMeshRoom() {
+      isUnloading = true;
+      if (peer && !peer.destroyed) peer.destroy();
+      location.reload();
+    }
+
+    function copyInviteUrl() {
+      const room = document.getElementById('roomNameInput').value.trim() || currentRoomName;
+      const url = new URL(window.location.href);
+      if (room) url.searchParams.set('room', room);
+      navigator.clipboard.writeText(url.href).then(() => showToast('招待URLをコピーしました'));
+    }
+
+    function switchSidebarTab(tab) {
+      ['chat', 'users', 'file'].forEach(t => {
+        const el = document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        const btn = document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}Btn`);
+        if (el) el.classList.toggle('active', t === tab);
+        if (btn) btn.classList.toggle('active', t === tab);
+      });
+    }
+
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(e => alert(e.message));
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    function showToast(text, type = 'normal') {
+      const c = document.getElementById('toastContainer');
+      const t = document.createElement('div');
+      t.className = 'toast';
+      if (type === 'error') t.style.background = 'var(--md-error-cnt)';
+      t.textContent = text;
+      c.appendChild(t);
+      setTimeout(() => t.remove(), 3500);
+    }
+  </script>
+</body>
+</html>
