@@ -3,40 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MD3 P2P Mesh Room & Zundamon Sync</title>
-  <!-- PeerJS (サーバー不要P2Pライブラリ) -->
+  <title>P2P Mesh Room</title>
+  <!-- PeerJS -->
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <!-- YouTube IFrame API -->
   <script src="https://www.youtube.com/iframe_api"></script>
+  <!-- Google Material Symbols Outlined -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
   <style>
-    /* ==========================================================================
-       Material Design 3 (MD3) Dark Theme Design Tokens & System
-       ========================================================================== */
     :root {
-      --md-sys-color-background: #141218;
-      --md-sys-color-surface: #1d1a22;
-      --md-sys-color-surface-container: #211f26;
-      --md-sys-color-surface-container-high: #2b2930;
-      --md-sys-color-surface-container-highest: #36343b;
-      --md-sys-color-primary: #d0bcff;
-      --md-sys-color-on-primary: #381e72;
-      --md-sys-color-primary-container: #4f378b;
-      --md-sys-color-on-primary-container: #eaddff;
-      --md-sys-color-secondary-container: #4a4458;
-      --md-sys-color-on-secondary-container: #e8def8;
-      --md-sys-color-outline: #938f99;
-      --md-sys-color-outline-variant: #49454f;
-      --md-sys-color-error: #f2b8b5;
-      --md-sys-color-on-error: #601410;
-      --md-sys-color-error-container: #8c1d18;
-      --md-sys-color-success: #a8f5a2;
-      --md-sys-color-on-surface: #e6e1e5;
-      --md-sys-color-on-surface-variant: #cac4d0;
-      --md-shape-corner-small: 8px;
-      --md-shape-corner-medium: 12px;
-      --md-shape-corner-large: 16px;
-      --md-shape-corner-full: 9999px;
+      --md-bg: #141218;
+      --md-surface: #1d1a22;
+      --md-surface-cnt: #211f26;
+      --md-surface-high: #2b2930;
+      --md-surface-highest: #36343b;
+      --md-primary: #d0bcff;
+      --md-on-primary: #381e72;
+      --md-primary-cnt: #4f378b;
+      --md-on-primary-cnt: #eaddff;
+      --md-sec-cnt: #4a4458;
+      --md-on-sec-cnt: #e8def8;
+      --md-outline: #938f99;
+      --md-outline-var: #49454f;
+      --md-error: #f2b8b5;
+      --md-error-cnt: #8c1d18;
+      --md-success: #a8f5a2;
+      --md-on-surface: #e6e1e5;
+      --md-on-surface-var: #cac4d0;
+      --r-sm: 8px;
+      --r-md: 12px;
+      --r-lg: 16px;
+      --r-full: 9999px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -46,24 +44,29 @@
       height: 100%;
       height: 100dvh;
       overflow: hidden;
-      background-color: var(--md-sys-color-background);
-      color: var(--md-sys-color-on-surface);
+      background-color: var(--md-bg);
+      color: var(--md-on-surface);
       font-family: Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
     body { display: flex; flex-direction: column; }
 
-    /* Top App Bar */
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      vertical-align: middle;
+      font-size: 20px;
+    }
+
     header {
       flex-shrink: 0;
-      background-color: var(--md-sys-color-surface);
+      background-color: var(--md-surface);
       padding: 10px 18px;
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
       gap: 12px;
-      border-bottom: 1px solid var(--md-sys-color-outline-variant);
+      border-bottom: 1px solid var(--md-outline-var);
       z-index: 30;
     }
 
@@ -72,8 +75,8 @@
       font-weight: 600;
       display: flex;
       align-items: center;
-      gap: 10px;
-      color: var(--md-sys-color-primary);
+      gap: 8px;
+      color: var(--md-primary);
     }
 
     .status-chip {
@@ -81,10 +84,10 @@
       align-items: center;
       gap: 6px;
       padding: 4px 12px;
-      border-radius: var(--md-shape-corner-full);
-      background: var(--md-sys-color-surface-container-high);
+      border-radius: var(--r-full);
+      background: var(--md-surface-high);
       font-size: 0.8rem;
-      color: var(--md-sys-color-on-surface-variant);
+      color: var(--md-on-surface-var);
     }
     .status-dot {
       width: 8px;
@@ -92,31 +95,30 @@
       border-radius: 50%;
       background: #747f8d;
     }
-    .status-dot.connected { background: var(--md-sys-color-success); box-shadow: 0 0 8px var(--md-sys-color-success); }
+    .status-dot.connected { background: var(--md-success); box-shadow: 0 0 8px var(--md-success); }
     .status-dot.waiting { background: #faa81a; }
 
     .md-field {
       display: flex;
       align-items: center;
-      background: var(--md-sys-color-surface-container);
-      border: 1px solid var(--md-sys-color-outline-variant);
-      border-radius: var(--md-shape-corner-small);
+      background: var(--md-surface-cnt);
+      border: 1px solid var(--md-outline-var);
+      border-radius: var(--r-sm);
       padding: 6px 12px;
       gap: 6px;
     }
-    .md-field span { font-size: 0.75rem; color: var(--md-sys-color-outline); }
+    .md-field span { font-size: 0.75rem; color: var(--md-outline); }
     .md-field input {
       background: transparent;
       border: none;
-      color: var(--md-sys-color-on-surface);
+      color: var(--md-on-surface);
       font-size: 0.88rem;
       outline: none;
     }
 
-    /* Buttons */
     .btn {
       border: none;
-      border-radius: var(--md-shape-corner-full);
+      border-radius: var(--r-full);
       padding: 8px 16px;
       font-size: 0.84rem;
       font-weight: 600;
@@ -128,14 +130,14 @@
       white-space: nowrap;
     }
     .btn:active { transform: scale(0.97); }
-    .btn-primary { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); }
+    .btn-primary { background: var(--md-primary); color: var(--md-on-primary); }
     .btn-primary:hover { background: #e8def8; }
-    .btn-tonal { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
+    .btn-tonal { background: var(--md-sec-cnt); color: var(--md-on-sec-cnt); }
     .btn-tonal:hover { background: #5c556b; }
-    .btn-danger { background: var(--md-sys-color-error-container); color: var(--md-sys-color-error); }
-    .btn-active { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
+    .btn-danger { background: var(--md-error-cnt); color: var(--md-error); }
+    .btn-active { background: var(--md-primary-cnt); color: var(--md-on-primary-cnt); }
+    .btn-xs { padding: 4px 10px; font-size: 0.75rem; border-radius: var(--r-full); }
 
-    /* メインレイアウト */
     .main-container {
       display: flex;
       flex: 1;
@@ -143,7 +145,6 @@
       position: relative;
     }
 
-    /* 左側：ステージ & カメラ */
     .stage-section {
       flex: 1;
       min-width: 0;
@@ -154,7 +155,6 @@
       position: relative;
     }
 
-    /* 上部：メインステージ (YouTube または 選択映像) */
     .main-stage {
       flex: 1;
       min-height: 0;
@@ -172,63 +172,47 @@
       max-height: 100%;
       aspect-ratio: 16 / 9;
       background: #000;
-      border-radius: var(--md-shape-corner-medium);
+      border-radius: var(--r-md);
       overflow: hidden;
       position: relative;
       display: flex;
       justify-content: center;
       align-items: center;
       box-shadow: 0 8px 24px rgba(0,0,0,0.85);
-      border: 1px solid var(--md-sys-color-outline-variant);
+      border: 1px solid var(--md-outline-var);
     }
 
-    #stageVideo {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
+    #stageVideo { width: 100%; height: 100%; object-fit: contain; }
 
     #ytContainer {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: none;
-      z-index: 5;
-      background: #000;
+      top: 0; left: 0; width: 100%; height: 100%;
+      display: none; z-index: 5; background: #000;
     }
     #player { width: 100%; height: 100%; }
 
-    /* 自動再生ブロック解除バナー */
     .unmute-banner {
       position: absolute;
       top: 14px;
       left: 50%;
       transform: translateX(-50%);
-      background: var(--md-sys-color-primary);
-      color: var(--md-sys-color-on-primary);
+      background: var(--md-primary);
+      color: var(--md-on-primary);
       padding: 8px 18px;
-      border-radius: var(--md-shape-corner-full);
+      border-radius: var(--r-full);
       font-size: 0.85rem;
       font-weight: bold;
       cursor: pointer;
       z-index: 25;
       display: none;
       box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-      animation: pulse 1.5s infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { transform: translate(-50%, 0); }
-      50% { transform: translate(-50%, -4px); }
     }
 
-    /* 下部：参加者カメラタイルバー */
     .camera-strip {
       height: 135px;
       flex-shrink: 0;
-      background: var(--md-sys-color-surface-container);
-      border-top: 1px solid var(--md-sys-color-outline-variant);
+      background: var(--md-surface-cnt);
+      border-top: 1px solid var(--md-outline-var);
       padding: 8px 14px;
       display: flex;
       gap: 10px;
@@ -240,7 +224,7 @@
       height: 100%;
       aspect-ratio: 16 / 9;
       background: #000;
-      border-radius: var(--md-shape-corner-small);
+      border-radius: var(--r-sm);
       position: relative;
       overflow: hidden;
       flex-shrink: 0;
@@ -248,18 +232,12 @@
       border: 2px solid transparent;
       transition: border-color 0.2s, transform 0.2s;
     }
-    .camera-tile:hover { transform: translateY(-2px); }
     .camera-tile.speaking {
-      border-color: var(--md-sys-color-success) !important;
-      box-shadow: 0 0 12px var(--md-sys-color-success);
+      border-color: var(--md-success) !important;
+      box-shadow: 0 0 12px var(--md-success);
     }
-    .camera-tile.focused { border-color: var(--md-sys-color-primary); }
-
-    .camera-tile video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
+    .camera-tile.focused { border-color: var(--md-primary); }
+    .camera-tile video { width: 100%; height: 100%; object-fit: cover; }
     .camera-tile.local video { transform: scaleX(-1); }
 
     .tile-badge {
@@ -269,7 +247,7 @@
       background: rgba(0, 0, 0, 0.65);
       backdrop-filter: blur(4px);
       padding: 2px 8px;
-      border-radius: var(--md-shape-corner-full);
+      border-radius: var(--r-full);
       font-size: 0.72rem;
       color: #fff;
       display: flex;
@@ -277,12 +255,11 @@
       gap: 4px;
     }
 
-    /* コントロールバー */
     .controls-bar {
       height: 64px;
       flex-shrink: 0;
-      background: var(--md-sys-color-surface);
-      border-top: 1px solid var(--md-sys-color-outline-variant);
+      background: var(--md-surface);
+      border-top: 1px solid var(--md-outline-var);
       display: flex;
       justify-content: center;
       align-items: center;
@@ -292,31 +269,34 @@
       overflow-x: auto;
     }
 
-    /* 右側：サイドバー */
     .sidebar {
       width: 330px;
       flex-shrink: 0;
-      background: var(--md-sys-color-surface);
-      border-left: 1px solid var(--md-sys-color-outline-variant);
+      background: var(--md-surface);
+      border-left: 1px solid var(--md-outline-var);
       display: flex;
       flex-direction: column;
     }
 
-    .tabs { display: flex; border-bottom: 1px solid var(--md-sys-color-outline-variant); flex-shrink: 0; }
+    .tabs { display: flex; border-bottom: 1px solid var(--md-outline-var); flex-shrink: 0; }
     .tab-btn {
       flex: 1;
       padding: 12px;
       background: transparent;
       border: none;
-      color: var(--md-sys-color-on-surface-variant);
+      color: var(--md-on-surface-var);
       font-size: 0.84rem;
       font-weight: 600;
       cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
       border-bottom: 3px solid transparent;
     }
     .tab-btn.active {
-      color: var(--md-sys-color-primary);
-      border-bottom-color: var(--md-sys-color-primary);
+      color: var(--md-primary);
+      border-bottom-color: var(--md-primary);
       background: rgba(208, 188, 255, 0.05);
     }
 
@@ -328,7 +308,6 @@
     }
     .tab-panel.active { display: flex; }
 
-    /* チャット */
     .messages-container {
       flex: 1;
       min-height: 0;
@@ -340,25 +319,24 @@
     }
     .msg {
       padding: 8px 14px;
-      border-radius: var(--md-shape-corner-medium);
+      border-radius: var(--r-md);
       font-size: 0.88rem;
       max-width: 85%;
       word-break: break-all;
     }
-    .msg.remote { background: var(--md-sys-color-surface-container-high); align-self: flex-start; }
-    .msg.local { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); align-self: flex-end; }
-    .msg.system { background: transparent; color: var(--md-sys-color-outline); font-size: 0.75rem; align-self: center; text-align: center; }
-    .msg-sender { font-size: 0.7rem; color: var(--md-sys-color-primary); margin-bottom: 2px; }
+    .msg.remote { background: var(--md-surface-high); align-self: flex-start; }
+    .msg.local { background: var(--md-primary-cnt); color: var(--md-on-primary-cnt); align-self: flex-end; }
+    .msg.system { background: transparent; color: var(--md-outline); font-size: 0.75rem; align-self: center; text-align: center; }
+    .msg-sender { font-size: 0.7rem; color: var(--md-primary); margin-bottom: 2px; }
 
     .chat-input-box {
       flex-shrink: 0;
       padding: 10px;
-      border-top: 1px solid var(--md-sys-color-outline-variant);
+      border-top: 1px solid var(--md-outline-var);
       display: flex;
       gap: 8px;
     }
 
-    /* 参加者一覧 */
     .user-list {
       padding: 12px;
       overflow-y: auto;
@@ -371,25 +349,22 @@
       align-items: center;
       justify-content: space-between;
       padding: 10px 14px;
-      background: var(--md-sys-color-surface-container);
-      border-radius: var(--md-shape-corner-small);
+      background: var(--md-surface-cnt);
+      border-radius: var(--r-sm);
       font-size: 0.88rem;
     }
 
-    /* ファイル転送 */
     .file-drop-area {
       margin: 14px;
-      border: 2px dashed var(--md-sys-color-outline-variant);
-      border-radius: var(--md-shape-corner-medium);
+      border: 2px dashed var(--md-outline-var);
+      border-radius: var(--r-md);
       padding: 24px;
       text-align: center;
-      color: var(--md-sys-color-outline);
+      color: var(--md-outline);
       cursor: pointer;
       font-size: 0.85rem;
     }
-    .file-drop-area:hover { border-color: var(--md-sys-color-primary); }
 
-    /* モーダル (YouTube検索) */
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -402,9 +377,9 @@
     }
     .modal-card {
       width: 92%;
-      max-width: 560px;
-      background: var(--md-sys-color-surface-container-high);
-      border-radius: var(--md-shape-corner-large);
+      max-width: 580px;
+      background: var(--md-surface-high);
+      border-radius: var(--r-lg);
       padding: 22px;
       display: flex;
       flex-direction: column;
@@ -421,14 +396,31 @@
       display: flex;
       gap: 10px;
       padding: 8px;
-      border-radius: var(--md-shape-corner-small);
+      border-radius: var(--r-sm);
       cursor: pointer;
-      background: var(--md-sys-color-surface-container);
+      background: var(--md-surface-cnt);
     }
-    .search-item:hover { background: var(--md-sys-color-secondary-container); }
     .search-item img { width: 100px; height: 58px; object-fit: cover; border-radius: 4px; }
 
-    /* トースト */
+    /* 投票カード */
+    .vote-kick-banner {
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--md-surface-highest);
+      border: 1px solid var(--md-primary);
+      padding: 12px 20px;
+      border-radius: var(--r-lg);
+      z-index: 40;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.7);
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 320px;
+      text-align: center;
+    }
+
     .toast-container {
       position: fixed;
       bottom: 76px;
@@ -439,59 +431,77 @@
       gap: 8px;
     }
     .toast {
-      background: var(--md-sys-color-surface-container-highest);
-      color: var(--md-sys-color-on-surface);
+      background: var(--md-surface-high);
+      color: var(--md-on-surface);
       padding: 10px 16px;
-      border-radius: var(--md-shape-corner-small);
+      border-radius: var(--r-sm);
       font-size: 0.84rem;
       box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
 
     @media (max-width: 768px) {
       .main-container { flex-direction: column; }
-      .sidebar { width: 100%; height: 250px; border-left: none; border-top: 1px solid var(--md-sys-color-outline-variant); }
+      .sidebar { width: 100%; height: 250px; border-left: none; border-top: 1px solid var(--md-outline-var); }
       .camera-strip { height: 100px; }
     }
   </style>
 </head>
 <body>
 
-  <!-- トップバー -->
   <header>
     <div class="brand-title">
-      <span>● P2P Mesh Room</span>
+      <span class="material-symbols-outlined">hub</span>
+      <span>P2P Mesh Room</span>
       <div class="status-chip">
         <span id="statusDot" class="status-dot"></span>
         <span id="roomStatusText">未接続</span>
       </div>
     </div>
 
-    <!-- ルーム・ユーザー名入力 -->
     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
       <div class="md-field">
-        <span>部屋</span>
+        <span class="material-symbols-outlined" style="font-size:16px;">meeting_room</span>
         <input type="text" id="roomNameInput" placeholder="ルーム名" size="8">
       </div>
       <div class="md-field">
-        <span>名前</span>
-        <input type="text" id="userNameInput" placeholder="あなたの名前" size="8">
+        <span class="material-symbols-outlined" style="font-size:16px;">badge</span>
+        <input type="text" id="userNameInput" placeholder="名前" size="8">
       </div>
 
-      <button id="joinBtn" class="btn btn-primary" onclick="joinMeshRoom()">参加</button>
-      <button class="btn btn-tonal" onclick="copyInviteUrl()">🔗 招待URL</button>
-      <button id="leaveBtn" class="btn btn-danger" style="display:none;" onclick="leaveMeshRoom()">退室</button>
+      <button id="joinBtn" class="btn btn-primary" onclick="joinMeshRoom()">
+        <span class="material-symbols-outlined">login</span>参加
+      </button>
+      <button class="btn btn-tonal" onclick="copyInviteUrl()">
+        <span class="material-symbols-outlined">link</span>招待URL
+      </button>
+      <button id="leaveBtn" class="btn btn-danger" style="display:none;" onclick="leaveMeshRoom()">
+        <span class="material-symbols-outlined">logout</span>退室
+      </button>
     </div>
   </header>
 
-  <!-- メイン画面 -->
   <div class="main-container">
-    <!-- ステージ & カメラエリア -->
     <div class="stage-section">
-      <!-- 上部：大画面ステージ -->
+      <!-- 投票キック バナー -->
+      <div id="voteKickBanner" class="vote-kick-banner">
+        <div style="font-size:0.9rem; font-weight:bold; display:flex; align-items:center; justify-content:center; gap:6px;">
+          <span class="material-symbols-outlined" style="color:var(--md-error);">how_to_vote</span>
+          <span id="voteTargetName"></span> をキックしますか？
+        </div>
+        <div style="font-size:0.75rem; color:var(--md-outline);" id="voteStatusLine">残り 20 秒 (必要賛成数: 0)</div>
+        <div style="display:flex; justify-content:center; gap:10px; margin-top:4px;" id="voteActionsArea">
+          <button class="btn btn-primary btn-xs" onclick="castKickVote('yes')">
+            <span class="material-symbols-outlined" style="font-size:16px;">thumb_up</span>賛成 (<span id="voteYesCount">0</span>)
+          </button>
+          <button class="btn btn-tonal btn-xs" onclick="castKickVote('no')">
+            <span class="material-symbols-outlined" style="font-size:16px;">thumb_down</span>反対 (<span id="voteNoCount">0</span>)
+          </button>
+        </div>
+      </div>
+
       <div class="main-stage">
-        <!-- 自動再生ブロック解除バナー -->
         <div id="unmuteBanner" class="unmute-banner" onclick="forceUnmuteYouTube()">
-          🔊 タップして音声を再生
+          <span class="material-symbols-outlined">volume_up</span> タップして音声を再生
         </div>
 
         <div class="aspect-screen">
@@ -502,57 +512,71 @@
         </div>
       </div>
 
-      <!-- 下部：カメラタイルバー -->
       <div class="camera-strip" id="cameraStrip">
-        <!-- 自分のカメラ -->
         <div class="camera-tile local focused" id="tile-local" onclick="focusVideo('local')">
           <video id="localVideo" autoplay playsinline muted></video>
           <div class="tile-badge">
             <span id="localTileName">自分</span>
-            <span id="localTileMic">🎤</span>
+            <span id="localTileMic" class="material-symbols-outlined" style="font-size:14px;">mic</span>
           </div>
         </div>
       </div>
 
-      <!-- 下部コントロールバー -->
       <div class="controls-bar">
-        <button id="micBtn" class="btn btn-tonal" onclick="toggleMic()">🎤 マイクON</button>
-        <button id="camBtn" class="btn btn-tonal" onclick="toggleCam()">📷 カメラON</button>
-        <button id="shareScreenBtn" class="btn btn-tonal" onclick="toggleScreenShare()">🖥 画面共有</button>
-        <button id="ytModalBtn" class="btn btn-tonal" onclick="openYouTubeModal()">▶ YouTube検索</button>
-        <button id="ttsToggleBtn" class="btn btn-tonal" onclick="cycleTtsMode()">🗣 読み上げ: ずんだもん(本物)</button>
-        <button id="fullscreenBtn" class="btn btn-tonal" onclick="toggleFullScreen()">⛶ 全画面</button>
+        <button id="micBtn" class="btn btn-tonal" onclick="toggleMic()">
+          <span class="material-symbols-outlined">mic</span>マイクON
+        </button>
+        <button id="camBtn" class="btn btn-tonal" onclick="toggleCam()">
+          <span class="material-symbols-outlined">videocam</span>カメラON
+        </button>
+        <button id="shareScreenBtn" class="btn btn-tonal" onclick="toggleScreenShare()">
+          <span class="material-symbols-outlined">screen_share</span>画面共有
+        </button>
+        <button class="btn btn-tonal" onclick="openYouTubeModal()">
+          <span class="material-symbols-outlined">smart_display</span>YouTube
+        </button>
+        <button id="ttsToggleBtn" class="btn btn-tonal" onclick="cycleTtsMode()">
+          <span class="material-symbols-outlined">record_voice_over</span>ずんだもん: ON
+        </button>
+        <button class="btn btn-tonal" onclick="toggleFullScreen()">
+          <span class="material-symbols-outlined">fullscreen</span>全画面
+        </button>
       </div>
     </div>
 
-    <!-- 右側：サイドバー -->
     <div class="sidebar">
       <div class="tabs">
-        <button id="tabChatBtn" class="tab-btn active" onclick="switchSidebarTab('chat')">チャット</button>
-        <button id="tabUsersBtn" class="tab-btn" onclick="switchSidebarTab('users')">参加者 (<span id="userCount">1</span>)</button>
-        <button id="tabFileBtn" class="tab-btn" onclick="switchSidebarTab('file')">ファイル</button>
+        <button id="tabChatBtn" class="tab-btn active" onclick="switchSidebarTab('chat')">
+          <span class="material-symbols-outlined">chat</span>チャット
+        </button>
+        <button id="tabUsersBtn" class="tab-btn" onclick="switchSidebarTab('users')">
+          <span class="material-symbols-outlined">group</span>参加者 (<span id="userCount">1</span>)
+        </button>
+        <button id="tabFileBtn" class="tab-btn" onclick="switchSidebarTab('file')">
+          <span class="material-symbols-outlined">folder</span>ファイル
+        </button>
       </div>
 
-      <!-- チャットタブ -->
       <div id="tabChat" class="tab-panel active">
         <div class="messages-container" id="messagesContainer">
-          <div class="msg system">ルーム名と名前を入力して「参加」してください</div>
+          <div class="msg system">ルーム名と名前を入力して参加してください</div>
         </div>
         <div class="chat-input-box">
           <input type="text" id="chatInput" class="md-field" style="flex:1;" placeholder="メッセージ..." onkeydown="if(event.key==='Enter') sendChatMessage()">
-          <button class="btn btn-primary" onclick="sendChatMessage()">送信</button>
+          <button class="btn btn-primary" onclick="sendChatMessage()">
+            <span class="material-symbols-outlined">send</span>
+          </button>
         </div>
       </div>
 
-      <!-- 参加者タブ -->
       <div id="tabUsers" class="tab-panel">
         <div class="user-list" id="userListContainer"></div>
       </div>
 
-      <!-- ファイルタブ -->
       <div id="tabFile" class="tab-panel">
         <div class="file-drop-area" onclick="document.getElementById('fileInput').click()" ondragover="event.preventDefault()" ondrop="handleDropFile(event)">
-          ファイルをドロップ または クリックして転送
+          <span class="material-symbols-outlined" style="font-size:32px; display:block; margin-bottom:8px;">upload_file</span>
+          ファイルをドロップ または クリック
           <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)">
         </div>
         <div id="fileItemsList" style="padding:12px; display:flex; flex-direction:column; gap:8px;"></div>
@@ -560,40 +584,47 @@
     </div>
   </div>
 
-  <!-- YouTube検索 / URLモーダル -->
+  <!-- YouTube検索 モーダル -->
   <div class="modal-overlay" id="ytModal">
     <div class="modal-card">
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3 style="font-size:1.05rem; color:var(--md-sys-color-primary);">YouTube 動画検索・URL指定</h3>
-        <button class="btn btn-tonal" style="padding:4px 10px;" onclick="closeYouTubeModal()">✕</button>
+        <h3 style="font-size:1.05rem; color:var(--md-primary); display:flex; align-items:center; gap:6px;">
+          <span class="material-symbols-outlined">smart_display</span>YouTube 動画検索
+        </h3>
+        <button class="btn btn-tonal" style="padding:4px 8px;" onclick="closeYouTubeModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
       </div>
+
       <div style="display:flex; gap:8px;">
-        <input type="text" id="ytSearchInput" class="md-field" style="flex:1;" placeholder="キーワード または YouTubeのURL" onkeydown="if(event.key==='Enter') searchYouTube()">
-        <button class="btn btn-primary" onclick="searchYouTube()">検索</button>
+        <input type="text" id="ytSearchInput" class="md-field" style="flex:1;" placeholder="キーワード または YouTube URL" onkeydown="if(event.key==='Enter') searchYouTube()">
+        <button class="btn btn-primary" onclick="searchYouTube()">
+          <span class="material-symbols-outlined">search</span>検索
+        </button>
+        <button class="btn btn-tonal" onclick="openExternalYouTubeSearch()" title="YouTube公式を別タブで開く">
+          <span class="material-symbols-outlined">open_in_new</span>
+        </button>
       </div>
+
       <div class="search-results" id="ytSearchResults">
-        <div style="font-size:0.85rem; color:var(--md-sys-color-outline); text-align:center; padding:20px;">
-          キーワードを入力して検索するか、直接URLを貼り付けてください。
+        <div style="font-size:0.85rem; color:var(--md-outline); text-align:center; padding:20px;">
+          キーワードを入力して「検索」するか、動画URLを直接貼り付けてください。
         </div>
       </div>
     </div>
   </div>
 
-  <!-- トースト通知 -->
   <div class="toast-container" id="toastContainer"></div>
 
   <script>
-    // ==========================================================================
-    // グローバル状態管理
-    // ==========================================================================
     let myPeerId = null;
     let myUserName = 'ゲスト';
     let currentRoomName = '';
     let isHost = false;
     let peer = null;
 
-    // フルメッシュピア管理: { [peerId]: { conn, call, stream, userName, isMuted, isCamOff } }
     const peers = {};
+    const kickedPeers = new Set();
 
     let localStream = null;
     let screenStream = null;
@@ -601,43 +632,40 @@
     let isCamOn = true;
     let isScreenSharing = false;
 
-    // YouTube同時視聴
     let ytPlayer = null;
     let isYtReady = false;
     let isRemoteAction = false;
     let isYtActive = false;
 
-    // 発話検知 AudioContext
     let audioContext = null;
 
-    // --- チャット読み上げ (本物ずんだもんAPI + 再生キュー) ---
-    let ttsMode = 'zundamon'; // 'zundamon', 'standard', 'off'
+    // ずんだもん高速化 (キャッシュ & 最適化)
+    let isTtsOn = true;
     const ttsQueue = [];
     let isSpeaking = false;
+    const ttsAudioCache = new Map();
 
-    // ==========================================================================
-    // 起動初期化
-    // ==========================================================================
+    // 投票キック状態
+    let currentVote = null;
+    let voteTimerInterval = null;
+
     window.addEventListener('DOMContentLoaded', async () => {
       await setupMedia();
-
-      // URLパラメータのルーム名を自動入力
       const params = new URLSearchParams(window.location.search);
       if (params.get('room')) document.getElementById('roomNameInput').value = params.get('room');
-
-      // ランダムユーザー名初期化
       document.getElementById('userNameInput').value = 'ゲスト' + Math.floor(Math.random() * 900 + 100);
 
-      // ネットワーク切断自動復帰
-      window.addEventListener('online', handleNetworkReconnected);
-      window.addEventListener('offline', () => showToast('ネットワークが切断されました', 'error'));
+      window.addEventListener('online', () => {
+        showToast('ネットワーク復帰');
+        if (peer && peer.disconnected) peer.reconnect();
+      });
+      window.addEventListener('offline', () => showToast('ネットワーク切断', 'error'));
     });
 
     async function setupMedia() {
       try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       } catch (err) {
-        console.warn('カメラ・マイク取得エラー。音声のみ試行:', err);
         try {
           localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
         } catch (e) {
@@ -652,12 +680,9 @@
       setupSpeakingDetector('local', localStream);
     }
 
-    // ==========================================================================
-    // ルームIDハッシュ生成 ＆ フルメッシュ接続
-    // ==========================================================================
     async function getRoomHostId(roomName) {
       const enc = new TextEncoder();
-      const data = enc.encode(`p2p_mesh_room_v2:${roomName.trim()}`);
+      const data = enc.encode(`p2p_mesh_room_v4:${roomName.trim()}`);
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const key = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
@@ -667,8 +692,7 @@
     async function joinMeshRoom() {
       const room = document.getElementById('roomNameInput').value.trim();
       const name = document.getElementById('userNameInput').value.trim();
-      if (!room) return alert('ルーム名を入力してください');
-      if (!name) return alert('ユーザー名を入力してください');
+      if (!room || !name) return alert('部屋名と名前を入力してください');
 
       myUserName = name;
       currentRoomName = room;
@@ -689,9 +713,8 @@
         isHost = true;
         myPeerId = id;
         setupPeerCommon();
-        setUIState('waiting', `部屋: ${currentRoomName} (ホスト待機中)`);
-        showToast('部屋を作成しました（あなたがホストです）');
-        speakText(`${myUserName}さんが入室しました`);
+        setUIState('waiting', `部屋: ${currentRoomName} (ホスト)`);
+        showToast('部屋を作成しました');
         updateUserListUI();
       });
 
@@ -713,10 +736,8 @@
         isHost = false;
         myPeerId = id;
         setupPeerCommon();
-        setUIState('waiting', `部屋: ${currentRoomName} (接続中...)`);
-
-        connectToSinglePeer(hostId, true);
-        speakText(`${myUserName}さんが入室しました`);
+        setUIState('waiting', `部屋: ${currentRoomName} (接続中)`);
+        connectToSinglePeer(hostId);
       });
 
       peer.on('error', (err) => {
@@ -726,23 +747,22 @@
     }
 
     function setupPeerCommon() {
-      peer.on('disconnected', () => {
-        showToast('シグナリングが切断されました。再接続しています...', 'error');
-        peer.reconnect();
-      });
+      peer.on('disconnected', () => peer.reconnect());
 
       peer.on('call', (call) => {
+        if (kickedPeers.has(call.peer)) return call.close();
         call.answer(localStream);
         setupCallEvents(call);
       });
 
       peer.on('connection', (conn) => {
+        if (kickedPeers.has(conn.peer)) return conn.close();
         setupConnEvents(conn);
       });
     }
 
     function connectToSinglePeer(targetPeerId) {
-      if (peers[targetPeerId] && peers[targetPeerId].conn) return;
+      if (kickedPeers.has(targetPeerId) || (peers[targetPeerId] && peers[targetPeerId].conn)) return;
 
       const conn = peer.connect(targetPeerId, { reliable: true });
       setupConnEvents(conn);
@@ -779,9 +799,8 @@
           isCamOff: !isCamOn
         });
 
-        // ホストの場合：新参加者に現在の全員のリストとYouTubeの状態を共有
         if (isHost) {
-          const peerIds = Object.keys(peers).filter(id => id !== pId);
+          const peerIds = Object.keys(peers).filter(id => id !== pId && !kickedPeers.has(id));
           conn.send({ type: 'mesh-members', members: peerIds });
 
           if (isYtActive && ytPlayer && ytPlayer.getVideoData) {
@@ -805,19 +824,18 @@
           peers[fromPeerId].userName = data.userName;
           updateTileName(fromPeerId, data.userName);
           updateUserListUI();
-          showToast(`${data.userName} さんが参加しました`);
-          speakText(`${data.userName}さんが参加しました`);
+          showToast(`${data.userName} が参加`);
           break;
 
         case 'mesh-members':
           data.members.forEach(otherId => {
-            if (otherId !== myPeerId) connectToSinglePeer(otherId);
+            if (otherId !== myPeerId && !kickedPeers.has(otherId)) connectToSinglePeer(otherId);
           });
           break;
 
         case 'chat':
           appendChatMessage(data.text, 'remote', data.userName);
-          speakText(`${data.userName}さん、${data.text}`);
+          queueFastZundamonSpeech(data.text);
           break;
 
         case 'status-update':
@@ -826,9 +844,6 @@
             peers[fromPeerId].isCamOff = data.isCamOff;
             updateTileIcons(fromPeerId, data.isMuted, data.isCamOff);
             updateUserListUI();
-            if (data.muteChanged) {
-              speakText(`${peers[fromPeerId].userName}さんがマイクを${data.isMuted ? 'ミュート' : '解除'}しました`);
-            }
           }
           break;
 
@@ -850,6 +865,19 @@
           }, 1200);
           break;
 
+        // 投票キック イベント
+        case 'vote-kick-start':
+          handleVoteKickStart(data);
+          break;
+
+        case 'vote-kick-vote':
+          handleVoteKickVote(data);
+          break;
+
+        case 'vote-kick-success':
+          handleVoteKickSuccess(data);
+          break;
+
         case 'file-meta':
           handleFileMeta(data);
           break;
@@ -860,18 +888,137 @@
       }
     }
 
-    function removePeer(peerId) {
-      if (peers[peerId]) {
-        const name = peers[peerId].userName || '誰か';
-        showToast(`${name} さんが退室しました`);
-        speakText(`${name}さんが退出しました`);
-        delete peers[peerId];
+    // ==========================================================================
+    // 投票キック (Vote Kick) システム
+    // ==========================================================================
+    function startKickVote(targetId) {
+      if (currentVote) return showToast('すでに投票が進行中です', 'error');
+      const target = peers[targetId];
+      if (!target) return;
+
+      if (!confirm(`${target.userName} をキックするための投票を開始しますか？`)) return;
+
+      const totalVoters = Object.keys(peers).length; // 自分 + 他参加者 (キック対象除く)
+      const requiredYes = Math.floor(totalVoters / 2) + 1; // 過半数
+
+      const voteData = {
+        type: 'vote-kick-start',
+        voteId: Math.random().toString(36).substring(2, 9),
+        targetId: targetId,
+        targetName: target.userName,
+        initiator: myUserName,
+        requiredYes: requiredYes
+      };
+
+      broadcast(voteData);
+      handleVoteKickStart(voteData);
+    }
+
+    function handleVoteKickStart(data) {
+      currentVote = {
+        voteId: data.voteId,
+        targetId: data.targetId,
+        targetName: data.targetName,
+        requiredYes: data.requiredYes,
+        yesCount: 0,
+        noCount: 0,
+        votedUsers: new Set(),
+        timeLeft: 20
+      };
+
+      const banner = document.getElementById('voteKickBanner');
+      document.getElementById('voteTargetName').textContent = data.targetName;
+      document.getElementById('voteYesCount').textContent = '0';
+      document.getElementById('voteNoCount').textContent = '0';
+      banner.style.display = 'flex';
+
+      // 対象者自身は投票不可
+      if (myPeerId === data.targetId) {
+        document.getElementById('voteActionsArea').style.display = 'none';
+        document.getElementById('voteStatusLine').textContent = 'あなたに対するキック投票が開始されました...';
+      } else {
+        document.getElementById('voteActionsArea').style.display = 'flex';
+        document.getElementById('voteStatusLine').textContent = `残り 20 秒 (必要賛成数: ${data.requiredYes}票)`;
       }
+
+      clearInterval(voteTimerInterval);
+      voteTimerInterval = setInterval(() => {
+        if (!currentVote) return clearInterval(voteTimerInterval);
+        currentVote.timeLeft--;
+        document.getElementById('voteStatusLine').textContent = `残り ${currentVote.timeLeft} 秒 (必要賛成数: ${currentVote.requiredYes}票)`;
+
+        if (currentVote.timeLeft <= 0) {
+          clearInterval(voteTimerInterval);
+          closeVoteKickUI('時間切れにより投票は否決されました');
+        }
+      }, 1000);
+    }
+
+    function castKickVote(choice) {
+      if (!currentVote || currentVote.votedUsers.has(myPeerId)) return;
+      currentVote.votedUsers.add(myPeerId);
+      document.getElementById('voteActionsArea').style.display = 'none';
+
+      const payload = {
+        type: 'vote-kick-vote',
+        voteId: currentVote.voteId,
+        choice: choice,
+        from: myPeerId
+      };
+      broadcast(payload);
+      handleVoteKickVote(payload);
+    }
+
+    function handleVoteKickVote(data) {
+      if (!currentVote || currentVote.voteId !== data.voteId) return;
+
+      if (data.choice === 'yes') currentVote.yesCount++;
+      else currentVote.noCount++;
+
+      document.getElementById('voteYesCount').textContent = currentVote.yesCount;
+      document.getElementById('voteNoCount').textContent = currentVote.noCount;
+
+      // 過半数到達で可決
+      if (currentVote.yesCount >= currentVote.requiredYes) {
+        clearInterval(voteTimerInterval);
+        const successData = {
+          type: 'vote-kick-success',
+          targetId: currentVote.targetId,
+          targetName: currentVote.targetName
+        };
+        broadcast(successData);
+        handleVoteKickSuccess(successData);
+      }
+    }
+
+    function handleVoteKickSuccess(data) {
+      closeVoteKickUI(`投票の結果、${data.targetName} がキックされました`);
+      kickedPeers.add(data.targetId);
+
+      if (myPeerId === data.targetId) {
+        alert('キック投票が可決されたため、ルームから退出させられました。');
+        leaveMeshRoom();
+      } else {
+        if (peers[data.targetId]) {
+          if (peers[data.targetId].conn) peers[data.targetId].conn.close();
+          if (peers[data.targetId].call) peers[data.targetId].call.close();
+          removePeer(data.targetId);
+        }
+      }
+    }
+
+    function closeVoteKickUI(msg) {
+      document.getElementById('voteKickBanner').style.display = 'none';
+      clearInterval(voteTimerInterval);
+      currentVote = null;
+      if (msg) showToast(msg);
+    }
+
+    function removePeer(peerId) {
+      if (peers[peerId]) delete peers[peerId];
       removeCameraTile(peerId);
       updateUserListUI();
-      if (Object.keys(peers).length === 0 && !isHost) {
-        setUIState('waiting', '待機中');
-      }
+      if (Object.keys(peers).length === 0 && !isHost) setUIState('waiting', '待機中');
     }
 
     function broadcast(data) {
@@ -882,9 +1029,6 @@
       });
     }
 
-    // ==========================================================================
-    // カメラタイル ＆ 大画面フォーカス
-    // ==========================================================================
     function addCameraTile(id, stream, name) {
       if (document.getElementById(`tile-${id}`)) return;
       const strip = document.getElementById('cameraStrip');
@@ -898,7 +1042,7 @@
         <video id="vid-${id}" autoplay playsinline></video>
         <div class="tile-badge">
           <span id="name-${id}">${name}</span>
-          <span id="mic-${id}">🎤</span>
+          <span id="mic-${id}" class="material-symbols-outlined" style="font-size:14px;">mic</span>
         </div>
       `;
       strip.appendChild(tile);
@@ -920,7 +1064,7 @@
 
     function updateTileIcons(id, isMuted, isCamOff) {
       const mic = document.getElementById(`mic-${id}`);
-      if (mic) mic.textContent = isMuted ? '🔇' : '🎤';
+      if (mic) mic.textContent = isMuted ? 'mic_off' : 'mic';
       const vid = document.getElementById(`vid-${id}`);
       if (vid) vid.style.opacity = isCamOff ? '0' : '1';
     }
@@ -945,9 +1089,6 @@
       }
     }
 
-    // ==========================================================================
-    // 発話検知 (Voice Activity Detection)
-    // ==========================================================================
     function setupSpeakingDetector(id, stream) {
       try {
         if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -967,17 +1108,15 @@
           const avg = sum / dataArray.length;
 
           const tile = document.getElementById(`tile-${id}`);
-          if (tile) {
-            tile.classList.toggle('speaking', avg > 22);
-          }
+          if (tile) tile.classList.toggle('speaking', avg > 22);
           requestAnimationFrame(checkVolume);
         }
         checkVolume();
-      } catch (e) { console.warn('発話検知初期化失敗:', e); }
+      } catch (e) {}
     }
 
     // ==========================================================================
-    // YouTube 同時視聴 ＆ 自動再生ブロック対策
+    // YouTube 同時視聴 ＆ 堅牢検索
     // ==========================================================================
     function onYouTubeIframeAPIReady() {
       ytPlayer = new YT.Player('player', {
@@ -1024,10 +1163,9 @@
       }
 
       if (data.action === 'play') {
-        const playPromise = ytPlayer.playVideo();
-        if (playPromise && playPromise.catch) {
-          playPromise.catch(() => {
-            // 自動再生がブロックされた場合はミュートにして再生し、解除バナーを表示
+        const p = ytPlayer.playVideo();
+        if (p && p.catch) {
+          p.catch(() => {
             ytPlayer.mute();
             ytPlayer.playVideo();
             document.getElementById('unmuteBanner').style.display = 'block';
@@ -1047,9 +1185,6 @@
       document.getElementById('unmuteBanner').style.display = 'none';
     }
 
-    // ==========================================================================
-    // YouTube 検索モーダル
-    // ==========================================================================
     function openYouTubeModal() { document.getElementById('ytModal').style.display = 'flex'; }
     function closeYouTubeModal() { document.getElementById('ytModal').style.display = 'none'; }
 
@@ -1058,6 +1193,13 @@
       return match ? match[5] : input;
     }
 
+    function openExternalYouTubeSearch() {
+      const q = document.getElementById('ytSearchInput').value.trim();
+      const url = q ? `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}` : 'https://www.youtube.com';
+      window.open(url, '_blank');
+    }
+
+    // 複数APIフォールバックによる堅牢な動画検索
     async function searchYouTube() {
       const q = document.getElementById('ytSearchInput').value.trim();
       if (!q) return;
@@ -1072,126 +1214,132 @@
       const resultsBox = document.getElementById('ytSearchResults');
       resultsBox.innerHTML = '<div style="text-align:center; padding:20px;">検索中...</div>';
 
-      try {
-        const res = await fetch(`https://inv.nadeko.net/api/v1/search?q=${encodeURIComponent(q)}&type=video`);
-        const items = await res.json();
+      const endpoints = [
+        `https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(q)}&filter=videos`,
+        `https://api.piped.privacydev.net/search?q=${encodeURIComponent(q)}&filter=videos`,
+        `https://yewtu.be/api/v1/search?q=${encodeURIComponent(q)}&type=video`,
+        `https://invidious.nerdvpn.de/api/v1/search?q=${encodeURIComponent(q)}&type=video`
+      ];
 
-        resultsBox.innerHTML = '';
-        items.slice(0, 10).forEach(item => {
-          const div = document.createElement('div');
-          div.className = 'search-item';
-          div.innerHTML = `
-            <img src="${item.videoThumbnails ? item.videoThumbnails[0].url : ''}">
-            <div style="flex:1; overflow:hidden;">
-              <div style="font-size:0.85rem; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.title}</div>
-              <div style="font-size:0.75rem; color:var(--md-sys-color-outline);">${item.author}</div>
-            </div>
-          `;
-          div.onclick = () => {
-            selectAndBroadcastVideo(item.videoId, item.title);
-            closeYouTubeModal();
-          };
-          resultsBox.appendChild(div);
-        });
-      } catch (err) {
+      let items = null;
+
+      for (const url of endpoints) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          const res = await fetch(url, { signal: controller.signal });
+          clearTimeout(timeoutId);
+
+          if (!res.ok) continue;
+          const json = await res.json();
+          const rawItems = json.items || json;
+
+          if (Array.isArray(rawItems) && rawItems.length > 0) {
+            items = rawItems.map(item => {
+              const vId = item.videoId || (item.url ? item.url.replace('/watch?v=', '') : '');
+              return {
+                id: vId,
+                title: item.title,
+                author: item.uploaderName || item.author || '',
+                thumb: item.thumbnail || (item.videoThumbnails ? item.videoThumbnails[0]?.url : `https://i.ytimg.com/vi/${vId}/hqdefault.jpg`)
+              };
+            }).filter(i => i.id && i.id.length === 11);
+            if (items.length > 0) break;
+          }
+        } catch (e) {}
+      }
+
+      if (!items || items.length === 0) {
         resultsBox.innerHTML = `
-          <div style="text-align:center; padding:10px; color:var(--md-sys-color-error);">
-            検索APIが混雑しています。上部に直接動画URLを貼り付けて「検索」を押してください。
+          <div style="text-align:center; padding:16px;">
+            <p style="color:var(--md-error); margin-bottom:10px;">検索結果を取得できませんでした。</p>
+            <button class="btn btn-primary" onclick="openExternalYouTubeSearch()">
+              <span class="material-symbols-outlined">open_in_new</span>YouTube公式で開いてURLをコピー
+            </button>
           </div>
         `;
+        return;
       }
+
+      resultsBox.innerHTML = '';
+      items.slice(0, 10).forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'search-item';
+        div.innerHTML = `
+          <img src="${item.thumb}">
+          <div style="flex:1; overflow:hidden;">
+            <div style="font-size:0.85rem; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.title}</div>
+            <div style="font-size:0.75rem; color:var(--md-outline);">${item.author}</div>
+          </div>
+        `;
+        div.onclick = () => {
+          selectAndBroadcastVideo(item.id, item.title);
+          closeYouTubeModal();
+        };
+        resultsBox.appendChild(div);
+      });
     }
 
     function selectAndBroadcastVideo(videoId, title) {
       openYouTubeScreen(videoId);
       broadcast({ type: 'yt-load', videoId: videoId });
-      showToast(`YouTube: 「${title}」を同期再生`);
-      speakText(`ユーチューブが読み込まれました`);
+      showToast(`再生: ${title}`);
     }
 
     // ==========================================================================
-    // チャット読み上げ (本物のずんだもんAPI + 再生キュー + 自動フォールバック)
+    // ずんだもん読み上げ (高速化: キャッシュ + 短縮)
     // ==========================================================================
     function cycleTtsMode() {
+      isTtsOn = !isTtsOn;
       const btn = document.getElementById('ttsToggleBtn');
-      if (ttsMode === 'zundamon') {
-        ttsMode = 'standard';
-        btn.textContent = '🗣 読み上げ: 標準';
-      } else if (ttsMode === 'standard') {
-        ttsMode = 'off';
-        btn.textContent = '🔇 読み上げ: OFF';
-      } else {
-        ttsMode = 'zundamon';
-        btn.textContent = '🗣 読み上げ: ずんだもん(本物)';
-      }
-      showToast(`読み上げモード: ${ttsMode}`);
+      btn.innerHTML = `<span class="material-symbols-outlined">${isTtsOn ? 'record_voice_over' : 'voice_over_off'}</span>ずんだもん: ${isTtsOn ? 'ON' : 'OFF'}`;
+      btn.classList.toggle('btn-active', isTtsOn);
+      showToast(isTtsOn ? 'ずんだもん読み上げ ON' : '読み上げ OFF');
     }
 
-    function speakText(text) {
-      if (ttsMode === 'off') return;
-      // 長すぎる文章はカットしてキューへ
-      ttsQueue.push(text.slice(0, 60));
-      processTtsQueue();
+    function queueFastZundamonSpeech(text) {
+      if (!isTtsOn) return;
+      // 高速化のため不要な文字・URLを排除し15文字にトリミング
+      const clean = text.replace(/https?:\/\/\S+/g, 'URL').replace(/w{2,}/gi, 'わら').slice(0, 15).trim();
+      if (!clean) return;
+
+      ttsQueue.push(clean);
+      processFastTtsQueue();
     }
 
-    async function processTtsQueue() {
+    async function processFastTtsQueue() {
       if (isSpeaking || ttsQueue.length === 0) return;
       isSpeaking = true;
       const text = ttsQueue.shift();
 
-      if (ttsMode === 'zundamon') {
-        try {
-          // TTS Quest V3 VOICEVOX API (ずんだもん ノーマル: speaker=3)
+      try {
+        let streamUrl = ttsAudioCache.get(text);
+
+        if (!streamUrl) {
           const res = await fetch(`https://api.tts.quest/v3/voicevox/synthesis?speaker=3&text=${encodeURIComponent(text)}`);
           const data = await res.json();
-
           if (data.success && data.mp3StreamingUrl) {
-            const audio = new Audio(data.mp3StreamingUrl);
-            await new Promise((resolve) => {
-              audio.onended = resolve;
-              audio.onerror = () => {
-                speakBrowserTTS(text, true);
-                resolve();
-              };
-              audio.play().catch(resolve);
-            });
-          } else {
-            throw new Error(data.errorMessage || 'API制限');
+            streamUrl = data.mp3StreamingUrl;
+            ttsAudioCache.set(text, streamUrl); // キャッシュ登録
           }
-        } catch (err) {
-          console.warn('ずんだもんAPIエラー、ブラウザTTSへフォールバック:', err);
-          await speakBrowserTTS(text, true);
         }
-      } else {
-        await speakBrowserTTS(text, false);
-      }
+
+        if (streamUrl) {
+          const audio = new Audio(streamUrl);
+          await new Promise(resolve => {
+            audio.onended = resolve;
+            audio.onerror = resolve;
+            audio.play().catch(resolve);
+          });
+        }
+      } catch (err) {}
 
       isSpeaking = false;
-      processTtsQueue();
-    }
-
-    function speakBrowserTTS(text, isZundaPitch) {
-      return new Promise((resolve) => {
-        if (!window.speechSynthesis) return resolve();
-        window.speechSynthesis.cancel();
-
-        const uttr = new SpeechSynthesisUtterance(text);
-        uttr.lang = 'ja-JP';
-        uttr.pitch = isZundaPitch ? 1.75 : 1.0;
-        uttr.rate = isZundaPitch ? 1.25 : 1.0;
-
-        const voices = window.speechSynthesis.getVoices();
-        const jaVoice = voices.find(v => v.lang.includes('ja') || v.lang.includes('JP'));
-        if (jaVoice) uttr.voice = jaVoice;
-
-        uttr.onend = resolve;
-        uttr.onerror = resolve;
-        window.speechSynthesis.speak(uttr);
-      });
+      processFastTtsQueue();
     }
 
     // ==========================================================================
-    // メディアコントロール (マイク・カメラ・画面共有)
+    // メディアコントロール
     // ==========================================================================
     function toggleMic() {
       if (!localStream) return;
@@ -1199,11 +1347,11 @@
       localStream.getAudioTracks().forEach(t => t.enabled = isMicOn);
 
       const btn = document.getElementById('micBtn');
-      btn.textContent = isMicOn ? '🎤 マイクON' : '🔇 マイクOFF';
+      btn.innerHTML = `<span class="material-symbols-outlined">${isMicOn ? 'mic' : 'mic_off'}</span>マイク${isMicOn ? 'ON' : 'OFF'}`;
       btn.classList.toggle('btn-danger', !isMicOn);
-      document.getElementById('localTileMic').textContent = isMicOn ? '🎤' : '🔇';
+      document.getElementById('localTileMic').textContent = isMicOn ? 'mic' : 'mic_off';
 
-      broadcast({ type: 'status-update', isMuted: !isMicOn, isCamOff: !isCamOn, muteChanged: true });
+      broadcast({ type: 'status-update', isMuted: !isMicOn, isCamOff: !isCamOn });
     }
 
     function toggleCam() {
@@ -1212,18 +1360,16 @@
       localStream.getVideoTracks().forEach(t => t.enabled = isCamOn);
 
       const btn = document.getElementById('camBtn');
-      btn.textContent = isCamOn ? '📷 カメラON' : '🚫 カメラOFF';
+      btn.innerHTML = `<span class="material-symbols-outlined">${isCamOn ? 'videocam' : 'videocam_off'}</span>カメラ${isCamOn ? 'ON' : 'OFF'}`;
       btn.classList.toggle('btn-danger', !isCamOn);
       document.getElementById('localVideo').style.opacity = isCamOn ? '1' : '0';
 
-      broadcast({ type: 'status-update', isMuted: !isMicOn, isCamOff: !isCamOn, muteChanged: false });
+      broadcast({ type: 'status-update', isMuted: !isMicOn, isCamOff: !isCamOn });
     }
 
     async function toggleScreenShare() {
-      // Android / iPad などの非対応ブラウザ判定
       if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-        showToast('お使いの端末（スマホ/タブレット等）は画面共有に非対応です', 'error');
-        return;
+        return showToast('端末が画面共有に非対応です', 'error');
       }
 
       if (!isScreenSharing) {
@@ -1244,9 +1390,7 @@
           screenTrack.onended = stopScreenShare;
           isScreenSharing = true;
           document.getElementById('shareScreenBtn').classList.add('btn-active');
-        } catch (e) {
-          if (e.name !== 'NotAllowedError') showToast('画面共有に失敗しました: ' + e.message, 'error');
-        }
+        } catch (e) {}
       } else {
         stopScreenShare();
       }
@@ -1268,9 +1412,6 @@
       document.getElementById('shareScreenBtn').classList.remove('btn-active');
     }
 
-    // ==========================================================================
-    // チャット
-    // ==========================================================================
     function sendChatMessage() {
       const input = document.getElementById('chatInput');
       const text = input.value.trim();
@@ -1293,9 +1434,6 @@
       box.scrollTop = box.scrollHeight;
     }
 
-    // ==========================================================================
-    // ファイル共有 (16KB Chunk分割P2P)
-    // ==========================================================================
     const receivedFiles = {};
     function handleFileSelect(e) {
       const f = e.target.files[0];
@@ -1325,14 +1463,14 @@
         broadcast({ type: 'file-chunk', id: fileId, index: current, data: e.target.result });
         current++;
         if (current < total) setTimeout(readSlice, 2);
-        else showToast(`ファイル送信完了: ${file.name}`);
+        else showToast(`送信完了: ${file.name}`);
       };
       readSlice();
     }
 
     function handleFileMeta(data) {
       receivedFiles[data.id] = { name: data.name, size: data.size, mime: data.mime, total: data.total, count: 0, chunks: [] };
-      showToast(`ファイル受信中: ${data.name}`);
+      showToast(`受信中: ${data.name}`);
     }
 
     function handleFileChunk(data) {
@@ -1351,26 +1489,25 @@
     function addDownloadItem(name, url) {
       const container = document.getElementById('fileItemsList');
       const div = document.createElement('div');
-      div.style.cssText = 'background:var(--md-sys-color-surface-container); padding:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;';
+      div.style.cssText = 'background:var(--md-surface-cnt); padding:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;';
       div.innerHTML = `
         <span style="font-size:0.85rem; font-weight:bold;">${name}</span>
-        <a href="${url}" download="${name}" class="btn btn-primary" style="text-decoration:none; padding:4px 10px; font-size:0.75rem;">DL</a>
+        <a href="${url}" download="${name}" class="btn btn-primary btn-xs" style="text-decoration:none;">
+          <span class="material-symbols-outlined" style="font-size:16px;">download</span>DL
+        </a>
       `;
       container.prepend(div);
       switchSidebarTab('file');
     }
 
-    // ==========================================================================
-    // 参加者一覧UI ＆ ユーティリティ
-    // ==========================================================================
     function updateUserListUI() {
       const container = document.getElementById('userListContainer');
       container.innerHTML = '';
 
       container.innerHTML += `
         <div class="user-item">
-          <span>${myUserName} (自分) ${isHost ? '👑' : ''}</span>
-          <span>${isMicOn ? '🎤' : '🔇'}</span>
+          <span>${myUserName} (自分)</span>
+          <span class="material-symbols-outlined" style="font-size:18px;">${isMicOn ? 'mic' : 'mic_off'}</span>
         </div>
       `;
 
@@ -1379,17 +1516,17 @@
         container.innerHTML += `
           <div class="user-item">
             <span>${p.userName || '参加者'}</span>
-            <span>${p.isMuted ? '🔇' : '🎤'}</span>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="material-symbols-outlined" style="font-size:18px;">${p.isMuted ? 'mic_off' : 'mic'}</span>
+              <button class="btn btn-danger btn-xs" onclick="startKickVote('${id}')" title="投票キックを開始">
+                <span class="material-symbols-outlined" style="font-size:14px;">how_to_vote</span>投票キック
+              </button>
+            </div>
           </div>
         `;
       });
 
       document.getElementById('userCount').textContent = Object.keys(peers).length + 1;
-    }
-
-    function handleNetworkReconnected() {
-      showToast('ネットワークが復旧しました。再接続を試みています...', 'success');
-      if (peer && peer.disconnected) peer.reconnect();
     }
 
     function setUIState(state, text) {
@@ -1411,7 +1548,7 @@
       const room = document.getElementById('roomNameInput').value.trim();
       const url = new URL(window.location.href);
       if (room) url.searchParams.set('room', room);
-      navigator.clipboard.writeText(url.href).then(() => showToast('招待URLをコピーしました！'));
+      navigator.clipboard.writeText(url.href).then(() => showToast('招待URLをコピーしました'));
     }
 
     function switchSidebarTab(tab) {
@@ -1433,7 +1570,7 @@
       const c = document.getElementById('toastContainer');
       const t = document.createElement('div');
       t.className = 'toast';
-      if (type === 'error') t.style.background = 'var(--md-sys-color-error-container)';
+      if (type === 'error') t.style.background = 'var(--md-error-cnt)';
       t.textContent = text;
       c.appendChild(t);
       setTimeout(() => t.remove(), 4000);
