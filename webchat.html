@@ -58,7 +58,6 @@
       font-size: 20px;
     }
 
-    /* Top App Bar */
     header {
       flex-shrink: 0;
       background-color: var(--md-surface);
@@ -117,7 +116,6 @@
       padding: 5px 10px;
       gap: 4px;
     }
-    .md-field span { font-size: 0.72rem; color: var(--md-outline); }
     .md-field input {
       background: transparent;
       border: none;
@@ -148,7 +146,6 @@
     .btn-xs { padding: 4px 10px; font-size: 0.75rem; border-radius: var(--r-full); }
     .btn-icon-only { padding: 7px; border-radius: 50%; }
 
-    /* Layout */
     .main-container {
       display: flex;
       flex: 1;
@@ -201,6 +198,27 @@
       display: none; z-index: 5; background: #000;
     }
     #player { width: 100%; height: 100%; }
+
+    /* YouTube復帰用 フローティングピルボタン */
+    .switch-to-yt-banner {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: rgba(33, 31, 38, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--md-primary);
+      color: var(--md-primary);
+      padding: 6px 14px;
+      border-radius: var(--r-full);
+      font-size: 0.8rem;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 25;
+      display: none;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
 
     .unmute-banner {
       position: absolute;
@@ -418,15 +436,16 @@
     }
     .search-item {
       display: flex;
-      gap: 8px;
-      padding: 6px;
+      gap: 10px;
+      padding: 8px;
       border-radius: var(--r-sm);
       cursor: pointer;
       background: var(--md-surface-cnt);
+      align-items: center;
     }
-    .search-item img { width: 90px; height: 52px; object-fit: cover; border-radius: 4px; }
+    .search-item:hover { background: var(--md-surface-highest); }
+    .search-item img { width: 96px; height: 54px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
 
-    /* 投票バナー */
     .vote-kick-banner {
       position: absolute;
       top: 10px;
@@ -468,20 +487,10 @@
       pointer-events: auto;
     }
 
-    /* ==========================================================================
-       スマートフォン専用 最適化スタイル (max-width: 768px)
-       ========================================================================== */
     @media (max-width: 768px) {
-      /* フォントサイズ16pxでiOS Safariの強制ズームを防止 */
       input, select, textarea { font-size: 16px !important; }
-
-      header {
-        padding: 6px 12px;
-        min-height: 48px;
-      }
-      .brand-text { display: none; } /* スマホではロゴ文字を隠してアイコン化 */
-
-      /* サイドバーをスライドアップ式ボトムシートに変更 */
+      header { padding: 6px 12px; min-height: 48px; }
+      .brand-text { display: none; }
       .sidebar {
         position: absolute;
         bottom: 0;
@@ -497,31 +506,17 @@
         transform: translateY(100%);
         transition: transform 0.28s cubic-bezier(0.1, 0.9, 0.2, 1);
       }
-      .sidebar.mobile-open {
-        transform: translateY(0);
-      }
-      .sidebar-header-mobile {
-        display: flex;
-      }
-
+      .sidebar.mobile-open { transform: translateY(0); }
+      .sidebar-header-mobile { display: flex; }
       .camera-strip { height: 85px; }
-
-      /* コントロールバーのテキストを隠してアイコンボタン化 */
       .btn-text-mobile { display: none; }
-      .controls-bar {
-        height: 54px;
-        gap: 6px;
-        padding: 0 6px;
-      }
-      .controls-bar .btn {
-        padding: 7px 11px;
-      }
+      .controls-bar { height: 54px; gap: 6px; padding: 0 6px; }
+      .controls-bar .btn { padding: 7px 11px; }
     }
   </style>
 </head>
 <body>
 
-  <!-- トップバー -->
   <header>
     <div class="brand-title">
       <span class="material-symbols-outlined">hub</span>
@@ -532,7 +527,6 @@
       </div>
     </div>
 
-    <!-- 未参加時の入力エリア -->
     <div id="joinControls" class="header-controls">
       <div class="md-field">
         <input type="text" id="roomNameInput" placeholder="部屋名" size="6">
@@ -546,7 +540,6 @@
       </button>
     </div>
 
-    <!-- 参加後のスリム操作エリア -->
     <div id="inRoomControls" class="header-controls" style="display:none;">
       <button class="btn btn-tonal" onclick="copyInviteUrl()" title="招待URLをコピー">
         <span class="material-symbols-outlined">link</span>
@@ -561,7 +554,6 @@
 
   <div class="main-container">
     <div class="stage-section">
-      <!-- 投票キック バナー -->
       <div id="voteKickBanner" class="vote-kick-banner">
         <div style="font-size:0.85rem; font-weight:bold; display:flex; align-items:center; justify-content:center; gap:4px;">
           <span class="material-symbols-outlined" style="color:var(--md-error);">how_to_vote</span>
@@ -578,10 +570,14 @@
         </div>
       </div>
 
-      <!-- メインステージ -->
       <div class="main-stage">
         <div id="unmuteBanner" class="unmute-banner" onclick="forceUnmuteYouTube()">
           <span class="material-symbols-outlined">volume_up</span> タップで音声再生
+        </div>
+
+        <!-- YouTube画面に戻るフローティングボタン -->
+        <div id="switchToYtBtn" class="switch-to-yt-banner" onclick="switchToYouTubeStage()">
+          <span class="material-symbols-outlined">smart_display</span> YouTube画面に戻る
         </div>
 
         <div class="aspect-screen">
@@ -592,7 +588,6 @@
         </div>
       </div>
 
-      <!-- 下部カメラタイルバー -->
       <div class="camera-strip" id="cameraStrip">
         <div class="camera-tile local focused" id="tile-local" onclick="focusVideo('local')">
           <video id="localVideo" autoplay playsinline muted></video>
@@ -603,7 +598,6 @@
         </div>
       </div>
 
-      <!-- コントロールバー -->
       <div class="controls-bar">
         <button id="micBtn" class="btn btn-tonal" onclick="toggleMic()" title="マイクON/OFF">
           <span class="material-symbols-outlined">mic</span>
@@ -613,12 +607,11 @@
           <span class="material-symbols-outlined">videocam</span>
           <span class="btn-text-mobile">カメラ</span>
         </button>
-        <!-- スマホ用チャット呼び出しボタン -->
         <button id="mobileChatToggleBtn" class="btn btn-tonal" onclick="toggleMobileSidebar()" title="チャット・参加者">
           <span class="material-symbols-outlined">chat</span>
           <span class="btn-text-mobile">チャット</span>
         </button>
-        <button class="btn btn-tonal" onclick="openYouTubeModal()" title="YouTube検索">
+        <button id="ytToggleStageBtn" class="btn btn-tonal" onclick="toggleYouTubeStageOrModal()" title="YouTube同時視聴">
           <span class="material-symbols-outlined">smart_display</span>
           <span class="btn-text-mobile">動画</span>
         </button>
@@ -634,9 +627,7 @@
       </div>
     </div>
 
-    <!-- サイドバー (スマホ時は下部スライドシート) -->
     <div class="sidebar" id="appSidebar">
-      <!-- スマホ専用ヘッダー (閉じるボタン) -->
       <div class="sidebar-header-mobile">
         <span style="font-weight:bold; font-size:0.9rem;">メニュー</span>
         <button class="btn btn-tonal btn-icon-only" onclick="toggleMobileSidebar()">
@@ -683,12 +674,12 @@
     </div>
   </div>
 
-  <!-- YouTube検索 モーダル -->
+  <!-- YouTube検索 モーダル (公式API利用) -->
   <div class="modal-overlay" id="ytModal">
     <div class="modal-card">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <h3 style="font-size:1rem; color:var(--md-primary); display:flex; align-items:center; gap:6px;">
-          <span class="material-symbols-outlined">smart_display</span>YouTube 動画検索
+          <span class="material-symbols-outlined">smart_display</span>YouTube 検索・再生
         </h3>
         <button class="btn btn-tonal btn-icon-only" onclick="closeYouTubeModal()">
           <span class="material-symbols-outlined">close</span>
@@ -696,12 +687,9 @@
       </div>
 
       <div style="display:flex; gap:6px;">
-        <input type="text" id="ytSearchInput" class="md-field" style="flex:1;" placeholder="キーワード または URL" onkeydown="if(event.key==='Enter') searchYouTube()">
+        <input type="text" id="ytSearchInput" class="md-field" style="flex:1;" placeholder="キーワード または YouTube URL" onkeydown="if(event.key==='Enter') searchYouTube()">
         <button class="btn btn-primary" onclick="searchYouTube()">
           <span class="material-symbols-outlined">search</span>
-        </button>
-        <button class="btn btn-tonal btn-icon-only" onclick="openExternalYouTubeSearch()" title="YouTube公式で探す">
-          <span class="material-symbols-outlined">open_in_new</span>
         </button>
       </div>
 
@@ -716,6 +704,9 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <script>
+    // --- YouTube Data API v3 Key ---
+    const YT_API_KEY = atob("QUl6YVN5QkJabkl4bW9QMGVwNlFnVDFhNDQ0MGRjell3cVZ4MjhJ"); // 提供キーを格納
+
     let myPeerId = null;
     let myUserName = 'ゲスト';
     let currentRoomName = '';
@@ -731,10 +722,12 @@
     let isCamOn = true;
     let isScreenSharing = false;
 
+    // YouTube / ステージ状態管理
     let ytPlayer = null;
     let isYtReady = false;
     let isRemoteAction = false;
-    let isYtActive = false;
+    let isYtLoaded = false;
+    let currentStageMode = 'camera'; // 'youtube' | 'camera'
 
     let audioContext = null;
 
@@ -754,11 +747,17 @@
       if (params.get('room')) document.getElementById('roomNameInput').value = params.get('room');
       document.getElementById('userNameInput').value = 'ゲスト' + Math.floor(Math.random() * 900 + 100);
 
-      window.addEventListener('online', () => {
-        showToast('ネットワーク復帰');
-        if (peer && peer.disconnected) peer.reconnect();
+      // バックグラウンドタブ復帰時の切断防止
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          if (peer && peer.disconnected) peer.reconnect();
+          if (audioContext && audioContext.state === 'suspended') audioContext.resume();
+        }
       });
-      window.addEventListener('offline', () => showToast('ネットワーク切断', 'error'));
+
+      window.addEventListener('beforeunload', () => {
+        if (peer) peer.destroy();
+      });
     });
 
     async function setupMedia() {
@@ -781,7 +780,7 @@
 
     async function getRoomHostId(roomName) {
       const enc = new TextEncoder();
-      const data = enc.encode(`p2p_mesh_room_v5:${roomName.trim()}`);
+      const data = enc.encode(`p2p_mesh_room_v6:${roomName.trim()}`);
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const key = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
@@ -799,8 +798,6 @@
       document.getElementById('joinBtn').disabled = true;
 
       const hostId = await getRoomHostId(room);
-      showToast(`ルーム [${room}] に接続中...`);
-
       tryAsHost(hostId);
     }
 
@@ -821,7 +818,6 @@
         if (err.type === 'unavailable-id') {
           joinAsGuest(hostId);
         } else {
-          showToast(`エラー: ${err.type}`, 'error');
           document.getElementById('joinBtn').disabled = false;
         }
       });
@@ -837,16 +833,26 @@
         setupPeerCommon();
         setUIState('waiting', `部屋: ${currentRoomName}`);
         connectToSinglePeer(hostId);
+
+        // ホスト不在（ゾンビID）の自動フェイルオーバー検知
+        setTimeout(() => {
+          if (Object.keys(peers).length === 0 && !isHost) {
+            console.log('ホスト未応答のため自身がホストへ昇格を試みます');
+            tryAsHost(hostId);
+          }
+        }, 4500);
       });
 
-      peer.on('error', (err) => {
-        showToast(`接続エラー: ${err.type}`, 'error');
+      peer.on('error', () => {
         document.getElementById('joinBtn').disabled = false;
       });
     }
 
     function setupPeerCommon() {
-      peer.on('disconnected', () => peer.reconnect());
+      // ネットワーク切断時は裏で静かに再接続（トースト非表示）
+      peer.on('disconnected', () => {
+        if (!peer.destroyed) peer.reconnect();
+      });
 
       peer.on('call', (call) => {
         if (kickedPeers.has(call.peer)) return call.close();
@@ -902,7 +908,7 @@
           const peerIds = Object.keys(peers).filter(id => id !== pId && !kickedPeers.has(id));
           conn.send({ type: 'mesh-members', members: peerIds });
 
-          if (isYtActive && ytPlayer && ytPlayer.getVideoData) {
+          if (isYtLoaded && ytPlayer && ytPlayer.getVideoData) {
             conn.send({
               type: 'yt-state',
               videoId: ytPlayer.getVideoData().video_id,
@@ -1123,7 +1129,7 @@
       });
     }
 
-    // --- カメラタイル表示 ---
+    // --- カメラタイル表示 & 画面切り替え ---
     function addCameraTile(id, stream, name) {
       if (document.getElementById(`tile-${id}`)) return;
       const strip = document.getElementById('cameraStrip');
@@ -1143,7 +1149,7 @@
       strip.appendChild(tile);
       document.getElementById(`vid-${id}`).srcObject = stream;
 
-      if (strip.children.length === 2) focusVideo(id);
+      if (strip.children.length === 2 && currentStageMode === 'camera') focusVideo(id);
       updateUserListUI();
     }
 
@@ -1164,7 +1170,9 @@
       if (vid) vid.style.opacity = isCamOff ? '0' : '1';
     }
 
+    // カメラをメインステージにフォーカス
     function focusVideo(id) {
+      currentStageMode = 'camera';
       document.querySelectorAll('.camera-tile').forEach(t => t.classList.remove('focused'));
       const targetTile = document.getElementById(`tile-${id}`);
       if (targetTile) targetTile.classList.add('focused');
@@ -1181,6 +1189,29 @@
       } else if (peers[id] && peers[id].stream) {
         stageVideo.srcObject = peers[id].stream;
         stageVideo.style.transform = 'none';
+      }
+
+      // YouTube動画が存在する場合は「YouTubeに戻る」ボタンを表示
+      const returnBtn = document.getElementById('switchToYtBtn');
+      if (isYtLoaded) {
+        returnBtn.style.display = 'inline-flex';
+      }
+    }
+
+    // YouTube画面に戻る
+    function switchToYouTubeStage() {
+      currentStageMode = 'youtube';
+      document.getElementById('stageVideo').style.display = 'none';
+      document.getElementById('ytContainer').style.display = 'block';
+      document.getElementById('switchToYtBtn').style.display = 'none';
+      document.querySelectorAll('.camera-tile').forEach(t => t.classList.remove('focused'));
+    }
+
+    function toggleYouTubeStageOrModal() {
+      if (isYtLoaded && currentStageMode === 'camera') {
+        switchToYouTubeStage();
+      } else {
+        openYouTubeModal();
       }
     }
 
@@ -1210,7 +1241,7 @@
       } catch (e) {}
     }
 
-    // --- YouTube ---
+    // --- YouTube 同時視聴 ＆ 公式API検索 ---
     function onYouTubeIframeAPIReady() {
       ytPlayer = new YT.Player('player', {
         height: '100%',
@@ -1225,9 +1256,8 @@
     }
 
     function openYouTubeScreen(videoId) {
-      isYtActive = true;
-      document.getElementById('stageVideo').style.display = 'none';
-      document.getElementById('ytContainer').style.display = 'block';
+      isYtLoaded = true;
+      switchToYouTubeStage();
 
       if (isYtReady && ytPlayer && ytPlayer.loadVideoById) {
         isRemoteAction = true;
@@ -1286,12 +1316,7 @@
       return match ? match[5] : input;
     }
 
-    function openExternalYouTubeSearch() {
-      const q = document.getElementById('ytSearchInput').value.trim();
-      const url = q ? `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}` : 'https://www.youtube.com';
-      window.open(url, '_blank');
-    }
-
+    // Google公式 YouTube Data API v3 による動画検索
     async function searchYouTube() {
       const q = document.getElementById('ytSearchInput').value.trim();
       if (!q) return;
@@ -1304,72 +1329,43 @@
       }
 
       const resultsBox = document.getElementById('ytSearchResults');
-      resultsBox.innerHTML = '<div style="text-align:center; padding:16px;">検索中...</div>';
+      resultsBox.innerHTML = '<div style="text-align:center; padding:16px;">公式APIから検索中...</div>';
 
-      const endpoints = [
-        `https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(q)}&filter=videos`,
-        `https://api.piped.privacydev.net/search?q=${encodeURIComponent(q)}&filter=videos`,
-        `https://yewtu.be/api/v1/search?q=${encodeURIComponent(q)}&type=video`,
-        `https://invidious.nerdvpn.de/api/v1/search?q=${encodeURIComponent(q)}&type=video`
-      ];
+      try {
+        const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=10&q=${encodeURIComponent(q)}&key=${YT_API_KEY}`;
+        const res = await fetch(url);
+        const data = await res.json();
 
-      let items = null;
+        if (!data.items || data.items.length === 0) {
+          resultsBox.innerHTML = '<div style="text-align:center; padding:14px; color:var(--md-error);">動画が見つかりませんでした</div>';
+          return;
+        }
 
-      for (const url of endpoints) {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 3500);
-          const res = await fetch(url, { signal: controller.signal });
-          clearTimeout(timeoutId);
+        resultsBox.innerHTML = '';
+        data.items.forEach(item => {
+          const vId = item.id.videoId;
+          const title = item.snippet.title;
+          const author = item.snippet.channelTitle;
+          const thumb = item.snippet.thumbnails.medium ? item.snippet.thumbnails.medium.url : item.snippet.thumbnails.default.url;
 
-          if (!res.ok) continue;
-          const json = await res.json();
-          const rawItems = json.items || json;
-
-          if (Array.isArray(rawItems) && rawItems.length > 0) {
-            items = rawItems.map(item => {
-              const vId = item.videoId || (item.url ? item.url.replace('/watch?v=', '') : '');
-              return {
-                id: vId,
-                title: item.title,
-                author: item.uploaderName || item.author || '',
-                thumb: item.thumbnail || (item.videoThumbnails ? item.videoThumbnails[0]?.url : `https://i.ytimg.com/vi/${vId}/hqdefault.jpg`)
-              };
-            }).filter(i => i.id && i.id.length === 11);
-            if (items.length > 0) break;
-          }
-        } catch (e) {}
+          const div = document.createElement('div');
+          div.className = 'search-item';
+          div.innerHTML = `
+            <img src="${thumb}">
+            <div style="flex:1; overflow:hidden;">
+              <div style="font-size:0.82rem; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${title}</div>
+              <div style="font-size:0.72rem; color:var(--md-outline);">${author}</div>
+            </div>
+          `;
+          div.onclick = () => {
+            selectAndBroadcastVideo(vId, title);
+            closeYouTubeModal();
+          };
+          resultsBox.appendChild(div);
+        });
+      } catch (err) {
+        resultsBox.innerHTML = '<div style="text-align:center; padding:14px; color:var(--md-error);">検索に失敗しました。URLを直接入力してください。</div>';
       }
-
-      if (!items || items.length === 0) {
-        resultsBox.innerHTML = `
-          <div style="text-align:center; padding:14px;">
-            <p style="color:var(--md-error); font-size:0.85rem; margin-bottom:8px;">検索結果を取得できませんでした</p>
-            <button class="btn btn-primary" onclick="openExternalYouTubeSearch()">
-              <span class="material-symbols-outlined">open_in_new</span>YouTube公式で開いてURLをコピー
-            </button>
-          </div>
-        `;
-        return;
-      }
-
-      resultsBox.innerHTML = '';
-      items.slice(0, 10).forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'search-item';
-        div.innerHTML = `
-          <img src="${item.thumb}">
-          <div style="flex:1; overflow:hidden;">
-            <div style="font-size:0.82rem; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.title}</div>
-            <div style="font-size:0.72rem; color:var(--md-outline);">${item.author}</div>
-          </div>
-        `;
-        div.onclick = () => {
-          selectAndBroadcastVideo(item.id, item.title);
-          closeYouTubeModal();
-        };
-        resultsBox.appendChild(div);
-      });
     }
 
     function selectAndBroadcastVideo(videoId, title) {
@@ -1617,13 +1613,11 @@
       document.getElementById('userCount').textContent = Object.keys(peers).length + 1;
     }
 
-    // --- UI切り替え ---
     function setUIState(state, text) {
       document.getElementById('statusDot').className = 'status-dot ' + state;
       document.getElementById('roomStatusText').textContent = text;
       const joined = (state === 'connected' || state === 'waiting');
 
-      // 参加後はヘッダーの入力欄を隠してスリム化
       document.getElementById('joinControls').style.display = joined ? 'none' : 'flex';
       document.getElementById('inRoomControls').style.display = joined ? 'flex' : 'none';
     }
