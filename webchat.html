@@ -569,6 +569,7 @@
     const PEER_CONFIG = { config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] } };
 
     let myPeerId = null, myUserName = 'ゲスト', currentRoomName = '', isHost = false, peer = null;
+    let rendezvousPeer = null, rendezvousRetryTimer = null, guestFallbackTimer = null;
     const peers = {}, kickedPeers = new Set(), receivedFiles = {}, sharedMediaFiles = {}, ttsAudioCache = new Map(), ttsQueue = [];
     const seenMessageIds = new Set();
 
@@ -579,6 +580,8 @@
     let ytPlayer = null, isYtReady = false, isRemoteAction = false, isYtLoaded = false;
     let currentStageMode = 'camera', currentFocusedPeerId = 'local', currentYtVolume = 40, currentSbVolume = 70;
     const activeSoundboardAudios = new Set();
+    let lastSoundboardPlayTime = 0;
+    const MAX_CONCURRENT_SOUNDS = 4;
     let isTtsOn = true, isSpeaking = false, currentVote = null, voteTimerInterval = null, isReconnecting = false;
 
     const speakingDetectors = {};
@@ -602,6 +605,38 @@
       { name: '👎️ブーイング', url: 'https://www.myinstants.com/media/sounds/oh-my-god-bro-ah-hell-nah.mp3', icon: 'monetization_on' }
     ];
     let customSounds = [];
+
+    // --- サウンドボードのセキュリティ検証 ---
+    function isSafeAudioUrl(urlStr) {
+      if (typeof urlStr !== 'string') return false;
+      const trimmed = urlStr.trim();
+      if (!trimmed || trimmed.length > 2048) return false;
+
+      try {
+        const u = new URL(trimmed);
+        if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+
+        const h = u.hostname.toLowerCase();
+        if (
+          h === 'localhost' || h === '127.0.0.1' || h === '::1' || h === '0.0.0.0' ||
+          h.endsWith('.local') ||
+          /^10\./.test(h) ||
+          /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(h) ||
+          /^192\.168\./.test(h) ||
+          /^169\.254\./.test(h)
+        ) {
+          return false;
+        }
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function sanitizeText(str, maxLen = 40) {
+      if (typeof str !== 'string') return '';
+      return str.replace(/[\x00-\x1F\x7F<>]/g, '').trim().slice(0, maxLen);
+    }
 
     function getAudioPipeline() {
       if (!audioContext) {
@@ -703,7 +738,11 @@
         }
       });
 
-      window.addEventListener('beforeunload', () => { isUnloading = true; if (peer && !peer.destroyed) peer.destroy(); });
+      window.addEventListener('beforeunload', () => {
+        isUnloading = true;
+        releaseRendezvousHost();
+        if (peer && !peer.destroyed) peer.destroy();
+      });
       if (window.YT && window.YT.Player) initYouTubePlayer();
     });
 
@@ -806,7 +845,8 @@
       unlockAllAudio();
       const room = $('roomNameInput').value.trim(), name = $('userNameInput').value.trim();
       if (!room || !name) return alert('部屋名と名前を入力してください');
-      myUserName = name; currentRoomName = room;
+      myUserName = sanitizeText(name, 20) || 'ゲスト';
+      currentRoomName = room;
       $('localTileName').textContent = myUserName + ' (自分)';
       $('joinBtn').disabled = true;
       updateLocalAvatarUI();
@@ -835,7 +875,10 @@
         isHost = false; myPeerId = id; setupPeerCommon();
         setUIState('waiting', `部屋: ${currentRoomName}`);
         connectToSinglePeer(hostId);
-        setTimeout(() => { if (Object.keys(peers).length === 0 && !isHost) tryAsHost(hostId); }, 4000);
+        clearTimeout(guestFallbackTimer);
+        guestFallbackTimer = setTimeout(() => {
+          if (Object.keys(peers).length === 0 && !isHost) tryAsHost(hostId);
+        }, 4000);
       });
       peer.on('error', () => { $('joinBtn').disabled = false; });
     }
@@ -943,6 +986,7 @@
       peers[pId].conn = conn;
 
       conn.on('open', () => {
+        clearTimeout(guestFallbackTimer);
         conn.send({ type: 'intro', userName: myUserName, isHost, isMuted: !isMicOn, isCamOff: !isCamOn });
         
         if (isYtLoaded && ytPlayer && ytPlayer.getVideoData && ytPlayer.getPlayerState) {
@@ -974,7 +1018,8 @@
 
       switch (data.type) {
         case 'intro':
-          peers[fromPeerId].userName = typeof data.userName === 'string' ? data.userName.slice(0, 30) : '参加者';
+          clearTimeout(guestFallbackTimer);
+          peers[fromPeerId].userName = sanitizeText(data.userName, 30) || '参加者';
           peers[fromPeerId].isHost = !!data.isHost;
           peers[fromPeerId].isMuted = !!data.isMuted;
           peers[fromPeerId].isCamOff = !!data.isCamOff;
@@ -989,13 +1034,20 @@
           break;
 
         case 'mesh-members':
-          if (Array.isArray(data.members)) data.members.forEach(id => { if (id !== myPeerId && !kickedPeers.has(id)) connectToSinglePeer(id); });
+          clearTimeout(guestFallbackTimer);
+          if (Array.isArray(data.members)) {
+            data.members.forEach(id => {
+              if (id !== myPeerId && !kickedPeers.has(id)) connectToSinglePeer(id);
+            });
+          }
           break;
 
         case 'chat':
           if (typeof data.text === 'string' && data.text.trim()) {
-            appendChatMessage(data.text, 'remote', peers[fromPeerId]?.userName || data.userName || '参加者');
-            queueFastZundamonSpeech(data.text);
+            const safeText = sanitizeText(data.text, 500);
+            const sender = sanitizeText(peers[fromPeerId]?.userName || data.userName, 30) || '参加者';
+            appendChatMessage(safeText, 'remote', sender);
+            queueFastZundamonSpeech(safeText);
           }
           break;
 
@@ -1072,16 +1124,82 @@
       }
     }
 
+    // --- ホスト自動昇格 & ランデブー（新参者受付）常駐処理 ---
     function checkAndElectNewHost(removedPeerId) {
       const remaining = [myPeerId, ...Object.keys(peers).filter(id => id !== removedPeerId && !kickedPeers.has(id))].sort();
       const newHostId = remaining[0];
       const amINewHost = (newHostId === myPeerId);
+
       if (isHost !== amINewHost) {
         isHost = amINewHost;
-        if (isHost) { showToast('あなたが新しいホストになりました 👑'); queueFastZundamonSpeech('ホストに昇格したのだ'); }
+        if (isHost) {
+          showToast('あなたが新しいホストになりました 👑');
+          queueFastZundamonSpeech('ホストに昇格したのだ');
+          claimRendezvousHost();
+        } else {
+          releaseRendezvousHost();
+        }
+      } else if (isHost) {
+        claimRendezvousHost();
       }
+
       Object.keys(peers).forEach(id => peers[id].isHost = (id === newHostId));
       updateUserListUI();
+    }
+
+    async function claimRendezvousHost() {
+      if (!isHost || !currentRoomName) return;
+      const hostId = await getRoomHostId(currentRoomName);
+      if (myPeerId === hostId) return; // 初期ホストはメインピア自身がhostIdなので不要
+      if (rendezvousPeer && !rendezvousPeer.destroyed && rendezvousPeer.open) return;
+
+      clearTimeout(rendezvousRetryTimer);
+      tryRendezvousHost(hostId, 0);
+    }
+
+    function tryRendezvousHost(hostId, attempt) {
+      if (!isHost) return;
+      if (rendezvousPeer && !rendezvousPeer.destroyed) {
+        try { rendezvousPeer.destroy(); } catch (e) {}
+      }
+
+      rendezvousPeer = new Peer(hostId, PEER_CONFIG);
+
+      rendezvousPeer.on('open', () => {
+        setupRendezvousEvents(rendezvousPeer);
+      });
+
+      rendezvousPeer.on('error', (err) => {
+        // 元ホストが切断されてPeerServer上で解放されるまで少し待機してリトライ
+        if (err.type === 'unavailable-id' && attempt < 12) {
+          rendezvousRetryTimer = setTimeout(() => {
+            if (isHost && (!rendezvousPeer || rendezvousPeer.destroyed || !rendezvousPeer.open)) {
+              tryRendezvousHost(hostId, attempt + 1);
+            }
+          }, 1500);
+        }
+      });
+    }
+
+    function setupRendezvousEvents(rPeer) {
+      rPeer.on('connection', conn => {
+        conn.on('open', () => {
+          // 新規参加者に対して、現ホストおよび現在の全メンバー一覧を送信して誘導
+          const activeMembers = [myPeerId, ...Object.keys(peers).filter(id => !kickedPeers.has(id))];
+          conn.send({
+            type: 'mesh-members',
+            members: activeMembers
+          });
+        });
+      });
+    }
+
+    function releaseRendezvousHost() {
+      clearTimeout(rendezvousRetryTimer);
+      if (rendezvousPeer && !rendezvousPeer.destroyed) {
+        try { rendezvousPeer.destroy(); } catch (e) {}
+      }
+      rendezvousPeer = null;
     }
 
     function startKickVote(targetId) {
@@ -1474,7 +1592,14 @@
     function loadCustomSounds() {
       try {
         const saved = localStorage.getItem('p2p_custom_sounds_v2');
-        if (saved) customSounds = JSON.parse(saved);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            customSounds = parsed
+              .filter(s => s && typeof s.name === 'string' && isSafeAudioUrl(s.url))
+              .map(s => ({ name: sanitizeText(s.name, 30), url: s.url.trim() }));
+          }
+        }
       } catch (e) { customSounds = []; }
       renderSoundboardUI();
     }
@@ -1528,7 +1653,7 @@
 
     // MyInstants API からリアルタイム検索
     async function searchSoundsFromApi() {
-      const q = $('sbApiSearchInput').value.trim();
+      const q = sanitizeText($('sbApiSearchInput').value, 50);
       if (!q) return;
 
       const box = $('sbSearchResults');
@@ -1557,15 +1682,18 @@
       }
 
       data.results.slice(0, 20).forEach(item => {
+        if (!item || !item.sound || !isSafeAudioUrl(item.sound)) return;
+        const safeItemName = sanitizeText(item.name, 40) || 'SE';
+
         const itemRow = el('div', { className: 'sb-search-item' },
           el('div', { style: { flex: '1', overflow: 'hidden' } },
-            el('div', { style: { fontSize: '0.8rem', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }, text: item.name })
+            el('div', { style: { fontSize: '0.8rem', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }, text: safeItemName })
           ),
           el('div', { style: { display: 'flex', gap: '6px' } },
             el('button', { className: 'btn btn-tonal btn-xs', title: '試聴', onclick: () => playAudioUrl(item.sound) },
               el('span', { className: 'material-symbols-outlined', style: { fontSize: '14px' }, text: 'play_arrow' }), '試聴'
             ),
-            el('button', { className: 'btn btn-primary btn-xs', onclick: () => addSoundFromApi(item.name, item.sound) },
+            el('button', { className: 'btn btn-primary btn-xs', onclick: () => addSoundFromApi(safeItemName, item.sound) },
               el('span', { className: 'material-symbols-outlined', style: { fontSize: '14px' }, text: 'add' }), '追加'
             )
           )
@@ -1575,16 +1703,22 @@
     }
 
     function addSoundFromApi(name, url) {
-      customSounds.push({ name, url });
+      if (!isSafeAudioUrl(url)) return showToast('安全ではない音声URLです', 'error');
+      const safeName = sanitizeText(name, 30) || 'SE';
+      customSounds.push({ name: safeName, url });
       saveCustomSounds();
-      showToast(`「${name}」をサウンドボードに追加しました！`);
+      showToast(`「${safeName}」をサウンドボードに追加しました！`);
       switchSoundboardTab('board');
     }
 
     function addManualSound() {
-      const name = $('manualSoundName').value.trim();
+      const name = sanitizeText($('manualSoundName').value, 30);
       const url = $('manualSoundUrl').value.trim();
       if (!name || !url) return alert('名前と音声URLを入力してください');
+
+      if (!isSafeAudioUrl(url)) {
+        return alert('無効または安全ではないURLです。http:// または https:// から始まる正規の音声ファイルURLを入力してください。（javascript:, data:, ローカルアドレス等は禁止されています）');
+      }
 
       customSounds.push({ name, url });
       saveCustomSounds();
@@ -1600,13 +1734,21 @@
     }
 
     function triggerSoundboard(soundUrl, soundName) {
+      if (!isSafeAudioUrl(soundUrl)) return showToast('無効な音声URLです', 'error');
+      const safeName = sanitizeText(soundName, 30) || '効果音';
       playAudioUrl(soundUrl);
-      broadcast({ type: 'soundboard-play', soundUrl, soundName, senderName: myUserName });
+      broadcast({ type: 'soundboard-play', soundUrl, soundName: safeName, senderName: myUserName });
     }
 
     function handleRemoteSoundboardPlay(data) {
+      if (!data || typeof data !== 'object') return;
+      if (!isSafeAudioUrl(data.soundUrl)) return;
+
+      const safeSender = sanitizeText(data.senderName, 20) || '参加者';
+      const safeName = sanitizeText(data.soundName, 30) || '効果音';
+
       playAudioUrl(data.soundUrl);
-      showToast(`${data.senderName} が「${data.soundName}」を鳴らしました 🔔`);
+      showToast(`${safeSender} が「${safeName}」を鳴らしました 🔔`);
     }
 
     function changeSoundboardVolume(val) {
@@ -1636,12 +1778,34 @@
       changeSoundboardVolume(currentSbVolume);
     }
 
-    // 本物の高音質リアルMP3再生
+    // 本物の高音質リアルMP3再生（レートリミット＆サニタイズ付き）
     function playAudioUrl(url) {
+      if (!isSafeAudioUrl(url)) {
+        console.warn('安全ではないまたは不正な音声URLがブロックされました:', url);
+        return;
+      }
+
+      // レートリミット: 180ms以内の連続呼び出しを無視
+      const now = Date.now();
+      if (now - lastSoundboardPlayTime < 180) {
+        return;
+      }
+      lastSoundboardPlayTime = now;
+
       try {
+        // 同時再生数制限を超えた古い音声を破棄
+        if (activeSoundboardAudios.size >= MAX_CONCURRENT_SOUNDS) {
+          const oldest = activeSoundboardAudios.values().next().value;
+          if (oldest) {
+            try { oldest.pause(); } catch (e) {}
+            activeSoundboardAudios.delete(oldest);
+          }
+        }
+
         const audio = new Audio(url);
         audio.volume = currentSbVolume / 100;
         activeSoundboardAudios.add(audio);
+
         const cleanup = () => activeSoundboardAudios.delete(audio);
         audio.addEventListener('ended', cleanup, { once: true });
         audio.addEventListener('error', cleanup, { once: true });
@@ -1919,8 +2083,9 @@
     function sendChatMessage() {
       const input = $('chatInput'), text = input.value.trim();
       if (!text) return;
-      broadcast({ type: 'chat', text, userName: myUserName });
-      appendChatMessage(text, 'local', myUserName);
+      const safeText = sanitizeText(text, 500);
+      broadcast({ type: 'chat', text: safeText, userName: myUserName });
+      appendChatMessage(safeText, 'local', myUserName);
       input.value = '';
     }
 
@@ -2148,7 +2313,12 @@
 
     function toggleModal(id, show) { $(id).style.display = show ? 'flex' : 'none'; }
     function toggleMobileSidebar() { $('appSidebar').classList.toggle('mobile-open'); }
-    function leaveMeshRoom() { isUnloading = true; if (peer && !peer.destroyed) peer.destroy(); location.reload(); }
+    function leaveMeshRoom() {
+      isUnloading = true;
+      releaseRendezvousHost();
+      if (peer && !peer.destroyed) peer.destroy();
+      location.reload();
+    }
 
     function copyInviteUrl() {
       const room = $('roomNameInput').value.trim() || currentRoomName;
