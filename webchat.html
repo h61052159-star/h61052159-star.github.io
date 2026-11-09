@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -181,23 +182,31 @@
     .file-progress-fill { height: 100%; background: var(--md-primary); width: 0%; transition: width 0.15s; }
     .file-card-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 
-    /* サウンドボード用スタイル */
+    /* サウンドボード UI */
+    .sb-tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--md-outline-var); padding-bottom: 6px; }
     .sb-grid {
       display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
-      gap: 8px; max-height: 48vh; overflow-y: auto; padding: 4px;
+      gap: 8px; max-height: 44vh; overflow-y: auto; padding: 4px;
     }
     .sb-btn {
       background: var(--md-surface-cnt); border: 1px solid var(--md-outline-var);
-      border-radius: var(--r-md); padding: 10px 6px; display: flex; flex-direction: column;
+      border-radius: var(--r-md); padding: 12px 6px; display: flex; flex-direction: column;
       align-items: center; justify-content: center; gap: 6px; cursor: pointer;
-      color: var(--md-on-surface); transition: background 0.2s, transform 0.1s; user-select: none;
+      color: var(--md-on-surface); transition: background 0.15s, transform 0.08s; user-select: none;
     }
+    .sb-btn:hover { background: var(--md-surface-highest); }
     .sb-btn:active { transform: scale(0.93); background: var(--md-primary-cnt); color: var(--md-on-primary-cnt); }
     .sb-btn .material-symbols-outlined { font-size: 26px; color: var(--md-primary); }
     .sb-btn-label { font-size: 0.72rem; font-weight: bold; text-align: center; word-break: break-all; }
 
+    .sb-search-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 12px; background: var(--md-surface-cnt); border-radius: var(--r-sm);
+      gap: 8px; border: 1px solid var(--md-outline-var);
+    }
+
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); z-index: 100; display: none; justify-content: center; align-items: center; padding: 12px; }
-    .modal-card { width: 100%; max-width: 540px; background: var(--md-surface-high); border-radius: var(--r-lg); padding: 18px; display: flex; flex-direction: column; gap: 12px; max-height: 85vh; }
+    .modal-card { width: 100%; max-width: 560px; background: var(--md-surface-high); border-radius: var(--r-lg); padding: 18px; display: flex; flex-direction: column; gap: 12px; max-height: 85vh; }
     .search-results { overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
     .search-item { display: flex; gap: 10px; padding: 8px; border-radius: var(--r-sm); cursor: pointer; background: var(--md-surface-cnt); align-items: center; }
     .search-item:hover { background: var(--md-surface-highest); }
@@ -366,8 +375,8 @@
           </select>
         </div>
 
-        <!-- サウンドボード起動ボタン -->
-        <button class="btn btn-tonal" onclick="openSoundboardModal()" title="サウンドボード（SEポン出し）">
+        <!-- リアルサウンドボード起動ボタン -->
+        <button class="btn btn-tonal" onclick="openSoundboardModal()" title="サウンドボード（高音質SE）">
           <span class="material-symbols-outlined">campaign</span><span class="btn-text-mobile">SE</span>
         </button>
 
@@ -433,25 +442,49 @@
     </div>
   </div>
 
-  <!-- サウンドボード モーダル -->
+  <!-- リアルAPIサウンドボード モーダル -->
   <div class="modal-overlay" id="soundboardModal">
     <div class="modal-card" style="max-width:580px;">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <h3 style="font-size:1rem; color:var(--md-primary); display:flex; align-items:center; gap:6px;">
-          <span class="material-symbols-outlined">campaign</span>サウンドボード (全員に再生)
+          <span class="material-symbols-outlined">campaign</span>リアル サウンドボード (全員に再生)
         </h3>
         <button class="btn btn-tonal btn-icon-only" onclick="toggleModal('soundboardModal', false)"><span class="material-symbols-outlined">close</span></button>
       </div>
 
-      <div class="sb-grid" id="soundboardGrid"></div>
+      <!-- サウンドボード内タブ -->
+      <div class="sb-tabs">
+        <button id="sbTabBoardBtn" class="btn btn-primary btn-xs" onclick="switchSoundboardTab('board')">マイ サウンドボード</button>
+        <button id="sbTabSearchBtn" class="btn btn-tonal btn-xs" onclick="switchSoundboardTab('search')">APIから探して追加</button>
+      </div>
 
-      <!-- カスタムサウンド追加エリア -->
-      <div style="background:var(--md-surface-cnt); padding:10px; border-radius:var(--r-md); border:1px solid var(--md-outline-var); display:flex; flex-direction:column; gap:8px;">
-        <div style="font-size:0.78rem; font-weight:bold; color:var(--md-primary);">＋ カスタムSEを追加</div>
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <input type="text" id="customSoundName" class="md-field" style="flex:1; min-width:100px; font-size:0.8rem;" placeholder="SE名 (例: 笑い声)">
-          <input type="text" id="customSoundUrl" class="md-field" style="flex:2; min-width:160px; font-size:0.8rem;" placeholder="音声URL (MP3等)">
-          <button class="btn btn-primary btn-xs" onclick="addCustomSound()">追加</button>
+      <!-- パネル1: サウンドボード一覧 -->
+      <div id="sbPanelBoard" style="display:flex; flex-direction:column; gap:8px;">
+        <div class="sb-grid" id="soundboardGrid"></div>
+      </div>
+
+      <!-- パネル2: APIリアルタイム検索 & 追加 -->
+      <div id="sbPanelSearch" style="display:none; flex-direction:column; gap:10px;">
+        <div style="display:flex; gap:6px;">
+          <div class="md-field" style="flex:1;">
+            <input type="text" id="sbApiSearchInput" placeholder="効果音を検索... (例: anime, boom, laugh, bell)" onkeydown="if(event.key==='Enter') searchSoundsFromApi()">
+          </div>
+          <button class="btn btn-primary btn-xs" onclick="searchSoundsFromApi()">
+            <span class="material-symbols-outlined">search</span>検索
+          </button>
+        </div>
+
+        <div id="sbSearchResults" style="max-height:36vh; overflow-y:auto; display:flex; flex-direction:column; gap:6px;">
+          <div style="font-size:0.75rem; color:var(--md-outline); text-align:center; padding:18px;">
+            キーワードを入力して検索すると、APIから世界中の効果音を試聴・追加できます
+          </div>
+        </div>
+
+        <!-- 手動URL追加 -->
+        <div style="border-top:1px solid var(--md-outline-var); padding-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
+          <input type="text" id="manualSoundName" class="md-field" style="flex:1; min-width:110px; font-size:0.75rem;" placeholder="SE名 (手動追加)">
+          <input type="text" id="manualSoundUrl" class="md-field" style="flex:2; min-width:160px; font-size:0.75rem;" placeholder="MP3のURLを直接貼り付け">
+          <button class="btn btn-tonal btn-xs" onclick="addManualSound()">追加</button>
         </div>
       </div>
     </div>
@@ -533,9 +566,7 @@
     let currentStageMode = 'camera', currentFocusedPeerId = 'local', currentYtVolume = 40;
     let isTtsOn = true, isSpeaking = false, currentVote = null, voteTimerInterval = null, isReconnecting = false;
 
-    // 発話検知ループ管理（緑枠が消えないバグ対策）
     const speakingDetectors = {};
-
     let pendingYtAction = null;
     let currentSyncMediaId = null;
     let isSyncRemoteAction = false;
@@ -543,16 +574,17 @@
     let audioContext = null, masterCallGainNode = null, masterLimiterNode = null, voicePannerNode = null;
     let currentMasterGain = 1.2, isAudioSplit = false;
 
-    // --- サウンドボード定義 ---
-    const PRESET_SOUNDS = [
-      { id: 'correct', name: 'ピンポン', icon: 'check_circle', desc: '正解' },
-      { id: 'buzzer', name: 'ブブー', icon: 'cancel', desc: '不正解' },
-      { id: 'bell', name: 'チーン', icon: 'notifications', desc: '鐘' },
-      { id: 'applause', name: '歓声・拍手', icon: 'celebration', desc: '拍手' },
-      { id: 'fanfare', name: 'ファンファーレ', icon: 'military_tech', desc: '祝勝' },
-      { id: 'airhorn', name: 'エアホーン', icon: 'volume_up', desc: 'ホーン' },
-      { id: 'drum', name: 'ドン！', icon: 'album', desc: '太鼓' },
-      { id: 'coin', name: 'コイン', icon: 'monetization_on', desc: 'レトロ' }
+    // --- 高音質リアルMP3プリセット音源 ---
+    const DEFAULT_REAL_SOUNDS = [
+      { name: '🎉 歓声・拍手', url: 'https://www.myinstants.com/media/sounds/cheering.mp3', icon: 'celebration' },
+      { name: '🥁 ファンファーレ', url: 'https://www.myinstants.com/media/sounds/tada-sound.mp3', icon: 'military_tech' },
+      { name: '🔔 チーン', url: 'https://www.myinstants.com/media/sounds/ding-sound-effect_2.mp3', icon: 'notifications' },
+      { name: '⭕ ピンポン正解', url: 'https://www.myinstants.com/media/sounds/correct_sound_effect.mp3', icon: 'check_circle' },
+      { name: '❌ ブブー不正解', url: 'https://www.myinstants.com/media/sounds/wrong-buzzer-6472.mp3', icon: 'cancel' },
+      { name: '📢 エアホーン', url: 'https://www.myinstants.com/media/sounds/mlg-airhorn.mp3', icon: 'volume_up' },
+      { name: '💥 Vine Boom', url: 'https://www.myinstants.com/media/sounds/vine-boom.mp3', icon: 'crisis_alert' },
+      { name: '🥁 ドン！(オチ)', url: 'https://www.myinstants.com/media/sounds/badum-tss.mp3', icon: 'album' },
+      { name: '🪙 コイン音', url: 'https://www.myinstants.com/media/sounds/super-mario-coin-sound.mp3', icon: 'monetization_on' }
     ];
     let customSounds = [];
 
@@ -959,7 +991,6 @@
             updateUserListUI();
             if (currentFocusedPeerId === fromPeerId) updateStageView();
 
-            // 相手がミュートなら相手の緑枠を即座に消す
             if (data.isMuted) {
               $(`tile-${fromPeerId}`)?.classList.remove('speaking');
               if (currentFocusedPeerId === fromPeerId) $('aspectScreen')?.classList.remove('speaking');
@@ -1012,7 +1043,6 @@
           }
           break;
 
-        // サウンドボード再生シグナル受信
         case 'soundboard-play':
           handleRemoteSoundboardPlay(data);
           break;
@@ -1226,13 +1256,11 @@
       else toggleModal('ytModal', true);
     }
 
-    // 【修正】発話検知（緑枠が消えないバグを根本解決）
     function setupSpeakingDetector(id, stream) {
       try {
         const { ctx } = getAudioPipeline();
         if (stream.getAudioTracks().length === 0) return;
 
-        // 既存のループを確実に停止
         if (speakingDetectors[id]) {
           speakingDetectors[id].active = false;
           cancelAnimationFrame(speakingDetectors[id].animId);
@@ -1425,42 +1453,50 @@
     }
 
     // ==========================================
-    // --- サウンドボード機能（全員同期再生） ---
+    // --- リアル高音質APIサウンドボード ---
     // ==========================================
     function loadCustomSounds() {
       try {
-        const saved = localStorage.getItem('p2p_custom_sounds');
+        const saved = localStorage.getItem('p2p_custom_sounds_v2');
         if (saved) customSounds = JSON.parse(saved);
       } catch (e) { customSounds = []; }
       renderSoundboardUI();
     }
 
     function saveCustomSounds() {
-      try { localStorage.setItem('p2p_custom_sounds', JSON.stringify(customSounds)); } catch (e) {}
+      try { localStorage.setItem('p2p_custom_sounds_v2', JSON.stringify(customSounds)); } catch (e) {}
       renderSoundboardUI();
     }
 
     function openSoundboardModal() {
+      switchSoundboardTab('board');
       renderSoundboardUI();
       toggleModal('soundboardModal', true);
+    }
+
+    function switchSoundboardTab(tab) {
+      $('sbPanelBoard').style.display = (tab === 'board') ? 'flex' : 'none';
+      $('sbPanelSearch').style.display = (tab === 'search') ? 'flex' : 'none';
+      $('sbTabBoardBtn').className = `btn btn-xs ${tab === 'board' ? 'btn-primary' : 'btn-tonal'}`;
+      $('sbTabSearchBtn').className = `btn btn-xs ${tab === 'search' ? 'btn-primary' : 'btn-tonal'}`;
     }
 
     function renderSoundboardUI() {
       const grid = $('soundboardGrid');
       grid.replaceChildren();
 
-      // プリセットSE
-      PRESET_SOUNDS.forEach(s => {
-        const btn = el('div', { className: 'sb-btn', onclick: () => triggerSoundboard(s.id, 'preset', s.name) },
+      // デフォルト高音質リアルMP3
+      DEFAULT_REAL_SOUNDS.forEach(s => {
+        const btn = el('div', { className: 'sb-btn', onclick: () => triggerSoundboard(s.url, s.name) },
           el('span', { className: 'material-symbols-outlined', text: s.icon }),
           el('span', { className: 'sb-btn-label', text: s.name })
         );
         grid.appendChild(btn);
       });
 
-      // カスタムSE
+      // ユーザーが追加したカスタムSE
       customSounds.forEach((cs, idx) => {
-        const btn = el('div', { className: 'sb-btn', style: { position: 'relative' }, onclick: () => triggerSoundboard(cs.url, 'url', cs.name) },
+        const btn = el('div', { className: 'sb-btn', style: { position: 'relative' }, onclick: () => triggerSoundboard(cs.url, cs.name) },
           el('span', { className: 'material-symbols-outlined', style: { color: 'var(--md-success)' }, text: 'music_note' }),
           el('span', { className: 'sb-btn-label', text: cs.name }),
           el('button', {
@@ -1468,22 +1504,78 @@
             style: { position: 'absolute', top: '2px', right: '2px', padding: '2px', width: '18px', height: '18px' },
             title: '削除',
             onclick: (e) => { e.stopPropagation(); deleteCustomSound(idx); }
-          }, el('span', { className: 'material-symbols-outlined', style: { fontSize: '13px' }, text: 'close' }))
+          }, el('span', { className: 'material-symbols-outlined', style: { fontSize: '12px' }, text: 'close' }))
         );
         grid.appendChild(btn);
       });
     }
 
-    function addCustomSound() {
-      const name = $('customSoundName').value.trim();
-      const url = $('customSoundUrl').value.trim();
-      if (!name || !url) return alert('SE名と音声URLを入力してください');
+    // MyInstants API からリアルタイム検索
+    async function searchSoundsFromApi() {
+      const q = $('sbApiSearchInput').value.trim();
+      if (!q) return;
+
+      const box = $('sbSearchResults');
+      box.replaceChildren(el('div', { style: { textAlign: 'center', padding: '16px', color: 'var(--md-outline)' }, text: 'APIから効果音を検索中...' }));
+
+      const targetUrl = `https://www.myinstants.com/api/v1/instants/?format=json&name=${encodeURIComponent(q)}`;
+      let data = null;
+
+      try {
+        const res = await fetch(targetUrl);
+        if (res.ok) data = await res.json();
+      } catch (e) {}
+
+      if (!data) {
+        try {
+          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+          const res2 = await fetch(proxyUrl);
+          if (res2.ok) data = await res2.json();
+        } catch (e) {}
+      }
+
+      box.replaceChildren();
+      if (!data || !data.results || data.results.length === 0) {
+        box.appendChild(el('div', { style: { textAlign: 'center', padding: '16px', color: 'var(--md-error)' }, text: '見つかりませんでした。別のキーワードでお試しください' }));
+        return;
+      }
+
+      data.results.slice(0, 20).forEach(item => {
+        const itemRow = el('div', { className: 'sb-search-item' },
+          el('div', { style: { flex: '1', overflow: 'hidden' } },
+            el('div', { style: { fontSize: '0.8rem', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }, text: item.name })
+          ),
+          el('div', { style: { display: 'flex', gap: '6px' } },
+            el('button', { className: 'btn btn-tonal btn-xs', title: '試聴', onclick: () => playAudioUrl(item.sound) },
+              el('span', { className: 'material-symbols-outlined', style: { fontSize: '14px' }, text: 'play_arrow' }), '試聴'
+            ),
+            el('button', { className: 'btn btn-primary btn-xs', onclick: () => addSoundFromApi(item.name, item.sound) },
+              el('span', { className: 'material-symbols-outlined', style: { fontSize: '14px' }, text: 'add' }), '追加'
+            )
+          )
+        );
+        box.appendChild(itemRow);
+      });
+    }
+
+    function addSoundFromApi(name, url) {
+      customSounds.push({ name, url });
+      saveCustomSounds();
+      showToast(`「${name}」をサウンドボードに追加しました！`);
+      switchSoundboardTab('board');
+    }
+
+    function addManualSound() {
+      const name = $('manualSoundName').value.trim();
+      const url = $('manualSoundUrl').value.trim();
+      if (!name || !url) return alert('名前と音声URLを入力してください');
 
       customSounds.push({ name, url });
       saveCustomSounds();
-      $('customSoundName').value = '';
-      $('customSoundUrl').value = '';
-      showToast(`SE「${name}」を追加しました`);
+      $('manualSoundName').value = '';
+      $('manualSoundUrl').value = '';
+      showToast(`「${name}」を追加しました`);
+      switchSoundboardTab('board');
     }
 
     function deleteCustomSound(idx) {
@@ -1491,107 +1583,24 @@
       saveCustomSounds();
     }
 
-    function triggerSoundboard(soundVal, soundType, soundName) {
-      playSoundLocally(soundVal, soundType);
-      broadcast({ type: 'soundboard-play', soundVal, soundType, soundName, senderName: myUserName });
+    function triggerSoundboard(soundUrl, soundName) {
+      playAudioUrl(soundUrl);
+      broadcast({ type: 'soundboard-play', soundUrl, soundName, senderName: myUserName });
     }
 
     function handleRemoteSoundboardPlay(data) {
-      playSoundLocally(data.soundVal, data.soundType);
-      showToast(`${data.senderName} が「${data.soundName}」を再生 🔔`);
+      playAudioUrl(data.soundUrl);
+      showToast(`${data.senderName} が「${data.soundName}」を鳴らしました 🔔`);
     }
 
-    function playSoundLocally(val, type) {
-      if (type === 'preset') {
-        playSynthSE(val);
-      } else if (type === 'url') {
-        const a = new Audio(val);
-        a.volume = 0.85;
-        a.play().catch(() => playSynthSE('coin'));
-      }
-    }
-
-    // Web Audio API によるゼロ遅延・完全スタンドアロンSEシンセシス
-    function playSynthSE(id) {
+    // 本物の高音質リアルMP3再生
+    function playAudioUrl(url) {
       try {
-        const { ctx } = getAudioPipeline();
-        const now = ctx.currentTime;
-        const out = ctx.destination;
-
-        if (id === 'correct') { // ピンポン
-          const o1 = ctx.createOscillator(), g1 = ctx.createGain();
-          o1.frequency.setValueAtTime(587.33, now); // D5
-          g1.gain.setValueAtTime(0.3, now);
-          g1.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-          o1.connect(g1); g1.connect(out); o1.start(now); o1.stop(now + 0.4);
-
-          const o2 = ctx.createOscillator(), g2 = ctx.createGain();
-          o2.frequency.setValueAtTime(880, now + 0.2); // A5
-          g2.gain.setValueAtTime(0.35, now + 0.2);
-          g2.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
-          o2.connect(g2); g2.connect(out); o2.start(now + 0.2); o2.stop(now + 0.7);
-        } else if (id === 'buzzer') { // ブブー
-          [0, 0.22].forEach(delay => {
-            const o = ctx.createOscillator(), g = ctx.createGain();
-            o.type = 'sawtooth';
-            o.frequency.setValueAtTime(140, now + delay);
-            g.gain.setValueAtTime(0.25, now + delay);
-            g.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.18);
-            o.connect(g); g.connect(out); o.start(now + delay); o.stop(now + delay + 0.18);
-          });
-        } else if (id === 'bell') { // チーン
-          const o = ctx.createOscillator(), g = ctx.createGain();
-          o.type = 'sine';
-          o.frequency.setValueAtTime(2093, now); // C7
-          g.gain.setValueAtTime(0.4, now);
-          g.gain.exponentialRampToValueAtTime(0.0001, now + 1.6);
-          o.connect(g); g.connect(out); o.start(now); o.stop(now + 1.6);
-        } else if (id === 'coin') { // コイン
-          const o = ctx.createOscillator(), g = ctx.createGain();
-          o.type = 'square';
-          o.frequency.setValueAtTime(987.77, now); // B5
-          o.frequency.setValueAtTime(1318.51, now + 0.08); // E6
-          g.gain.setValueAtTime(0.2, now);
-          g.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-          o.connect(g); g.connect(out); o.start(now); o.stop(now + 0.45);
-        } else if (id === 'drum') { // ドン！
-          const o = ctx.createOscillator(), g = ctx.createGain();
-          o.frequency.setValueAtTime(130, now);
-          o.frequency.exponentialRampToValueAtTime(32, now + 0.3);
-          g.gain.setValueAtTime(0.6, now);
-          g.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-          o.connect(g); g.connect(out); o.start(now); o.stop(now + 0.35);
-        } else if (id === 'airhorn') { // ホーン
-          [0, 0.15, 0.3].forEach(d => {
-            const o = ctx.createOscillator(), g = ctx.createGain();
-            o.type = 'sawtooth';
-            o.frequency.setValueAtTime(466.16, now + d); // Bb4
-            g.gain.setValueAtTime(0.25, now + d);
-            g.gain.exponentialRampToValueAtTime(0.001, now + d + 0.12);
-            o.connect(g); g.connect(out); o.start(now + d); o.stop(now + d + 0.12);
-          });
-        } else if (id === 'fanfare') { // ファンファーレ
-          const notes = [523.25, 659.25, 783.99, 1046.50];
-          notes.forEach((f, i) => {
-            const o = ctx.createOscillator(), g = ctx.createGain();
-            o.type = 'triangle';
-            o.frequency.setValueAtTime(f, now + i * 0.1);
-            g.gain.setValueAtTime(0.25, now + i * 0.1);
-            g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + (i === 3 ? 0.6 : 0.2));
-            o.connect(g); g.connect(out); o.start(now + i * 0.1); o.stop(now + i * 0.1 + 0.65);
-          });
-        } else if (id === 'applause') { // 拍手ノイズ
-          const bufSize = ctx.sampleRate * 1.0;
-          const buffer = ctx.createBuffer(1, bufSize, ctx.sampleRate);
-          const data = buffer.getChannelData(0);
-          for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * Math.sin(i / 150);
-          const noise = ctx.createBufferSource();
-          noise.buffer = buffer;
-          const g = ctx.createGain();
-          g.gain.setValueAtTime(0.35, now);
-          g.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
-          noise.connect(g); g.connect(out); noise.start(now);
-        }
+        const audio = new Audio(url);
+        audio.volume = 0.85;
+        audio.play().catch(e => {
+          console.warn('再生ブロックまたはURL無効:', e);
+        });
       } catch (e) {}
     }
 
@@ -1747,7 +1756,6 @@
       processFastTtsQueue();
     }
 
-    // 【修正】マイク完全停止（緑枠の強制解除付き）
     async function toggleMic() {
       if (isMicBusy || !localStream) return;
       isMicBusy = true;
@@ -1760,7 +1768,6 @@
             localStream.removeTrack(t);
           });
 
-          // 発話検知ループを停止し、緑枠を確実に消す
           if (speakingDetectors['local']) {
             speakingDetectors['local'].active = false;
             cancelAnimationFrame(speakingDetectors['local'].animId);
