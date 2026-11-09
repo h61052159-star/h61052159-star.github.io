@@ -181,6 +181,21 @@
     .file-progress-fill { height: 100%; background: var(--md-primary); width: 0%; transition: width 0.15s; }
     .file-card-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 
+    /* サウンドボード用スタイル */
+    .sb-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+      gap: 8px; max-height: 48vh; overflow-y: auto; padding: 4px;
+    }
+    .sb-btn {
+      background: var(--md-surface-cnt); border: 1px solid var(--md-outline-var);
+      border-radius: var(--r-md); padding: 10px 6px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 6px; cursor: pointer;
+      color: var(--md-on-surface); transition: background 0.2s, transform 0.1s; user-select: none;
+    }
+    .sb-btn:active { transform: scale(0.93); background: var(--md-primary-cnt); color: var(--md-on-primary-cnt); }
+    .sb-btn .material-symbols-outlined { font-size: 26px; color: var(--md-primary); }
+    .sb-btn-label { font-size: 0.72rem; font-weight: bold; text-align: center; word-break: break-all; }
+
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); z-index: 100; display: none; justify-content: center; align-items: center; padding: 12px; }
     .modal-card { width: 100%; max-width: 540px; background: var(--md-surface-high); border-radius: var(--r-lg); padding: 18px; display: flex; flex-direction: column; gap: 12px; max-height: 85vh; }
     .search-results { overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
@@ -351,6 +366,11 @@
           </select>
         </div>
 
+        <!-- サウンドボード起動ボタン -->
+        <button class="btn btn-tonal" onclick="openSoundboardModal()" title="サウンドボード（SEポン出し）">
+          <span class="material-symbols-outlined">campaign</span><span class="btn-text-mobile">SE</span>
+        </button>
+
         <button class="btn btn-tonal" onclick="toggleMobileSidebar()" title="チャット・参加者">
           <span class="material-symbols-outlined">chat</span><span class="btn-text-mobile">チャット</span>
         </button>
@@ -409,6 +429,30 @@
           <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)">
         </div>
         <div id="fileItemsList" style="padding:10px; display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- サウンドボード モーダル -->
+  <div class="modal-overlay" id="soundboardModal">
+    <div class="modal-card" style="max-width:580px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="font-size:1rem; color:var(--md-primary); display:flex; align-items:center; gap:6px;">
+          <span class="material-symbols-outlined">campaign</span>サウンドボード (全員に再生)
+        </h3>
+        <button class="btn btn-tonal btn-icon-only" onclick="toggleModal('soundboardModal', false)"><span class="material-symbols-outlined">close</span></button>
+      </div>
+
+      <div class="sb-grid" id="soundboardGrid"></div>
+
+      <!-- カスタムサウンド追加エリア -->
+      <div style="background:var(--md-surface-cnt); padding:10px; border-radius:var(--r-md); border:1px solid var(--md-outline-var); display:flex; flex-direction:column; gap:8px;">
+        <div style="font-size:0.78rem; font-weight:bold; color:var(--md-primary);">＋ カスタムSEを追加</div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <input type="text" id="customSoundName" class="md-field" style="flex:1; min-width:100px; font-size:0.8rem;" placeholder="SE名 (例: 笑い声)">
+          <input type="text" id="customSoundUrl" class="md-field" style="flex:2; min-width:160px; font-size:0.8rem;" placeholder="音声URL (MP3等)">
+          <button class="btn btn-primary btn-xs" onclick="addCustomSound()">追加</button>
+        </div>
       </div>
     </div>
   </div>
@@ -483,11 +527,14 @@
 
     let localStream = null, screenStream = null;
     let isMicOn = true, isCamOn = true, isScreenSharing = false;
-    let isMicBusy = false; // マイクハードウェア切り替え排他制御
+    let isMicBusy = false;
     let isUnloading = false, isTabHidden = false, tabHiddenTime = 0;
     let ytPlayer = null, isYtReady = false, isRemoteAction = false, isYtLoaded = false;
     let currentStageMode = 'camera', currentFocusedPeerId = 'local', currentYtVolume = 40;
     let isTtsOn = true, isSpeaking = false, currentVote = null, voteTimerInterval = null, isReconnecting = false;
+
+    // 発話検知ループ管理（緑枠が消えないバグ対策）
+    const speakingDetectors = {};
 
     let pendingYtAction = null;
     let currentSyncMediaId = null;
@@ -495,6 +542,19 @@
 
     let audioContext = null, masterCallGainNode = null, masterLimiterNode = null, voicePannerNode = null;
     let currentMasterGain = 1.2, isAudioSplit = false;
+
+    // --- サウンドボード定義 ---
+    const PRESET_SOUNDS = [
+      { id: 'correct', name: 'ピンポン', icon: 'check_circle', desc: '正解' },
+      { id: 'buzzer', name: 'ブブー', icon: 'cancel', desc: '不正解' },
+      { id: 'bell', name: 'チーン', icon: 'notifications', desc: '鐘' },
+      { id: 'applause', name: '歓声・拍手', icon: 'celebration', desc: '拍手' },
+      { id: 'fanfare', name: 'ファンファーレ', icon: 'military_tech', desc: '祝勝' },
+      { id: 'airhorn', name: 'エアホーン', icon: 'volume_up', desc: 'ホーン' },
+      { id: 'drum', name: 'ドン！', icon: 'album', desc: '太鼓' },
+      { id: 'coin', name: 'コイン', icon: 'monetization_on', desc: 'レトロ' }
+    ];
+    let customSounds = [];
 
     function getAudioPipeline() {
       if (!audioContext) {
@@ -576,6 +636,7 @@
       await setupMedia();
       updateCameraDeviceList();
       setupSyncMediaListeners();
+      loadCustomSounds();
 
       const p = new URLSearchParams(window.location.search);
       if (p.get('room')) $('roomNameInput').value = p.get('room');
@@ -897,6 +958,12 @@
             updateTileIcons(fromPeerId, data.isMuted, data.isCamOff);
             updateUserListUI();
             if (currentFocusedPeerId === fromPeerId) updateStageView();
+
+            // 相手がミュートなら相手の緑枠を即座に消す
+            if (data.isMuted) {
+              $(`tile-${fromPeerId}`)?.classList.remove('speaking');
+              if (currentFocusedPeerId === fromPeerId) $('aspectScreen')?.classList.remove('speaking');
+            }
           }
           break;
 
@@ -943,6 +1010,11 @@
               });
             }
           }
+          break;
+
+        // サウンドボード再生シグナル受信
+        case 'soundboard-play':
+          handleRemoteSoundboardPlay(data);
           break;
 
         case 'sync-media-start': handleSyncMediaStart(data); break;
@@ -1041,6 +1113,12 @@
 
     function removePeer(pId) {
       checkAndElectNewHost(pId);
+      if (speakingDetectors[pId]) {
+        speakingDetectors[pId].active = false;
+        cancelAnimationFrame(speakingDetectors[pId].animId);
+        try { speakingDetectors[pId].src?.disconnect(); } catch (e) {}
+        delete speakingDetectors[pId];
+      }
       if (peers[pId]) delete peers[pId];
       const tile = $(`tile-${pId}`); if (tile) tile.remove();
       updateUserListUI();
@@ -1148,21 +1226,53 @@
       else toggleModal('ytModal', true);
     }
 
+    // 【修正】発話検知（緑枠が消えないバグを根本解決）
     function setupSpeakingDetector(id, stream) {
       try {
         const { ctx } = getAudioPipeline();
         if (stream.getAudioTracks().length === 0) return;
-        const src = ctx.createMediaStreamSource(stream), analyser = ctx.createAnalyser();
-        analyser.fftSize = 256; src.connect(analyser);
+
+        // 既存のループを確実に停止
+        if (speakingDetectors[id]) {
+          speakingDetectors[id].active = false;
+          cancelAnimationFrame(speakingDetectors[id].animId);
+          try { speakingDetectors[id].src?.disconnect(); } catch (e) {}
+        }
+
+        const src = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 256;
+        src.connect(analyser);
         const data = new Uint8Array(analyser.frequencyBinCount);
 
+        const detector = { active: true, animId: 0, src };
+        speakingDetectors[id] = detector;
+
         const check = () => {
-          analyser.getByteFrequencyData(data);
-          let sum = 0; for (let i = 0; i < data.length; i++) sum += data[i];
-          const isSpeakingNow = (sum / data.length) > 22;
-          const tile = $(`tile-${id}`); if (tile) tile.classList.toggle('speaking', isSpeakingNow);
-          if (currentFocusedPeerId === id) $('aspectScreen').classList.toggle('speaking', isSpeakingNow);
-          requestAnimationFrame(check);
+          if (!detector.active) return;
+
+          let isSpeakingNow = false;
+          if (id === 'local') {
+            if (isMicOn && localStream.getAudioTracks().length > 0) {
+              analyser.getByteFrequencyData(data);
+              let sum = 0; for (let i = 0; i < data.length; i++) sum += data[i];
+              isSpeakingNow = (sum / data.length) > 22;
+            }
+          } else {
+            if (!peers[id]?.isMuted && peers[id]?.stream?.getAudioTracks().length > 0) {
+              analyser.getByteFrequencyData(data);
+              let sum = 0; for (let i = 0; i < data.length; i++) sum += data[i];
+              isSpeakingNow = (sum / data.length) > 22;
+            }
+          }
+
+          const tile = $(`tile-${id}`);
+          if (tile) tile.classList.toggle('speaking', isSpeakingNow);
+          if (currentFocusedPeerId === id) {
+            $('aspectScreen').classList.toggle('speaking', isSpeakingNow);
+          }
+
+          detector.animId = requestAnimationFrame(check);
         };
         check();
       } catch (e) {}
@@ -1314,6 +1424,178 @@
       showToast(`再生: ${title}`);
     }
 
+    // ==========================================
+    // --- サウンドボード機能（全員同期再生） ---
+    // ==========================================
+    function loadCustomSounds() {
+      try {
+        const saved = localStorage.getItem('p2p_custom_sounds');
+        if (saved) customSounds = JSON.parse(saved);
+      } catch (e) { customSounds = []; }
+      renderSoundboardUI();
+    }
+
+    function saveCustomSounds() {
+      try { localStorage.setItem('p2p_custom_sounds', JSON.stringify(customSounds)); } catch (e) {}
+      renderSoundboardUI();
+    }
+
+    function openSoundboardModal() {
+      renderSoundboardUI();
+      toggleModal('soundboardModal', true);
+    }
+
+    function renderSoundboardUI() {
+      const grid = $('soundboardGrid');
+      grid.replaceChildren();
+
+      // プリセットSE
+      PRESET_SOUNDS.forEach(s => {
+        const btn = el('div', { className: 'sb-btn', onclick: () => triggerSoundboard(s.id, 'preset', s.name) },
+          el('span', { className: 'material-symbols-outlined', text: s.icon }),
+          el('span', { className: 'sb-btn-label', text: s.name })
+        );
+        grid.appendChild(btn);
+      });
+
+      // カスタムSE
+      customSounds.forEach((cs, idx) => {
+        const btn = el('div', { className: 'sb-btn', style: { position: 'relative' }, onclick: () => triggerSoundboard(cs.url, 'url', cs.name) },
+          el('span', { className: 'material-symbols-outlined', style: { color: 'var(--md-success)' }, text: 'music_note' }),
+          el('span', { className: 'sb-btn-label', text: cs.name }),
+          el('button', {
+            className: 'btn btn-danger btn-icon-only',
+            style: { position: 'absolute', top: '2px', right: '2px', padding: '2px', width: '18px', height: '18px' },
+            title: '削除',
+            onclick: (e) => { e.stopPropagation(); deleteCustomSound(idx); }
+          }, el('span', { className: 'material-symbols-outlined', style: { fontSize: '13px' }, text: 'close' }))
+        );
+        grid.appendChild(btn);
+      });
+    }
+
+    function addCustomSound() {
+      const name = $('customSoundName').value.trim();
+      const url = $('customSoundUrl').value.trim();
+      if (!name || !url) return alert('SE名と音声URLを入力してください');
+
+      customSounds.push({ name, url });
+      saveCustomSounds();
+      $('customSoundName').value = '';
+      $('customSoundUrl').value = '';
+      showToast(`SE「${name}」を追加しました`);
+    }
+
+    function deleteCustomSound(idx) {
+      customSounds.splice(idx, 1);
+      saveCustomSounds();
+    }
+
+    function triggerSoundboard(soundVal, soundType, soundName) {
+      playSoundLocally(soundVal, soundType);
+      broadcast({ type: 'soundboard-play', soundVal, soundType, soundName, senderName: myUserName });
+    }
+
+    function handleRemoteSoundboardPlay(data) {
+      playSoundLocally(data.soundVal, data.soundType);
+      showToast(`${data.senderName} が「${data.soundName}」を再生 🔔`);
+    }
+
+    function playSoundLocally(val, type) {
+      if (type === 'preset') {
+        playSynthSE(val);
+      } else if (type === 'url') {
+        const a = new Audio(val);
+        a.volume = 0.85;
+        a.play().catch(() => playSynthSE('coin'));
+      }
+    }
+
+    // Web Audio API によるゼロ遅延・完全スタンドアロンSEシンセシス
+    function playSynthSE(id) {
+      try {
+        const { ctx } = getAudioPipeline();
+        const now = ctx.currentTime;
+        const out = ctx.destination;
+
+        if (id === 'correct') { // ピンポン
+          const o1 = ctx.createOscillator(), g1 = ctx.createGain();
+          o1.frequency.setValueAtTime(587.33, now); // D5
+          g1.gain.setValueAtTime(0.3, now);
+          g1.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+          o1.connect(g1); g1.connect(out); o1.start(now); o1.stop(now + 0.4);
+
+          const o2 = ctx.createOscillator(), g2 = ctx.createGain();
+          o2.frequency.setValueAtTime(880, now + 0.2); // A5
+          g2.gain.setValueAtTime(0.35, now + 0.2);
+          g2.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+          o2.connect(g2); g2.connect(out); o2.start(now + 0.2); o2.stop(now + 0.7);
+        } else if (id === 'buzzer') { // ブブー
+          [0, 0.22].forEach(delay => {
+            const o = ctx.createOscillator(), g = ctx.createGain();
+            o.type = 'sawtooth';
+            o.frequency.setValueAtTime(140, now + delay);
+            g.gain.setValueAtTime(0.25, now + delay);
+            g.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.18);
+            o.connect(g); g.connect(out); o.start(now + delay); o.stop(now + delay + 0.18);
+          });
+        } else if (id === 'bell') { // チーン
+          const o = ctx.createOscillator(), g = ctx.createGain();
+          o.type = 'sine';
+          o.frequency.setValueAtTime(2093, now); // C7
+          g.gain.setValueAtTime(0.4, now);
+          g.gain.exponentialRampToValueAtTime(0.0001, now + 1.6);
+          o.connect(g); g.connect(out); o.start(now); o.stop(now + 1.6);
+        } else if (id === 'coin') { // コイン
+          const o = ctx.createOscillator(), g = ctx.createGain();
+          o.type = 'square';
+          o.frequency.setValueAtTime(987.77, now); // B5
+          o.frequency.setValueAtTime(1318.51, now + 0.08); // E6
+          g.gain.setValueAtTime(0.2, now);
+          g.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+          o.connect(g); g.connect(out); o.start(now); o.stop(now + 0.45);
+        } else if (id === 'drum') { // ドン！
+          const o = ctx.createOscillator(), g = ctx.createGain();
+          o.frequency.setValueAtTime(130, now);
+          o.frequency.exponentialRampToValueAtTime(32, now + 0.3);
+          g.gain.setValueAtTime(0.6, now);
+          g.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          o.connect(g); g.connect(out); o.start(now); o.stop(now + 0.35);
+        } else if (id === 'airhorn') { // ホーン
+          [0, 0.15, 0.3].forEach(d => {
+            const o = ctx.createOscillator(), g = ctx.createGain();
+            o.type = 'sawtooth';
+            o.frequency.setValueAtTime(466.16, now + d); // Bb4
+            g.gain.setValueAtTime(0.25, now + d);
+            g.gain.exponentialRampToValueAtTime(0.001, now + d + 0.12);
+            o.connect(g); g.connect(out); o.start(now + d); o.stop(now + d + 0.12);
+          });
+        } else if (id === 'fanfare') { // ファンファーレ
+          const notes = [523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((f, i) => {
+            const o = ctx.createOscillator(), g = ctx.createGain();
+            o.type = 'triangle';
+            o.frequency.setValueAtTime(f, now + i * 0.1);
+            g.gain.setValueAtTime(0.25, now + i * 0.1);
+            g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + (i === 3 ? 0.6 : 0.2));
+            o.connect(g); g.connect(out); o.start(now + i * 0.1); o.stop(now + i * 0.1 + 0.65);
+          });
+        } else if (id === 'applause') { // 拍手ノイズ
+          const bufSize = ctx.sampleRate * 1.0;
+          const buffer = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * Math.sin(i / 150);
+          const noise = ctx.createBufferSource();
+          noise.buffer = buffer;
+          const g = ctx.createGain();
+          g.gain.setValueAtTime(0.35, now);
+          g.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+          noise.connect(g); g.connect(out); noise.start(now);
+        }
+      } catch (e) {}
+    }
+
+    // --- MP3/MP4 同時視聴 & PiP ---
     function setupSyncMediaListeners() {
       const v = $('syncMediaVideo'), a = $('syncMediaAudio');
       [v, a].forEach(player => {
@@ -1465,21 +1747,27 @@
       processFastTtsQueue();
     }
 
-    // 【修正】ミュート時はマイクハードウェアを完全に停止・解放（iPadのダッキングを根絶）
+    // 【修正】マイク完全停止（緑枠の強制解除付き）
     async function toggleMic() {
       if (isMicBusy || !localStream) return;
       isMicBusy = true;
 
       try {
         if (isMicOn) {
-          // マイクを物理的に完全停止
           isMicOn = false;
           localStream.getAudioTracks().forEach(t => {
-            t.stop(); // ハードウェアマイクを解放！
+            t.stop();
             localStream.removeTrack(t);
           });
 
-          // 各ピアへの送信トラックを完全無音化
+          // 発話検知ループを停止し、緑枠を確実に消す
+          if (speakingDetectors['local']) {
+            speakingDetectors['local'].active = false;
+            cancelAnimationFrame(speakingDetectors['local'].animId);
+          }
+          $('tile-local')?.classList.remove('speaking');
+          if (currentFocusedPeerId === 'local') $('aspectScreen')?.classList.remove('speaking');
+
           Object.values(peers).forEach(p => {
             const sender = p.call?.peerConnection?.getSenders().find(s => s.track === null || s.track?.kind === 'audio');
             if (sender) sender.replaceTrack(null).catch(() => {});
@@ -1487,7 +1775,6 @@
 
           showToast('マイクを完全に停止しました（ハードウェアOFF）');
         } else {
-          // マイクを再取得・起動
           const audioConstraints = { echoCancellation: true, noiseSuppression: true, autoGainControl: false };
           const newAudioStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
           const newAudioTrack = newAudioStream.getAudioTracks()[0];
@@ -1495,7 +1782,6 @@
           localStream.addTrack(newAudioTrack);
           isMicOn = true;
 
-          // 各ピアへの送信トラックを更新
           Object.values(peers).forEach(p => {
             const sender = p.call?.peerConnection?.getSenders().find(s => s.track === null || s.track?.kind === 'audio');
             if (sender) sender.replaceTrack(newAudioTrack).catch(() => {});
@@ -1595,7 +1881,6 @@
     function handleFileSelect(e) { if (e.target.files[0]) sendFileToPeers(e.target.files[0]); }
     function handleDropFile(e) { e.preventDefault(); if (e.dataTransfer.files[0]) sendFileToPeers(e.dataTransfer.files[0]); }
 
-    // 【修正】Uint8Arrayバイナリ化＋バッファ制御による安定送信
     async function sendFileToPeers(file) {
       const activePeers = Object.values(peers).filter(p => p.conn?.open);
       if (activePeers.length === 0) return alert('接続中の相手がいません');
@@ -1646,7 +1931,6 @@
       showToast(`受信開始: ${safeName}`);
     }
 
-    // 【修正】ArrayBuffer / Uint8Array の両方に対応する安全なチャンクデコード
     function handleFileChunk(data) {
       const f = receivedFiles[data.id]; if (!f) return;
       if (typeof data.index !== 'number' || data.index < 0 || data.index >= f.total) return;
