@@ -580,6 +580,7 @@
     let ytPlayer = null, isYtReady = false, isRemoteAction = false, isYtLoaded = false;
     let currentStageMode = 'camera', currentFocusedPeerId = 'local', currentYtVolume = 40, currentSbVolume = 70;
     const activeSoundboardAudios = new Set();
+    const audioBufferCache = new Map();
     let lastSoundboardPlayTime = 0;
     const MAX_CONCURRENT_SOUNDS = 4;
     let isTtsOn = true, isSpeaking = false, currentVote = null, voteTimerInterval = null, isReconnecting = false;
@@ -714,7 +715,7 @@
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
-      ['click', 'touchstart', 'keydown'].forEach(e => window.addEventListener(e, unlockAllAudio, { once: true }));
+      ['click', 'touchstart', 'touchend', 'keydown'].forEach(e => window.addEventListener(e, unlockAllAudio, { once: true }));
       await setupMedia();
       updateCameraDeviceList();
       setupSyncMediaListeners();
@@ -1764,7 +1765,13 @@
       if (v2) v2.textContent = valText;
 
       activeSoundboardAudios.forEach(audio => {
-        try { audio.volume = currentSbVolume / 100; } catch(e) {}
+        try {
+          if (audio.gainNode && audioContext) {
+            audio.gainNode.gain.setValueAtTime(currentSbVolume / 100, audioContext.currentTime);
+          } else if ('volume' in audio) {
+            audio.volume = currentSbVolume / 100;
+          }
+        } catch(e) {}
       });
     }
 
@@ -1778,8 +1785,8 @@
       changeSoundboardVolume(currentSbVolume);
     }
 
-    // 本物の高音質リアルMP3再生（レートリミット＆サニタイズ付き）
-    function playAudioUrl(url) {
+    // iPad / iOS Safari 完全対応 Web Audio API ハイブリッド再生エンジン
+    async function playAudioUrl(url) {
       if (!isSafeAudioUrl(url)) {
         console.warn('安全ではないまたは不正な音声URLがブロックされました:', url);
         return;
@@ -1787,13 +1794,80 @@
 
       // レートリミット: 180ms以内の連続呼び出しを無視
       const now = Date.now();
-      if (now - lastSoundboardPlayTime < 180) {
-        return;
-      }
+      if (now - lastSoundboardPlayTime < 180) return;
       lastSoundboardPlayTime = now;
 
+      // 1. Web Audio API での再生（iOS/iPad Safariで最も安定・音量調節完全対応）
       try {
-        // 同時再生数制限を超えた古い音声を破棄
+        const { ctx, master } = getAudioPipeline();
+        if (ctx.state === 'suspended') {
+          await ctx.resume().catch(() => {});
+        }
+
+        let buffer = audioBufferCache.get(url);
+        if (!buffer) {
+          let arrayBuffer = null;
+          try {
+            const resp = await fetch(url, { mode: 'cors' });
+            if (resp.ok) arrayBuffer = await resp.arrayBuffer();
+          } catch (e) {
+            // 直接フェッチがCORS等で失敗した場合はプロキシ経由で取得
+            try {
+              const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+              const pResp = await fetch(proxyUrl);
+              if (pResp.ok) arrayBuffer = await pResp.arrayBuffer();
+            } catch (err) {}
+          }
+
+          if (arrayBuffer) {
+            buffer = await new Promise((resolve, reject) => {
+              ctx.decodeAudioData(arrayBuffer, resolve, reject);
+            });
+            if (buffer) {
+              if (audioBufferCache.size > 30) {
+                const firstKey = audioBufferCache.keys().next().value;
+                audioBufferCache.delete(firstKey);
+              }
+              audioBufferCache.set(url, buffer);
+            }
+          }
+        }
+
+        if (buffer) {
+          const source = ctx.createBufferSource();
+          source.buffer = buffer;
+
+          const gainNode = ctx.createGain();
+          gainNode.gain.setValueAtTime(currentSbVolume / 100, ctx.currentTime);
+
+          source.connect(gainNode);
+          if (master) {
+            gainNode.connect(master);
+          } else {
+            gainNode.connect(ctx.destination);
+          }
+
+          source.start(0);
+
+          const audioRef = {
+            gainNode,
+            set volume(v) {
+              try { gainNode.gain.setValueAtTime(v, ctx.currentTime); } catch (e) {}
+            },
+            pause() {
+              try { source.stop(); } catch (e) {}
+            }
+          };
+          activeSoundboardAudios.add(audioRef);
+          source.onended = () => activeSoundboardAudios.delete(audioRef);
+          return audioRef;
+        }
+      } catch (webaudioErr) {
+        console.warn('Web Audio再生に失敗、HTML5 Audioにフォールバック:', webaudioErr);
+      }
+
+      // 2. フォールバック: HTML5 Audio 要素（DOMマウント・iOS Safariセーフモード）
+      try {
         if (activeSoundboardAudios.size >= MAX_CONCURRENT_SOUNDS) {
           const oldest = activeSoundboardAudios.values().next().value;
           if (oldest) {
@@ -1802,17 +1876,34 @@
           }
         }
 
-        const audio = new Audio(url);
-        audio.volume = currentSbVolume / 100;
-        activeSoundboardAudios.add(audio);
+        const audio = document.createElement('audio');
+        audio.src = url;
+        audio.preload = 'auto';
+        audio.setAttribute('playsinline', '');
+        audio.setAttribute('webkit-playsinline', '');
+        audio.style.display = 'none';
+        document.body.appendChild(audio);
 
-        const cleanup = () => activeSoundboardAudios.delete(audio);
+        try {
+          audio.volume = currentSbVolume / 100;
+        } catch (e) {}
+
+        activeSoundboardAudios.add(audio);
+        const cleanup = () => {
+          activeSoundboardAudios.delete(audio);
+          try { audio.remove(); } catch (e) {}
+        };
+
         audio.addEventListener('ended', cleanup, { once: true });
         audio.addEventListener('error', cleanup, { once: true });
-        audio.play().catch(e => {
-          console.warn('再生ブロックまたはURL無効:', e);
-          cleanup();
-        });
+
+        const p = audio.play();
+        if (p && typeof p.catch === 'function') {
+          p.catch(err => {
+            console.warn('HTML5 Audio再生スキップ (iOS制約等):', err);
+            cleanup();
+          });
+        }
         return audio;
       } catch (e) {}
     }
