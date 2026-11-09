@@ -186,7 +186,7 @@
     .sb-tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--md-outline-var); padding-bottom: 6px; }
     .sb-grid {
       display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
-      gap: 8px; max-height: 44vh; overflow-y: auto; padding: 4px;
+      gap: 8px; max-height: 48vh; overflow-y: auto; padding: 4px;
     }
     .sb-btn {
       background: var(--md-surface-cnt); border: 1px solid var(--md-outline-var);
@@ -206,7 +206,7 @@
     }
 
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); z-index: 100; display: none; justify-content: center; align-items: center; padding: 12px; }
-    .modal-card { width: 100%; max-width: 560px; background: var(--md-surface-high); border-radius: var(--r-lg); padding: 18px; display: flex; flex-direction: column; gap: 12px; max-height: 85vh; }
+    .modal-card { width: 100%; max-width: 580px; background: var(--md-surface-high); border-radius: var(--r-lg); padding: 18px; display: flex; flex-direction: column; gap: 12px; max-height: 85vh; }
     .search-results { overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
     .search-item { display: flex; gap: 10px; padding: 8px; border-radius: var(--r-sm); cursor: pointer; background: var(--md-surface-cnt); align-items: center; }
     .search-item:hover { background: var(--md-surface-highest); }
@@ -382,7 +382,7 @@
         </div>
 
         <!-- リアルサウンドボード起動ボタン -->
-        <button class="btn btn-tonal" onclick="openSoundboardModal()" title="サウンドボード（高音質SE）">
+        <button class="btn btn-tonal" onclick="openSoundboardModal()" title="サウンドボード（ミームSE）">
           <span class="material-symbols-outlined">campaign</span><span class="btn-text-mobile">SE</span>
         </button>
 
@@ -448,12 +448,12 @@
     </div>
   </div>
 
-  <!-- リアルAPIサウンドボード モーダル -->
+  <!-- サウンドボード モーダル -->
   <div class="modal-overlay" id="soundboardModal">
-    <div class="modal-card" style="max-width:580px;">
+    <div class="modal-card">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <h3 style="font-size:1rem; color:var(--md-primary); display:flex; align-items:center; gap:6px;">
-          <span class="material-symbols-outlined">campaign</span>リアル サウンドボード (全員に再生)
+          <span class="material-symbols-outlined">campaign</span>ミーム サウンドボード (全員に再生)
         </h3>
         <button class="btn btn-tonal btn-icon-only" onclick="toggleModal('soundboardModal', false)"><span class="material-symbols-outlined">close</span></button>
       </div>
@@ -462,7 +462,7 @@
       <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; border-bottom:1px solid var(--md-outline-var); padding-bottom:6px;">
         <div class="sb-tabs" style="border-bottom:none; padding-bottom:0;">
           <button id="sbTabBoardBtn" class="btn btn-primary btn-xs" onclick="switchSoundboardTab('board')">マイ サウンドボード</button>
-          <button id="sbTabSearchBtn" class="btn btn-tonal btn-xs" onclick="switchSoundboardTab('search')">APIから探して追加</button>
+          <button id="sbTabSearchBtn" class="btn btn-tonal btn-xs" onclick="switchSoundboardTab('search')">カスタムSEの追加</button>
         </div>
         <div class="vol-item" style="font-size:0.75rem;">
           <span class="material-symbols-outlined" style="font-size:16px;">campaign</span>
@@ -477,28 +477,22 @@
         <div class="sb-grid" id="soundboardGrid"></div>
       </div>
 
-      <!-- パネル2: APIリアルタイム検索 & 追加 -->
+      <!-- パネル2: 手動追加 -->
       <div id="sbPanelSearch" style="display:none; flex-direction:column; gap:10px;">
-        <div style="display:flex; gap:6px;">
-          <div class="md-field" style="flex:1;">
-            <input type="text" id="sbApiSearchInput" placeholder="効果音を検索... (例: anime, boom, laugh, bell)" onkeydown="if(event.key==='Enter') searchSoundsFromApi()">
+        <div style="font-size:0.78rem; color:var(--md-on-surface-var); padding:4px 0;">
+          お好きな音声ファイルの直リンク（MP3等）を追加できます。GitHub、Discord、CDNなどのURLに対応しています。
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:8px; background:var(--md-surface-cnt); padding:12px; border-radius:var(--r-md); border:1px solid var(--md-outline-var);">
+          <div class="md-field">
+            <input type="text" id="manualSoundName" placeholder="効果音の名前 (例: 拍手、歓声)">
           </div>
-          <button class="btn btn-primary btn-xs" onclick="searchSoundsFromApi()">
-            <span class="material-symbols-outlined">search</span>検索
+          <div class="md-field">
+            <input type="text" id="manualSoundUrl" placeholder="音声URL (https://.../*.mp3)">
+          </div>
+          <button class="btn btn-primary btn-xs" style="align-self:flex-end;" onclick="addManualSound()">
+            <span class="material-symbols-outlined" style="font-size:16px;">add</span>ボードに追加
           </button>
-        </div>
-
-        <div id="sbSearchResults" style="max-height:36vh; overflow-y:auto; display:flex; flex-direction:column; gap:6px;">
-          <div style="font-size:0.75rem; color:var(--md-outline); text-align:center; padding:18px;">
-            キーワードを入力して検索すると、APIから世界中の効果音を試聴・追加できます
-          </div>
-        </div>
-
-        <!-- 手動URL追加 -->
-        <div style="border-top:1px solid var(--md-outline-var); padding-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
-          <input type="text" id="manualSoundName" class="md-field" style="flex:1; min-width:110px; font-size:0.75rem;" placeholder="SE名 (手動追加)">
-          <input type="text" id="manualSoundUrl" class="md-field" style="flex:2; min-width:160px; font-size:0.75rem;" placeholder="MP3のURLを直接貼り付け">
-          <button class="btn btn-tonal btn-xs" onclick="addManualSound()">追加</button>
         </div>
       </div>
     </div>
@@ -593,17 +587,23 @@
     let audioContext = null, masterCallGainNode = null, masterLimiterNode = null, voicePannerNode = null;
     let currentMasterGain = 1.2, isAudioSplit = false;
 
-    // --- 高音質リアルMP3プリセット音源 ---
+    // --- OpenDNSでも絶対にブロックされない超定番ミーム音源 (jsDelivr CDN) ---
     const DEFAULT_REAL_SOUNDS = [
-      { name: '🎉 歓声・拍手', url: 'https://www.myinstants.com/media/sounds/cheering.mp3', icon: 'celebration' },
-      { name: '人の心とかないんか', url: 'https://www.myinstants.com/media/sounds/ren-noxin-tokanainka.mp3', icon: 'military_tech' },
-      { name: '🔔 チーン', url: 'https://www.myinstants.com/media/sounds/ding-sound-effect_2.mp3', icon: 'notifications' },
-      { name: 'FAHHHHH🔊', url: 'https://www.myinstants.com/media/sounds/faaah.mp3', icon: 'check_circle' },
-      { name: '🥴ﾓﾜﾝﾓﾜﾝﾓﾜﾝ', url: 'https://www.myinstants.com/media/sounds/rizz-sound-effect.mp3', icon: 'cancel' },
-      { name: '📢 エアホーン', url: 'https://www.myinstants.com/media/sounds/mlg-airhorn.mp3', icon: 'volume_up' },
-      { name: '🗿驚き', url: 'https://www.myinstants.com/media/sounds/vine-boom.mp3', icon: 'crisis_alert' },
-      { name: '🥁ﾄﾞﾄﾞｯｼｬｰｰﾝ', url: 'https://www.myinstants.com/media/sounds/badum-tss.mp3', icon: 'album' },
-      { name: '👎️ブーイング', url: 'https://www.myinstants.com/media/sounds/oh-my-god-bro-ah-hell-nah.mp3', icon: 'monetization_on' }
+      { name: '🗿', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/vine-boom.mp3', icon: 'crisis_alert' },
+      { name: '⚡ パイプ', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/metalpipe.mp3', icon: 'hardware' },
+      { name: '😐 ああ', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/bruh.mp3', icon: 'sentiment_neutral' },
+      { name: '💔 Emotional Dmg', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/emotional-damage.mp3', icon: 'heart_broken' },
+      { name: '🔨', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/bonk.mp3', icon: 'gavel' },
+      { name: '死', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/oof.mp3', icon: 'skull' },
+      { name: '📢 エアホーン', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/airhorn.mp3', icon: 'volume_up' },
+      { name: '🚨 FBI突入', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/fbi-open-up.mp3', icon: 'local_police' },
+      { name: '🔔 Taco Bell', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/taco-bell.mp3', icon: 'notifications' },
+      { name: '💬', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/sans.mp3', icon: 'chat' },
+      { name: '🎻 悲しいバイオリン', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/sad-violin.mp3', icon: 'music_note' },
+      { name: 'おーまーがー', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/ohhmygod.mp3', icon: 'album' },
+      { name: '⚰️ 棺桶ダンス', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/coffin-dance.mp3', icon: 'celebration' },
+      { name: '✨ Anime WOW', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/anime-wow.mp3', icon: 'star' },
+      { name: '🎮️wii似顔絵チャンネル', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/wiimusic.mp3', icon: 'directions_run' }
     ];
     let customSounds = [];
 
@@ -1151,7 +1151,7 @@
     async function claimRendezvousHost() {
       if (!isHost || !currentRoomName) return;
       const hostId = await getRoomHostId(currentRoomName);
-      if (myPeerId === hostId) return; // 初期ホストはメインピア自身がhostIdなので不要
+      if (myPeerId === hostId) return;
       if (rendezvousPeer && !rendezvousPeer.destroyed && rendezvousPeer.open) return;
 
       clearTimeout(rendezvousRetryTimer);
@@ -1171,7 +1171,6 @@
       });
 
       rendezvousPeer.on('error', (err) => {
-        // 元ホストが切断されてPeerServer上で解放されるまで少し待機してリトライ
         if (err.type === 'unavailable-id' && attempt < 12) {
           rendezvousRetryTimer = setTimeout(() => {
             if (isHost && (!rendezvousPeer || rendezvousPeer.destroyed || !rendezvousPeer.open)) {
@@ -1185,7 +1184,6 @@
     function setupRendezvousEvents(rPeer) {
       rPeer.on('connection', conn => {
         conn.on('open', () => {
-          // 新規参加者に対して、現ホストおよび現在の全メンバー一覧を送信して誘導
           const activeMembers = [myPeerId, ...Object.keys(peers).filter(id => !kickedPeers.has(id))];
           conn.send({
             type: 'mesh-members',
@@ -1588,7 +1586,7 @@
     }
 
     // ==========================================
-    // --- リアル高音質APIサウンドボード ---
+    // --- ミーム サウンドボード ---
     // ==========================================
     function loadCustomSounds() {
       try {
@@ -1627,7 +1625,6 @@
       const grid = $('soundboardGrid');
       grid.replaceChildren();
 
-      // デフォルト高音質リアルMP3
       DEFAULT_REAL_SOUNDS.forEach(s => {
         const btn = el('div', { className: 'sb-btn', onclick: () => triggerSoundboard(s.url, s.name) },
           el('span', { className: 'material-symbols-outlined', text: s.icon }),
@@ -1636,7 +1633,6 @@
         grid.appendChild(btn);
       });
 
-      // ユーザーが追加したカスタムSE
       customSounds.forEach((cs, idx) => {
         const btn = el('div', { className: 'sb-btn', style: { position: 'relative' }, onclick: () => triggerSoundboard(cs.url, cs.name) },
           el('span', { className: 'material-symbols-outlined', style: { color: 'var(--md-success)' }, text: 'music_note' }),
@@ -1652,73 +1648,13 @@
       });
     }
 
-    // MyInstants API からリアルタイム検索
-    async function searchSoundsFromApi() {
-      const q = sanitizeText($('sbApiSearchInput').value, 50);
-      if (!q) return;
-
-      const box = $('sbSearchResults');
-      box.replaceChildren(el('div', { style: { textAlign: 'center', padding: '16px', color: 'var(--md-outline)' }, text: 'APIから効果音を検索中...' }));
-
-      const targetUrl = `https://www.myinstants.com/api/v1/instants/?format=json&name=${encodeURIComponent(q)}`;
-      let data = null;
-
-      try {
-        const res = await fetch(targetUrl);
-        if (res.ok) data = await res.json();
-      } catch (e) {}
-
-      if (!data) {
-        try {
-          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
-          const res2 = await fetch(proxyUrl);
-          if (res2.ok) data = await res2.json();
-        } catch (e) {}
-      }
-
-      box.replaceChildren();
-      if (!data || !data.results || data.results.length === 0) {
-        box.appendChild(el('div', { style: { textAlign: 'center', padding: '16px', color: 'var(--md-error)' }, text: '見つかりませんでした。別のキーワードでお試しください' }));
-        return;
-      }
-
-      data.results.slice(0, 20).forEach(item => {
-        if (!item || !item.sound || !isSafeAudioUrl(item.sound)) return;
-        const safeItemName = sanitizeText(item.name, 40) || 'SE';
-
-        const itemRow = el('div', { className: 'sb-search-item' },
-          el('div', { style: { flex: '1', overflow: 'hidden' } },
-            el('div', { style: { fontSize: '0.8rem', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }, text: safeItemName })
-          ),
-          el('div', { style: { display: 'flex', gap: '6px' } },
-            el('button', { className: 'btn btn-tonal btn-xs', title: '試聴', onclick: () => playAudioUrl(item.sound) },
-              el('span', { className: 'material-symbols-outlined', style: { fontSize: '14px' }, text: 'play_arrow' }), '試聴'
-            ),
-            el('button', { className: 'btn btn-primary btn-xs', onclick: () => addSoundFromApi(safeItemName, item.sound) },
-              el('span', { className: 'material-symbols-outlined', style: { fontSize: '14px' }, text: 'add' }), '追加'
-            )
-          )
-        );
-        box.appendChild(itemRow);
-      });
-    }
-
-    function addSoundFromApi(name, url) {
-      if (!isSafeAudioUrl(url)) return showToast('安全ではない音声URLです', 'error');
-      const safeName = sanitizeText(name, 30) || 'SE';
-      customSounds.push({ name: safeName, url });
-      saveCustomSounds();
-      showToast(`「${safeName}」をサウンドボードに追加しました！`);
-      switchSoundboardTab('board');
-    }
-
     function addManualSound() {
       const name = sanitizeText($('manualSoundName').value, 30);
       const url = $('manualSoundUrl').value.trim();
       if (!name || !url) return alert('名前と音声URLを入力してください');
 
       if (!isSafeAudioUrl(url)) {
-        return alert('無効または安全ではないURLです。http:// または https:// から始まる正規の音声ファイルURLを入力してください。（javascript:, data:, ローカルアドレス等は禁止されています）');
+        return alert('無効または安全ではないURLです。http:// または https:// から始まる正規の音声ファイルURLを入力してください。');
       }
 
       customSounds.push({ name, url });
@@ -1792,12 +1728,11 @@
         return;
       }
 
-      // レートリミット: 180ms以内の連続呼び出しを無視
       const now = Date.now();
       if (now - lastSoundboardPlayTime < 180) return;
       lastSoundboardPlayTime = now;
 
-      // 1. Web Audio API での再生（iOS/iPad Safariで最も安定・音量調節完全対応）
+      // 1. Web Audio API での再生（OpenDNS & iPad Safari完全対応）
       try {
         const { ctx, master } = getAudioPipeline();
         if (ctx.state === 'suspended') {
@@ -1811,7 +1746,6 @@
             const resp = await fetch(url, { mode: 'cors' });
             if (resp.ok) arrayBuffer = await resp.arrayBuffer();
           } catch (e) {
-            // 直接フェッチがCORS等で失敗した場合はプロキシ経由で取得
             try {
               const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
               const pResp = await fetch(proxyUrl);
@@ -1824,7 +1758,7 @@
               ctx.decodeAudioData(arrayBuffer, resolve, reject);
             });
             if (buffer) {
-              if (audioBufferCache.size > 30) {
+              if (audioBufferCache.size > 35) {
                 const firstKey = audioBufferCache.keys().next().value;
                 audioBufferCache.delete(firstKey);
               }
@@ -1866,7 +1800,7 @@
         console.warn('Web Audio再生に失敗、HTML5 Audioにフォールバック:', webaudioErr);
       }
 
-      // 2. フォールバック: HTML5 Audio 要素（DOMマウント・iOS Safariセーフモード）
+      // 2. フォールバック: HTML5 Audio 要素
       try {
         if (activeSoundboardAudios.size >= MAX_CONCURRENT_SOUNDS) {
           const oldest = activeSoundboardAudios.values().next().value;
@@ -1900,7 +1834,7 @@
         const p = audio.play();
         if (p && typeof p.catch === 'function') {
           p.catch(err => {
-            console.warn('HTML5 Audio再生スキップ (iOS制約等):', err);
+            console.warn('HTML5 Audio再生スキップ:', err);
             cleanup();
           });
         }
