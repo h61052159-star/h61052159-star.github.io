@@ -341,6 +341,12 @@
           <span id="ytVolVal" style="width:28px;">40%</span>
         </div>
         <div class="vol-item">
+          <span class="material-symbols-outlined" style="font-size:16px;">campaign</span>
+          <span>SE</span>
+          <input type="range" id="sbVolumeSlider" min="0" max="100" value="70" oninput="changeSoundboardVolume(this.value)">
+          <span id="sbVolVal" style="width:28px;">70%</span>
+        </div>
+        <div class="vol-item">
           <span class="material-symbols-outlined" style="font-size:16px;">volume_up</span>
           <span>会話マスター</span>
           <input type="range" id="callVolumeSlider" min="0" max="250" value="120" oninput="changeMasterVolume(this.value)">
@@ -452,10 +458,18 @@
         <button class="btn btn-tonal btn-icon-only" onclick="toggleModal('soundboardModal', false)"><span class="material-symbols-outlined">close</span></button>
       </div>
 
-      <!-- サウンドボード内タブ -->
-      <div class="sb-tabs">
-        <button id="sbTabBoardBtn" class="btn btn-primary btn-xs" onclick="switchSoundboardTab('board')">マイ サウンドボード</button>
-        <button id="sbTabSearchBtn" class="btn btn-tonal btn-xs" onclick="switchSoundboardTab('search')">APIから探して追加</button>
+      <!-- サウンドボード内タブ & 音量調節 -->
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; border-bottom:1px solid var(--md-outline-var); padding-bottom:6px;">
+        <div class="sb-tabs" style="border-bottom:none; padding-bottom:0;">
+          <button id="sbTabBoardBtn" class="btn btn-primary btn-xs" onclick="switchSoundboardTab('board')">マイ サウンドボード</button>
+          <button id="sbTabSearchBtn" class="btn btn-tonal btn-xs" onclick="switchSoundboardTab('search')">APIから探して追加</button>
+        </div>
+        <div class="vol-item" style="font-size:0.75rem;">
+          <span class="material-symbols-outlined" style="font-size:16px;">campaign</span>
+          <span>音量</span>
+          <input type="range" id="sbModalVolumeSlider" min="0" max="100" value="70" oninput="changeSoundboardVolume(this.value)" style="width:75px; accent-color:var(--md-primary); cursor:pointer;">
+          <span id="sbModalVolVal" style="width:28px;">70%</span>
+        </div>
       </div>
 
       <!-- パネル1: サウンドボード一覧 -->
@@ -563,7 +577,8 @@
     let isMicBusy = false;
     let isUnloading = false, isTabHidden = false, tabHiddenTime = 0;
     let ytPlayer = null, isYtReady = false, isRemoteAction = false, isYtLoaded = false;
-    let currentStageMode = 'camera', currentFocusedPeerId = 'local', currentYtVolume = 40;
+    let currentStageMode = 'camera', currentFocusedPeerId = 'local', currentYtVolume = 40, currentSbVolume = 70;
+    const activeSoundboardAudios = new Set();
     let isTtsOn = true, isSpeaking = false, currentVote = null, voteTimerInterval = null, isReconnecting = false;
 
     const speakingDetectors = {};
@@ -669,6 +684,7 @@
       updateCameraDeviceList();
       setupSyncMediaListeners();
       loadCustomSounds();
+      initSoundboardVolume();
 
       const p = new URLSearchParams(window.location.search);
       if (p.get('room')) $('roomNameInput').value = p.get('room');
@@ -1593,14 +1609,47 @@
       showToast(`${data.senderName} が「${data.soundName}」を鳴らしました 🔔`);
     }
 
+    function changeSoundboardVolume(val) {
+      currentSbVolume = Math.max(0, Math.min(100, Number(val)));
+      try { localStorage.setItem('p2p_soundboard_volume', String(currentSbVolume)); } catch(e) {}
+
+      const valText = `${currentSbVolume}%`;
+      const s1 = $('sbVolumeSlider'), v1 = $('sbVolVal');
+      const s2 = $('sbModalVolumeSlider'), v2 = $('sbModalVolVal');
+      if (s1 && s1.value != currentSbVolume) s1.value = currentSbVolume;
+      if (v1) v1.textContent = valText;
+      if (s2 && s2.value != currentSbVolume) s2.value = currentSbVolume;
+      if (v2) v2.textContent = valText;
+
+      activeSoundboardAudios.forEach(audio => {
+        try { audio.volume = currentSbVolume / 100; } catch(e) {}
+      });
+    }
+
+    function initSoundboardVolume() {
+      try {
+        const saved = localStorage.getItem('p2p_soundboard_volume');
+        if (saved !== null && !isNaN(Number(saved))) {
+          currentSbVolume = Math.max(0, Math.min(100, Number(saved)));
+        }
+      } catch(e) {}
+      changeSoundboardVolume(currentSbVolume);
+    }
+
     // 本物の高音質リアルMP3再生
     function playAudioUrl(url) {
       try {
         const audio = new Audio(url);
-        audio.volume = 0.85;
+        audio.volume = currentSbVolume / 100;
+        activeSoundboardAudios.add(audio);
+        const cleanup = () => activeSoundboardAudios.delete(audio);
+        audio.addEventListener('ended', cleanup, { once: true });
+        audio.addEventListener('error', cleanup, { once: true });
         audio.play().catch(e => {
           console.warn('再生ブロックまたはURL無効:', e);
+          cleanup();
         });
+        return audio;
       } catch (e) {}
     }
 
