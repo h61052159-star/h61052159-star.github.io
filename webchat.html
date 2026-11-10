@@ -572,14 +572,18 @@
     let isMicBusy = false;
     let isUnloading = false, isTabHidden = false, tabHiddenTime = 0;
 
-    // --- YouTube 同期・復帰制御変数 ---
-    let ytPlayer = null, isYtReady = false, isRemoteAction = false, isYtLoaded = false;
+    // --- YouTube 同期・再生・反響防止エンジン変数 ---
+    let ytPlayer = null, isYtReady = false, isYtLoaded = false;
     let currentStageMode = 'camera', currentFocusedPeerId = 'local', currentYtVolume = 40, currentSbVolume = 70;
-    let isCatchingUp = false;          // バックグラウンド復帰中の送信ロック
+    let isRemoteAction = false;
+    let remoteActionShieldTimer = null;
+    let isCatchingUp = false;
     let catchUpCooldownTimer = null;
-    let ytHeartbeatInterval = null;    // 自動補正タイマー
-    let ytSeekWatcherInterval = null;  // シーク検知タイマー
+    let ytHeartbeatInterval = null;
+    let ytSeekWatcherInterval = null;
     let lastYtLocalTime = 0;
+    let pendingSeekTimeout = null;
+    let isPlayerBufferingFromRemote = false;
 
     const activeSoundboardAudios = new Set();
     const audioBufferCache = new Map();
@@ -595,7 +599,7 @@
     let audioContext = null, masterCallGainNode = null, masterLimiterNode = null, voicePannerNode = null;
     let currentMasterGain = 1.2, isAudioSplit = false;
 
-// --- OpenDNSでも絶対にブロックされない超定番ミーム音源20選 (jsDelivr CDN) ---
+    // --- OpenDNSでも絶対にブロックされない超定番ミーム音源20選 (jsDelivr CDN) ---
     const DEFAULT_REAL_SOUNDS = [
       { name: '🗿 ドカン', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/vine-boom.mp3', icon: 'crisis_alert' },
       { name: '⚡ 金属パイプ', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/metalpipe.mp3', icon: 'hardware' },
@@ -747,16 +751,17 @@
           safeReconnect();
           ensureAudioContextResumed();
 
-          // 復帰ガードON：復帰直後4.5秒間は、遅れていた自分の状態を他人にブロードキャストしない！
+          // 復帰ガードON：復帰直後5秒間は、遅れていた自分の状態を絶対に他人に送信しない！
           isCatchingUp = true;
+          activateRemoteShield(5000);
           clearTimeout(catchUpCooldownTimer);
           catchUpCooldownTimer = setTimeout(() => {
             isCatchingUp = false;
-          }, 4500);
+          }, 5000);
 
-          // 自分だけが最新の再生位置に追いつくため問い合わせ
+          // 自分だけが最新の再生位置に追いつくためホストに問い合わせ
           if (isYtLoaded || currentSyncMediaId) {
-            setTimeout(requestCatchUpSync, 500);
+            setTimeout(requestCatchUpSync, 600);
           }
         }
       });
@@ -1019,11 +1024,19 @@
         clearTimeout(guestFallbackTimer);
         conn.send({ type: 'intro', userName: myUserName, isHost, isMuted: !isMicOn, isCamOff: !isCamOn });
         
-        if (isYtLoaded && ytPlayer && ytPlayer.getVideoData && ytPlayer.getPlayerState) {
-          conn.send({
-            type: 'yt-state', videoId: ytPlayer.getVideoData().video_id,
-            time: ytPlayer.getCurrentTime(), isPlaying: ytPlayer.getPlayerState() === YT.PlayerState.PLAYING
-          });
+        // ★重要: ホストだけが入室者に現在の動画状態を案内する（ゲストからの逆流巻き戻しを完全防止）
+        if (isHost && isYtLoaded && ytPlayer && ytPlayer.getVideoData && ytPlayer.getPlayerState) {
+          try {
+            const vData = ytPlayer.getVideoData();
+            if (vData && vData.video_id) {
+              conn.send({
+                type: 'yt-state',
+                videoId: vData.video_id,
+                time: ytPlayer.getCurrentTime(),
+                isPlaying: ytPlayer.getPlayerState() === YT.PlayerState.PLAYING
+              });
+            }
+          } catch (e) {}
         }
 
         if (isHost) {
@@ -1106,6 +1119,7 @@
 
         case 'yt-state':
         case 'yt-heartbeat':
+          // ホストからの定期同期、または復帰時の状態取得
           handleRemoteYouTubeState(data);
           break;
 
@@ -1470,7 +1484,7 @@
     }
 
     // ==========================================
-    // --- YouTube 同期・再生エンジン ---
+    // --- YouTube 同期・反響防止エンジン ---
     // ==========================================
     function initYouTubePlayer() {
       if (ytPlayer || !window.YT || !window.YT.Player) return;
@@ -1503,81 +1517,106 @@
       isYtLoaded = true; switchToYouTubeStage();
       startYtSyncWatchers();
       if (isYtReady && ytPlayer && ytPlayer.loadVideoById) {
-        isRemoteAction = true;
+        activateRemoteShield(2500);
         ytPlayer.loadVideoById(videoId);
         ytPlayer.setVolume(currentYtVolume);
         lastYtLocalTime = 0;
-        setTimeout(() => { isRemoteAction = false; }, 1200);
       }
     }
 
-    function isLowestPeerId() {
-      const ids = [myPeerId, ...Object.keys(peers)].sort();
-      return ids[0] === myPeerId;
+    // リモート指示の反映中は、ローカルの検知・発信を完全に停止するシールド
+    function activateRemoteShield(durationMs = 2500) {
+      isRemoteAction = true;
+      clearTimeout(remoteActionShieldTimer);
+      remoteActionShieldTimer = setTimeout(() => {
+        isRemoteAction = false;
+        if (ytPlayer && typeof ytPlayer.getCurrentTime === 'function') {
+          try { lastYtLocalTime = ytPlayer.getCurrentTime(); } catch(e){}
+        }
+      }, durationMs);
     }
 
-    // シーク検知 & 定期ドリフト補正タイマー
+    // シーク検知 & ホスト主導型ハートビートタイマー
     function startYtSyncWatchers() {
       clearInterval(ytSeekWatcherInterval);
       ytSeekWatcherInterval = setInterval(() => {
-        if (!ytPlayer || !isYtReady || !isYtLoaded || isRemoteAction || isCatchingUp) return;
+        if (!ytPlayer || !isYtReady || !isYtLoaded) return;
+        if (isRemoteAction || isCatchingUp || isPlayerBufferingFromRemote) return;
         if (document.hidden || isTabHidden) return;
 
         try {
           const curTime = ytPlayer.getCurrentTime();
-          if (typeof curTime !== 'number') return;
-
-          // 手動シーク（1.5秒以上の再生位置ジャンプ）を検知して即座に同期
-          const delta = curTime - lastYtLocalTime;
           const state = ytPlayer.getPlayerState();
-          if (Math.abs(delta) > 1.5 && lastYtLocalTime > 0) {
-            broadcast({
-              type: 'yt-action',
-              action: 'seek',
-              time: curTime,
-              isPlaying: state === YT.PlayerState.PLAYING
-            });
+          if (typeof curTime !== 'number' || state === YT.PlayerState.BUFFERING) return;
+
+          const delta = curTime - lastYtLocalTime;
+
+          // ユーザー自身による2.0秒以上のシークジャンプを検知（操作完了後に1回だけ送信）
+          if (Math.abs(delta) > 2.0 && lastYtLocalTime > 0) {
+            clearTimeout(pendingSeekTimeout);
+            pendingSeekTimeout = setTimeout(() => {
+              if (isRemoteAction || isCatchingUp) return;
+              try {
+                const freshTime = ytPlayer.getCurrentTime();
+                const freshState = ytPlayer.getPlayerState();
+                lastYtLocalTime = freshTime;
+                broadcast({
+                  type: 'yt-action',
+                  action: 'seek',
+                  time: freshTime,
+                  isPlaying: (freshState === YT.PlayerState.PLAYING)
+                });
+              } catch(e) {}
+            }, 250);
+          } else {
+            lastYtLocalTime = curTime;
           }
-          lastYtLocalTime = curTime;
         } catch (e) {}
       }, 500);
 
-      // ホストによる3秒ごとの定期時刻配信（時間ズレの自然補正）
+      // ホストのみが3.5秒おきにハートビートを送信（ゲストからの発信による衝突を根絶）
       clearInterval(ytHeartbeatInterval);
       ytHeartbeatInterval = setInterval(() => {
-        if (!isYtLoaded || !ytPlayer || !isYtReady || isCatchingUp) return;
+        if (!isHost || !isYtLoaded || !ytPlayer || !isYtReady) return;
+        if (isRemoteAction || isCatchingUp) return;
         if (document.hidden || isTabHidden) return;
         if (Object.keys(peers).length === 0) return;
 
-        if (isHost || isLowestPeerId()) {
-          try {
-            const state = ytPlayer.getPlayerState();
-            const vData = ytPlayer.getVideoData();
-            if (vData && vData.video_id) {
-              broadcast({
-                type: 'yt-heartbeat',
-                videoId: vData.video_id,
-                time: ytPlayer.getCurrentTime(),
-                isPlaying: state === YT.PlayerState.PLAYING
-              });
-            }
-          } catch (e) {}
-        }
-      }, 3000);
+        try {
+          const state = ytPlayer.getPlayerState();
+          const vData = ytPlayer.getVideoData();
+          if (vData && vData.video_id && state !== YT.PlayerState.BUFFERING) {
+            broadcast({
+              type: 'yt-heartbeat',
+              videoId: vData.video_id,
+              time: ytPlayer.getCurrentTime(),
+              isPlaying: (state === YT.PlayerState.PLAYING)
+            });
+          }
+        } catch (e) {}
+      }, 3500);
     }
 
     function onPlayerStateChange(e) {
-      if (isUnloading || isRemoteAction || Object.keys(peers).length === 0) return;
-      // バックグラウンド中、または復帰キャッチアップ中は絶対にブロードキャストしない！（他人を巻き戻さない）
-      if (document.hidden || isTabHidden || isCatchingUp || (Date.now() - tabHiddenTime < 4500)) return;
+      if (isUnloading || Object.keys(peers).length === 0) return;
+
+      // リモート操作中、バックグラウンド中、復帰直後（5秒間）は絶対に送信しない！
+      if (isRemoteAction || isCatchingUp || document.hidden || isTabHidden || (Date.now() - tabHiddenTime < 5000)) {
+        if (e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.PAUSED) {
+          isPlayerBufferingFromRemote = false;
+        }
+        return;
+      }
 
       try {
         const time = ytPlayer.getCurrentTime();
         lastYtLocalTime = time;
 
         if (e.data === YT.PlayerState.PLAYING) {
+          isPlayerBufferingFromRemote = false;
           broadcast({ type: 'yt-action', action: 'play', time });
         } else if (e.data === YT.PlayerState.PAUSED) {
+          // 一時停止時はタイムスタンプでシークさせない（微小な巻き戻りバグを防止）
           broadcast({ type: 'yt-action', action: 'pause', time });
         }
       } catch (err) {}
@@ -1589,11 +1628,14 @@
         return;
       }
 
-      isRemoteAction = true;
+      activateRemoteShield(2500);
       try {
+        const curTime = ytPlayer.getCurrentTime ? ytPlayer.getCurrentTime() : 0;
+
+        // シーク操作が明示されている場合、または明らかな大きなズレ（2.2秒以上）のみシーク
         if (typeof data.time === 'number') {
-          const curTime = ytPlayer.getCurrentTime();
-          if (Math.abs(curTime - data.time) > 1.2 || data.action === 'seek') {
+          if (data.action === 'seek' || Math.abs(curTime - data.time) > 2.2) {
+            isPlayerBufferingFromRemote = true;
             ytPlayer.seekTo(data.time, true);
             lastYtLocalTime = data.time;
           }
@@ -1610,8 +1652,6 @@
           ytPlayer.pauseVideo();
         }
       } catch (e) {}
-
-      setTimeout(() => { isRemoteAction = false; }, 800);
     }
 
     // 相手から状態・時刻を受け取った時の安全な追いつき処理（リロードなし）
@@ -1640,11 +1680,12 @@
     function applySyncTimeAndState(targetTime, shouldPlay) {
       if (!ytPlayer || typeof ytPlayer.getCurrentTime !== 'function') return;
 
-      isRemoteAction = true;
+      activateRemoteShield(2000);
       try {
         const curTime = ytPlayer.getCurrentTime();
-        // 1.5秒以上のズレがある場合のみシーク（微小なズレでの音飛びを防止）
-        if (typeof targetTime === 'number' && Math.abs(curTime - targetTime) > 1.5) {
+        // 2.2秒以上のズレがある場合のみシーク（微小なズレでの音飛び・巻き戻りを完全防止）
+        if (typeof targetTime === 'number' && Math.abs(curTime - targetTime) > 2.2) {
+          isPlayerBufferingFromRemote = true;
           ytPlayer.seekTo(targetTime, true);
           lastYtLocalTime = targetTime;
         }
@@ -1661,8 +1702,6 @@
           ytPlayer.pauseVideo();
         }
       } catch (e) {}
-
-      setTimeout(() => { isRemoteAction = false; }, 800);
     }
 
     function forceSyncWithOthers() {
@@ -1882,7 +1921,6 @@
       if (now - lastSoundboardPlayTime < 180) return;
       lastSoundboardPlayTime = now;
 
-      // 1. Web Audio API での再生（OpenDNS & iPad Safari完全対応）
       try {
         const { ctx, master } = getAudioPipeline();
         if (ctx.state === 'suspended') {
@@ -1950,7 +1988,7 @@
         console.warn('Web Audio再生に失敗、HTML5 Audioにフォールバック:', webaudioErr);
       }
 
-      // 2. フォールバック: HTML5 Audio 要素
+      // フォールバック: HTML5 Audio 要素
       try {
         if (activeSoundboardAudios.size >= MAX_CONCURRENT_SOUNDS) {
           const oldest = activeSoundboardAudios.values().next().value;
@@ -2002,7 +2040,7 @@
         };
         player.onpause = () => {
           if (isSyncRemoteAction || !currentSyncMediaId || isCatchingUp) return;
-          if (document.hidden || isTabHidden || (Date.now() - tabHiddenTime < 4500)) return;
+          if (document.hidden || isTabHidden || (Date.now() - tabHiddenTime < 5000)) return;
           broadcast({ type: 'sync-media-action', fileId: currentSyncMediaId, action: 'pause', time: player.currentTime });
         };
         player.onseeked = () => {
