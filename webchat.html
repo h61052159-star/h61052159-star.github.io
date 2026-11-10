@@ -595,22 +595,25 @@
     let audioContext = null, masterCallGainNode = null, masterLimiterNode = null, voicePannerNode = null;
     let currentMasterGain = 1.2, isAudioSplit = false;
 
-    // --- OpenDNSでも絶対にブロックされない超定番ミーム音源 (jsDelivr CDN) ---
+// --- OpenDNSでも絶対にブロックされない超定番ミーム音源20選 (jsDelivr CDN) ---
     const DEFAULT_REAL_SOUNDS = [
-      { name: '🗿 Vine Boom', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/vine-boom.mp3', icon: 'crisis_alert' },
+      { name: '🗿 ドカン', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/vine-boom.mp3', icon: 'crisis_alert' },
       { name: '⚡ 金属パイプ', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/metalpipe.mp3', icon: 'hardware' },
-      { name: '😐 Bruh', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/bruh.mp3', icon: 'sentiment_neutral' },
+      { name: '😐 Bruh (ああ)', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/bruh.mp3', icon: 'sentiment_neutral' },
       { name: '💔 Emotional Dmg', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/emotional-damage.mp3', icon: 'heart_broken' },
       { name: '🔨 Bonk!', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/bonk.mp3', icon: 'gavel' },
-      { name: '💀 Roblox Oof', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/oof.mp3', icon: 'skull' },
+      { name: '💀 Roblox Oof (死)', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/oof.mp3', icon: 'skull' },
       { name: '📢 エアホーン', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/airhorn.mp3', icon: 'volume_up' },
-      { name: '🚨 FBI OPEN UP', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/fbi-open-up.mp3', icon: 'local_police' },
+      { name: '🚨 FBI OPEN UP!', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/fbi-open-up.mp3', icon: 'local_police' },
       { name: '🔔 Taco Bell', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/taco-bell.mp3', icon: 'notifications' },
+      { name: '💀 サンズ', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/sans.mp3', icon: 'chat' },
       { name: '💬 Discord通知', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/discord-notification.mp3', icon: 'chat' },
+      { name: '😱 OH MY GOD!', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/ohmygod.mp3', icon: 'album' },
       { name: '🎻 悲しいバイオリン', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/sad-violin.mp3', icon: 'music_note' },
       { name: '🥁 Ba-Dum-Tss!', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/badumtss.mp3', icon: 'album' },
       { name: '⚰️ 棺桶ダンス', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/coffin-dance.mp3', icon: 'celebration' },
       { name: '✨ Anime WOW', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/anime-wow.mp3', icon: 'star' },
+      { name: '🎮️ Wii似顔絵', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/wiimusic.mp3', icon: 'videogame_asset' },
       { name: '🏃 Why Running?!', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/why-are-you-running.mp3', icon: 'directions_run' }
     ];
     let customSounds = [];
