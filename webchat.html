@@ -571,8 +571,16 @@
     let isMicOn = true, isCamOn = true, isScreenSharing = false;
     let isMicBusy = false;
     let isUnloading = false, isTabHidden = false, tabHiddenTime = 0;
+
+    // --- YouTube 同期・復帰制御変数 ---
     let ytPlayer = null, isYtReady = false, isRemoteAction = false, isYtLoaded = false;
     let currentStageMode = 'camera', currentFocusedPeerId = 'local', currentYtVolume = 40, currentSbVolume = 70;
+    let isCatchingUp = false;          // バックグラウンド復帰中の送信ロック
+    let catchUpCooldownTimer = null;
+    let ytHeartbeatInterval = null;    // 自動補正タイマー
+    let ytSeekWatcherInterval = null;  // シーク検知タイマー
+    let lastYtLocalTime = 0;
+
     const activeSoundboardAudios = new Set();
     const audioBufferCache = new Map();
     let lastSoundboardPlayTime = 0;
@@ -589,21 +597,21 @@
 
     // --- OpenDNSでも絶対にブロックされない超定番ミーム音源 (jsDelivr CDN) ---
     const DEFAULT_REAL_SOUNDS = [
-      { name: '🗿', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/vine-boom.mp3', icon: 'crisis_alert' },
-      { name: '⚡ パイプ', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/metalpipe.mp3', icon: 'hardware' },
-      { name: '😐 ああ', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/bruh.mp3', icon: 'sentiment_neutral' },
+      { name: '🗿 Vine Boom', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/vine-boom.mp3', icon: 'crisis_alert' },
+      { name: '⚡ 金属パイプ', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/metalpipe.mp3', icon: 'hardware' },
+      { name: '😐 Bruh', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/bruh.mp3', icon: 'sentiment_neutral' },
       { name: '💔 Emotional Dmg', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/emotional-damage.mp3', icon: 'heart_broken' },
-      { name: '🔨', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/bonk.mp3', icon: 'gavel' },
-      { name: '死', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/oof.mp3', icon: 'skull' },
+      { name: '🔨 Bonk!', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/bonk.mp3', icon: 'gavel' },
+      { name: '💀 Roblox Oof', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/oof.mp3', icon: 'skull' },
       { name: '📢 エアホーン', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/airhorn.mp3', icon: 'volume_up' },
-      { name: '🚨 FBI突入', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/fbi-open-up.mp3', icon: 'local_police' },
+      { name: '🚨 FBI OPEN UP', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/fbi-open-up.mp3', icon: 'local_police' },
       { name: '🔔 Taco Bell', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/taco-bell.mp3', icon: 'notifications' },
-      { name: '💬', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/sans.mp3', icon: 'chat' },
+      { name: '💬 Discord通知', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/discord-notification.mp3', icon: 'chat' },
       { name: '🎻 悲しいバイオリン', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/sad-violin.mp3', icon: 'music_note' },
-      { name: 'おーまーがー', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/ohhmygod.mp3', icon: 'album' },
+      { name: '🥁 Ba-Dum-Tss!', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/badumtss.mp3', icon: 'album' },
       { name: '⚰️ 棺桶ダンス', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/coffin-dance.mp3', icon: 'celebration' },
       { name: '✨ Anime WOW', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/anime-wow.mp3', icon: 'star' },
-      { name: '🎮️wii似顔絵チャンネル', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/wiimusic.mp3', icon: 'directions_run' }
+      { name: '🏃 Why Running?!', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/why-are-you-running.mp3', icon: 'directions_run' }
     ];
     let customSounds = [];
 
@@ -714,6 +722,7 @@
       return g[Math.abs(h) % g.length];
     }
 
+    // --- バックグラウンド復帰＆初期化 ---
     window.addEventListener('DOMContentLoaded', async () => {
       ['click', 'touchstart', 'touchend', 'keydown'].forEach(e => window.addEventListener(e, unlockAllAudio, { once: true }));
       await setupMedia();
@@ -731,10 +740,20 @@
         if (isTabHidden) {
           tabHiddenTime = Date.now();
         } else {
+          // バックグラウンドから復帰時
           safeReconnect();
           ensureAudioContextResumed();
+
+          // 復帰ガードON：復帰直後4.5秒間は、遅れていた自分の状態を他人にブロードキャストしない！
+          isCatchingUp = true;
+          clearTimeout(catchUpCooldownTimer);
+          catchUpCooldownTimer = setTimeout(() => {
+            isCatchingUp = false;
+          }, 4500);
+
+          // 自分だけが最新の再生位置に追いつくため問い合わせ
           if (isYtLoaded || currentSyncMediaId) {
-            setTimeout(requestCatchUpSync, 400);
+            setTimeout(requestCatchUpSync, 500);
           }
         }
       });
@@ -742,14 +761,21 @@
       window.addEventListener('beforeunload', () => {
         isUnloading = true;
         releaseRendezvousHost();
+        clearInterval(ytHeartbeatInterval);
+        clearInterval(ytSeekWatcherInterval);
         if (peer && !peer.destroyed) peer.destroy();
       });
       if (window.YT && window.YT.Player) initYouTubePlayer();
     });
 
+    // 復帰者が最新の再生状態をホストまたはアクティブピアに1対1で問い合わせる
     function requestCatchUpSync() {
-      if (Object.keys(peers).length > 0) {
-        broadcast({ type: 'sync-request' });
+      if (Object.keys(peers).length === 0) return;
+      const hostPeerId = Object.keys(peers).find(id => peers[id].isHost);
+      const targetId = hostPeerId || Object.keys(peers)[0];
+
+      if (targetId && peers[targetId]?.conn?.open) {
+        peers[targetId].conn.send({ type: 'sync-request' });
       }
     }
 
@@ -1076,30 +1102,22 @@
           break;
 
         case 'yt-state':
-          if (typeof data.videoId === 'string') {
-            if (!isYtReady || !ytPlayer) {
-              pendingYtAction = data;
-            } else {
-              openYouTubeScreen(data.videoId);
-              setTimeout(() => {
-                if (ytPlayer && ytPlayer.seekTo && typeof data.time === 'number') {
-                  ytPlayer.seekTo(data.time, true);
-                  if (data.isPlaying) ytPlayer.playVideo();
-                }
-              }, 1000);
-            }
-          }
+        case 'yt-heartbeat':
+          handleRemoteYouTubeState(data);
           break;
 
         case 'sync-request':
-          if (!document.hidden && !isTabHidden) {
+          // 復帰者（問い合わせ元）にだけ、自分の最新再生状態を1対1で教える
+          if (!document.hidden && !isTabHidden && !isCatchingUp) {
             if (isYtLoaded && ytPlayer && ytPlayer.getVideoData) {
-              peers[fromPeerId]?.conn?.send({
-                type: 'yt-state',
-                videoId: ytPlayer.getVideoData().video_id,
-                time: ytPlayer.getCurrentTime(),
-                isPlaying: ytPlayer.getPlayerState() === YT.PlayerState.PLAYING
-              });
+              try {
+                peers[fromPeerId]?.conn?.send({
+                  type: 'yt-state',
+                  videoId: ytPlayer.getVideoData().video_id,
+                  time: ytPlayer.getCurrentTime(),
+                  isPlaying: ytPlayer.getPlayerState() === YT.PlayerState.PLAYING
+                });
+              } catch (e) {}
             } else if (currentSyncMediaId) {
               const player = sharedMediaFiles[currentSyncMediaId]?.mime.startsWith('audio/') ? $('syncMediaAudio') : $('syncMediaVideo');
               peers[fromPeerId]?.conn?.send({
@@ -1448,6 +1466,9 @@
       if (a) a.volume = currentYtVolume / 100;
     }
 
+    // ==========================================
+    // --- YouTube 同期・再生エンジン ---
+    // ==========================================
     function initYouTubePlayer() {
       if (ytPlayer || !window.YT || !window.YT.Player) return;
       ytPlayer = new YT.Player('player', {
@@ -1457,16 +1478,11 @@
           onReady: e => {
             isYtReady = true;
             e.target.setVolume(currentYtVolume);
+            startYtSyncWatchers();
             if (pendingYtAction) {
               const act = pendingYtAction;
               pendingYtAction = null;
-              openYouTubeScreen(act.videoId);
-              setTimeout(() => {
-                if (ytPlayer && ytPlayer.seekTo && typeof act.time === 'number') {
-                  ytPlayer.seekTo(act.time, true);
-                  if (act.isPlaying) ytPlayer.playVideo();
-                }
-              }, 600);
+              handleRemoteYouTubeState(act);
             }
           },
           onStateChange: onPlayerStateChange,
@@ -1482,21 +1498,86 @@
     function openYouTubeScreen(videoId) {
       currentSyncMediaId = null;
       isYtLoaded = true; switchToYouTubeStage();
+      startYtSyncWatchers();
       if (isYtReady && ytPlayer && ytPlayer.loadVideoById) {
         isRemoteAction = true;
         ytPlayer.loadVideoById(videoId);
         ytPlayer.setVolume(currentYtVolume);
-        setTimeout(() => isRemoteAction = false, 1000);
+        lastYtLocalTime = 0;
+        setTimeout(() => { isRemoteAction = false; }, 1200);
       }
+    }
+
+    function isLowestPeerId() {
+      const ids = [myPeerId, ...Object.keys(peers)].sort();
+      return ids[0] === myPeerId;
+    }
+
+    // シーク検知 & 定期ドリフト補正タイマー
+    function startYtSyncWatchers() {
+      clearInterval(ytSeekWatcherInterval);
+      ytSeekWatcherInterval = setInterval(() => {
+        if (!ytPlayer || !isYtReady || !isYtLoaded || isRemoteAction || isCatchingUp) return;
+        if (document.hidden || isTabHidden) return;
+
+        try {
+          const curTime = ytPlayer.getCurrentTime();
+          if (typeof curTime !== 'number') return;
+
+          // 手動シーク（1.5秒以上の再生位置ジャンプ）を検知して即座に同期
+          const delta = curTime - lastYtLocalTime;
+          const state = ytPlayer.getPlayerState();
+          if (Math.abs(delta) > 1.5 && lastYtLocalTime > 0) {
+            broadcast({
+              type: 'yt-action',
+              action: 'seek',
+              time: curTime,
+              isPlaying: state === YT.PlayerState.PLAYING
+            });
+          }
+          lastYtLocalTime = curTime;
+        } catch (e) {}
+      }, 500);
+
+      // ホストによる3秒ごとの定期時刻配信（時間ズレの自然補正）
+      clearInterval(ytHeartbeatInterval);
+      ytHeartbeatInterval = setInterval(() => {
+        if (!isYtLoaded || !ytPlayer || !isYtReady || isCatchingUp) return;
+        if (document.hidden || isTabHidden) return;
+        if (Object.keys(peers).length === 0) return;
+
+        if (isHost || isLowestPeerId()) {
+          try {
+            const state = ytPlayer.getPlayerState();
+            const vData = ytPlayer.getVideoData();
+            if (vData && vData.video_id) {
+              broadcast({
+                type: 'yt-heartbeat',
+                videoId: vData.video_id,
+                time: ytPlayer.getCurrentTime(),
+                isPlaying: state === YT.PlayerState.PLAYING
+              });
+            }
+          } catch (e) {}
+        }
+      }, 3000);
     }
 
     function onPlayerStateChange(e) {
       if (isUnloading || isRemoteAction || Object.keys(peers).length === 0) return;
-      if (document.hidden || isTabHidden || (Date.now() - tabHiddenTime < 1500)) return;
+      // バックグラウンド中、または復帰キャッチアップ中は絶対にブロードキャストしない！（他人を巻き戻さない）
+      if (document.hidden || isTabHidden || isCatchingUp || (Date.now() - tabHiddenTime < 4500)) return;
 
-      const time = ytPlayer.getCurrentTime();
-      if (e.data === YT.PlayerState.PLAYING) broadcast({ type: 'yt-action', action: 'play', time });
-      else if (e.data === YT.PlayerState.PAUSED) broadcast({ type: 'yt-action', action: 'pause', time });
+      try {
+        const time = ytPlayer.getCurrentTime();
+        lastYtLocalTime = time;
+
+        if (e.data === YT.PlayerState.PLAYING) {
+          broadcast({ type: 'yt-action', action: 'play', time });
+        } else if (e.data === YT.PlayerState.PAUSED) {
+          broadcast({ type: 'yt-action', action: 'pause', time });
+        }
+      } catch (err) {}
     }
 
     function handleRemoteYouTubeAction(data) {
@@ -1504,15 +1585,81 @@
         pendingYtAction = data;
         return;
       }
+
       isRemoteAction = true;
-      if (typeof data.time === 'number' && Math.abs(ytPlayer.getCurrentTime() - data.time) > 1.2) {
-        ytPlayer.seekTo(data.time, true);
+      try {
+        if (typeof data.time === 'number') {
+          const curTime = ytPlayer.getCurrentTime();
+          if (Math.abs(curTime - data.time) > 1.2 || data.action === 'seek') {
+            ytPlayer.seekTo(data.time, true);
+            lastYtLocalTime = data.time;
+          }
+        }
+
+        if (data.action === 'play' || (data.action === 'seek' && data.isPlaying)) {
+          const p = ytPlayer.playVideo();
+          if (p && p.catch) p.catch(() => {
+            ytPlayer.mute();
+            ytPlayer.playVideo();
+            $('unmuteBanner').style.display = 'block';
+          });
+        } else if (data.action === 'pause') {
+          ytPlayer.pauseVideo();
+        }
+      } catch (e) {}
+
+      setTimeout(() => { isRemoteAction = false; }, 800);
+    }
+
+    // 相手から状態・時刻を受け取った時の安全な追いつき処理（リロードなし）
+    function handleRemoteYouTubeState(data) {
+      if (!data || typeof data.videoId !== 'string') return;
+      if (!isYtReady || !ytPlayer) {
+        pendingYtAction = data;
+        return;
       }
-      if (data.action === 'play') {
-        const p = ytPlayer.playVideo();
-        if (p && p.catch) p.catch(() => { ytPlayer.mute(); ytPlayer.playVideo(); $('unmuteBanner').style.display = 'block'; });
-      } else if (data.action === 'pause') ytPlayer.pauseVideo();
-      setTimeout(() => isRemoteAction = false, 800);
+
+      const curVideoId = (ytPlayer.getVideoData && ytPlayer.getVideoData().video_id) ? ytPlayer.getVideoData().video_id : null;
+
+      // 動画が異なる場合のみ全体を切り替える
+      if (curVideoId !== data.videoId) {
+        openYouTubeScreen(data.videoId);
+        setTimeout(() => {
+          applySyncTimeAndState(data.time, data.isPlaying);
+        }, 1200);
+        return;
+      }
+
+      // 同じ動画ならリロードせず、時間と再生状態のみ滑らかに合わせる
+      applySyncTimeAndState(data.time, data.isPlaying);
+    }
+
+    function applySyncTimeAndState(targetTime, shouldPlay) {
+      if (!ytPlayer || typeof ytPlayer.getCurrentTime !== 'function') return;
+
+      isRemoteAction = true;
+      try {
+        const curTime = ytPlayer.getCurrentTime();
+        // 1.5秒以上のズレがある場合のみシーク（微小なズレでの音飛びを防止）
+        if (typeof targetTime === 'number' && Math.abs(curTime - targetTime) > 1.5) {
+          ytPlayer.seekTo(targetTime, true);
+          lastYtLocalTime = targetTime;
+        }
+
+        const state = ytPlayer.getPlayerState();
+        if (shouldPlay && state !== YT.PlayerState.PLAYING && state !== YT.PlayerState.BUFFERING) {
+          const p = ytPlayer.playVideo();
+          if (p && p.catch) p.catch(() => {
+            ytPlayer.mute();
+            ytPlayer.playVideo();
+            $('unmuteBanner').style.display = 'block';
+          });
+        } else if (!shouldPlay && state === YT.PlayerState.PLAYING) {
+          ytPlayer.pauseVideo();
+        }
+      } catch (e) {}
+
+      setTimeout(() => { isRemoteAction = false; }, 800);
     }
 
     function forceSyncWithOthers() {
@@ -1847,16 +1994,16 @@
       const v = $('syncMediaVideo'), a = $('syncMediaAudio');
       [v, a].forEach(player => {
         player.onplay = () => {
-          if (isSyncRemoteAction || !currentSyncMediaId) return;
+          if (isSyncRemoteAction || !currentSyncMediaId || isCatchingUp) return;
           broadcast({ type: 'sync-media-action', fileId: currentSyncMediaId, action: 'play', time: player.currentTime });
         };
         player.onpause = () => {
-          if (isSyncRemoteAction || !currentSyncMediaId) return;
-          if (document.hidden || isTabHidden || (Date.now() - tabHiddenTime < 1500)) return;
+          if (isSyncRemoteAction || !currentSyncMediaId || isCatchingUp) return;
+          if (document.hidden || isTabHidden || (Date.now() - tabHiddenTime < 4500)) return;
           broadcast({ type: 'sync-media-action', fileId: currentSyncMediaId, action: 'pause', time: player.currentTime });
         };
         player.onseeked = () => {
-          if (isSyncRemoteAction || !currentSyncMediaId) return;
+          if (isSyncRemoteAction || !currentSyncMediaId || isCatchingUp) return;
           broadcast({ type: 'sync-media-action', fileId: currentSyncMediaId, action: 'seek', time: player.currentTime });
         };
       });
@@ -1917,7 +2064,7 @@
       const player = f.mime.startsWith('audio/') ? $('syncMediaAudio') : $('syncMediaVideo');
 
       isSyncRemoteAction = true;
-      if (typeof data.time === 'number' && Math.abs(player.currentTime - data.time) > 1.0) {
+      if (typeof data.time === 'number' && Math.abs(player.currentTime - data.time) > 1.2) {
         player.currentTime = data.time;
       }
 
@@ -2341,6 +2488,8 @@
     function leaveMeshRoom() {
       isUnloading = true;
       releaseRendezvousHost();
+      clearInterval(ytHeartbeatInterval);
+      clearInterval(ytSeekWatcherInterval);
       if (peer && !peer.destroyed) peer.destroy();
       location.reload();
     }
