@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⚡ ◯✕△ 秒速ジャッジAI (Material You)</title>
+  
+  <!-- Google Fonts: Roboto & Noto Sans JP -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+  
+  <!-- Material Symbols Outlined -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+
+  <style>
+    /* ==========================================================================
+       Material Design 3 Tokens (Teal / Cyan Tone Theme)
+       ========================================================================== */
+    :root {
+      --md-sys-color-primary: #006874;
+      --md-sys-color-on-primary: #FFFFFF;
+      --md-sys-color-primary-container: #9EEFFD;
+      --md-sys-color-on-primary-container: #001F24;
+
+      --md-sys-color-secondary: #4A6267;
+      --md-sys-color-on-secondary: #FFFFFF;
+      --md-sys-color-secondary-container: #CDE7ED;
+      --md-sys-color-on-secondary-container: #051F23;
+
+      --md-sys-color-tertiary: #525E7D;
+      --md-sys-color-on-tertiary: #FFFFFF;
+      --md-sys-color-tertiary-container: #DAE2FF;
+      --md-sys-color-on-tertiary-container: #0E1A37;
+
+      --md-sys-color-surface: #FAFDFD;
+      --md-sys-color-on-surface: #191C1D;
+      --md-sys-color-surface-variant: #DBE4E6;
+      --md-sys-color-on-surface-variant: #3F484A;
+
+      --md-sys-color-surface-container-low: #F1F5F6;
+      --md-sys-color-surface-container: #EBEFF0;
+      --md-sys-color-surface-container-high: #E5EAEB;
+      --md-sys-color-surface-container-highest: #DFE4E5;
+
+      --md-sys-color-outline: #6F797A;
+      --md-sys-color-outline-variant: #BFC8CA;
+
+      /* ◯ ✕ △ 独自カラー */
+      --color-circle: #10B981; /* ◯ エメラルドグリーン */
+      --color-circle-bg: #D1FAE5;
+      --color-cross: #EF4444;  /* ✕ クリムゾンレッド */
+      --color-cross-bg: #FEE2E2;
+      --color-triangle: #F59E0B; /* △ アンバーオレンジ */
+      --color-triangle-bg: #FEF3C7;
+
+      --md-elevation-1: 0 1px 3px 1px rgba(0,0,0,0.12), 0 1px 2px 0 rgba(0,0,0,0.24);
+      --md-elevation-2: 0 2px 6px 2px rgba(0,0,0,0.12), 0 1px 2px 0 rgba(0,0,0,0.24);
+      --md-elevation-3: 0 4px 10px 3px rgba(0,0,0,0.15), 0 1px 3px 0 rgba(0,0,0,0.2);
+
+      --md-shape-corner-s: 8px;
+      --md-shape-corner-m: 12px;
+      --md-shape-corner-l: 16px;
+      --md-shape-corner-xl: 28px;
+      --md-shape-corner-full: 9999px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--md-sys-color-surface-container-low);
+      color: var(--md-sys-color-on-surface);
+      font-family: 'Roboto', 'Noto Sans JP', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 860px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Top App Bar */
+    .top-app-bar {
+      background-color: var(--md-sys-color-surface);
+      border-radius: var(--md-shape-corner-xl);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--md-elevation-1);
+    }
+    .app-brand { display: flex; align-items: center; gap: 12px; }
+    .brand-icon { font-size: 28px; color: var(--md-sys-color-primary); }
+    .brand-title { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.2px; }
+    .brand-subtitle { font-size: 0.75rem; color: var(--md-sys-color-on-surface-variant); }
+
+    .app-bar-actions { display: flex; align-items: center; gap: 8px; }
+    .m3-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background-color: var(--md-sys-color-primary-container);
+      color: var(--md-sys-color-on-primary-container);
+      font-size: 0.75rem; font-weight: 700;
+      padding: 6px 12px; border-radius: var(--md-shape-corner-s);
+    }
+    .m3-icon-btn {
+      background: transparent; border: none;
+      color: var(--md-sys-color-on-surface-variant);
+      width: 40px; height: 40px; border-radius: var(--md-shape-corner-full);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: background 0.2s;
+    }
+    .m3-icon-btn:hover {
+      background-color: var(--md-sys-color-surface-container-highest);
+      color: var(--md-sys-color-on-surface);
+    }
+
+    /* Cards */
+    .m3-card {
+      background-color: var(--md-sys-color-surface);
+      border-radius: var(--md-shape-corner-xl);
+      padding: 24px;
+      box-shadow: var(--md-elevation-1);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Input Section */
+    .input-label {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--md-sys-color-on-surface);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .textarea-wrapper {
+      position: relative;
+      width: 100%;
+    }
+    .m3-textarea {
+      width: 100%;
+      min-height: 90px;
+      padding: 16px;
+      font-size: 1.05rem;
+      font-family: inherit;
+      color: var(--md-sys-color-on-surface);
+      background-color: var(--md-sys-color-surface-container-low);
+      border: 2px solid var(--md-sys-color-outline-variant);
+      border-radius: var(--md-shape-corner-l);
+      outline: none;
+      resize: vertical;
+      transition: all 0.2s;
+    }
+    .m3-textarea:focus {
+      border-color: var(--md-sys-color-primary);
+      background-color: var(--md-sys-color-surface);
+      box-shadow: 0 0 0 4px rgba(0, 104, 116, 0.12);
+    }
+
+    /* Sample Prompt Chips */
+    .chips-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .chips-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+    .chips-carousel {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .m3-chip {
+      background-color: var(--md-sys-color-surface-container-low);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      color: var(--md-sys-color-on-surface);
+      font-size: 0.8rem;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: var(--md-shape-corner-s);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+    .m3-chip:hover {
+      background-color: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+      border-color: transparent;
+      transform: translateY(-1px);
+    }
+
+    /* Action Button (FAB) */
+    .btn-fab-judge {
+      background-color: var(--md-sys-color-primary);
+      color: var(--md-sys-color-on-primary);
+      border: none;
+      border-radius: var(--md-shape-corner-full);
+      padding: 16px 32px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      cursor: pointer;
+      box-shadow: var(--md-elevation-2);
+      transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+    }
+    .btn-fab-judge:hover {
+      box-shadow: var(--md-elevation-3);
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+    }
+    .btn-fab-judge:disabled {
+      background-color: var(--md-sys-color-surface-variant);
+      color: var(--md-sys-color-outline);
+      box-shadow: none;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ==========================================================================
+       Result Section
+       ========================================================================== */
+    .result-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .latency-pill {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--md-sys-color-primary);
+      background-color: var(--md-sys-color-primary-container);
+      padding: 3px 10px;
+      border-radius: var(--md-shape-corner-full);
+      display: none;
+    }
+
+    /* Verdict Display Box */
+    .verdict-hero {
+      border-radius: var(--md-shape-corner-l);
+      padding: 28px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 8px;
+      transition: all 0.3s;
+    }
+    .verdict-hero.correct {
+      background-color: var(--color-circle-bg);
+      color: #065F46;
+    }
+    .verdict-hero.incorrect {
+      background-color: var(--color-cross-bg);
+      color: #991B1B;
+    }
+    .verdict-hero.undetermined {
+      background-color: var(--color-triangle-bg);
+      color: #92400E;
+    }
+
+    .verdict-symbol {
+      font-size: 4.8rem;
+      font-weight: 900;
+      line-height: 1;
+    }
+    .verdict-title {
+      font-size: 1.5rem;
+      font-weight: 900;
+    }
+    .verdict-subtitle {
+      font-size: 0.85rem;
+      font-weight: 500;
+      opacity: 0.9;
+    }
+
+    /* Probability Distribution (Linear Progress) */
+    .prob-breakdown {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: var(--md-sys-color-surface-container-low);
+      padding: 16px;
+      border-radius: var(--md-shape-corner-m);
+    }
+    .prob-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .prob-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+    .prob-track {
+      width: 100%;
+      height: 8px;
+      background-color: var(--md-sys-color-surface-container-highest);
+      border-radius: var(--md-shape-corner-full);
+      overflow: hidden;
+    }
+    .prob-fill {
+      height: 100%;
+      border-radius: var(--md-shape-corner-full);
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .fill-circle { background-color: var(--color-circle); }
+    .fill-cross { background-color: var(--color-cross); }
+    .fill-triangle { background-color: var(--color-triangle); }
+
+    /* Sub Metrics Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .metric-card {
+      background-color: var(--md-sys-color-surface-container-low);
+      padding: 14px;
+      border-radius: var(--md-shape-corner-m);
+      text-align: center;
+    }
+    .metric-title {
+      font-size: 0.75rem;
+      color: var(--md-sys-color-on-surface-variant);
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .metric-value {
+      font-size: 1.1rem;
+      font-weight: 800;
+    }
+
+    /* Explanation Section (Gemini 2.5 Flash Optional Integration) */
+    .explain-card {
+      background-color: var(--md-sys-color-surface-container-low);
+      border-left: 4px solid var(--md-sys-color-primary);
+      padding: 16px;
+      border-radius: 0 var(--md-shape-corner-m) var(--md-shape-corner-m) 0;
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .explain-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--md-sys-color-primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .explain-text {
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: var(--md-sys-color-on-surface);
+    }
+    .btn-explain-toggle {
+      background: transparent;
+      border: 1px solid var(--md-sys-color-primary);
+      color: var(--md-sys-color-primary);
+      padding: 10px 16px;
+      border-radius: var(--md-shape-corner-full);
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-explain-toggle:hover {
+      background-color: var(--md-sys-color-primary-container);
+    }
+
+    /* State: Loading */
+    .loading-view {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      gap: 14px;
+    }
+    .m3-spinner {
+      width: 44px;
+      height: 44px;
+      border: 4px solid var(--md-sys-color-surface-container-highest);
+      border-top-color: var(--md-sys-color-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Dialog */
+    .dialog-backdrop {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      display: none; align-items: center; justify-content: center;
+      z-index: 100; padding: 20px;
+    }
+    .m3-dialog {
+      background-color: var(--md-sys-color-surface);
+      border-radius: var(--md-shape-corner-xl);
+      padding: 24px; width: 100%; max-width: 440px;
+      box-shadow: var(--md-elevation-3); display: flex; flex-direction: column; gap: 16px;
+    }
+    .dialog-input {
+      width: 100%; padding: 12px 14px; font-size: 0.85rem; font-family: monospace;
+      border: 1px solid var(--md-sys-color-outline); border-radius: var(--md-shape-corner-s);
+      outline: none; background: var(--md-sys-color-surface-container-low);
+    }
+    .dialog-input:focus { border-color: var(--md-sys-color-primary); border-width: 2px; }
+    .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+    .m3-btn-text {
+      background: transparent; border: none; color: var(--md-sys-color-primary);
+      padding: 10px 16px; border-radius: var(--md-shape-corner-full); font-weight: 700; cursor: pointer;
+    }
+    .m3-btn-filled {
+      background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary);
+      border: none; padding: 10px 20px; border-radius: var(--md-shape-corner-full); font-weight: 700; cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  
+  <!-- Top App Bar -->
+  <header class="top-app-bar">
+    <div class="app-brand">
+      <span class="material-symbols-outlined brand-icon">fact_check</span>
+      <div>
+        <h1 class="brand-title">◯✕△ 秒速ジャッジAI</h1>
+        <div class="brand-subtitle">Gemini Decision 1 • 出力0トークン超高速判定</div>
+      </div>
+    </div>
+    <div class="app-bar-actions">
+      <button class="m3-icon-btn" id="btn-sound-toggle" title="効果音 ON/OFF">
+        <span class="material-symbols-outlined" id="sound-icon">volume_up</span>
+      </button>
+      <button class="m3-icon-btn" id="btn-open-settings" title="APIキー設定">
+        <span class="material-symbols-outlined">settings</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Input Card -->
+  <div class="m3-card">
+    <label class="input-label" for="statement-input">
+      <span class="material-symbols-outlined" style="color:var(--md-sys-color-primary);">help_outline</span>
+      判定したい質問・命題・ウワサを入力してください
+    </label>
+
+    <div class="textarea-wrapper">
+      <textarea class="m3-textarea" id="statement-input" placeholder="例：トマトは野菜ではなく植物学的には果物である。&#10;例：コーヒーを飲むと背が伸びなくなる。&#10;例：宇宙人は存在する。"></textarea>
+    </div>
+
+    <!-- Sample Chips -->
+    <div class="chips-section">
+      <div class="chips-label">試してみる？（タップで入力）:</div>
+      <div class="chips-carousel">
+        <button class="m3-chip" data-text="トマトは野菜ではなく、植物学的には果物（ベリー類）である。">🍅 トマトは果物？</button>
+        <button class="m3-chip" data-text="コーヒーを飲むと背が伸びなくなる。">☕ コーヒーで背が縮む？</button>
+        <button class="m3-chip" data-text="宇宙人は存在する。">👽 宇宙人は存在する？</button>
+        <button class="m3-chip" data-text="雷が落ちる瞬間、地面側からも光（上向きリーダー）が伸びている。">⚡ 雷は下からも登る？</button>
+        <button class="m3-chip" data-text="猫は液体である。">🐱 猫は液体？</button>
+        <button class="m3-chip" data-text="ペンギンは空を飛べない。">🐧 ペンギンは飛べない？</button>
+        <button class="m3-chip" data-text="織田信長を本能寺で討ったのは明智光秀である。">⚔️ 本能寺の変の主犯</button>
+        <button class="m3-chip" data-text="ゲームをやりすぎると脳に悪影響が出て頭が悪くなる。">🎮 ゲームで頭が悪くなる？</button>
+      </div>
+    </div>
+
+    <button class="btn-fab-judge" id="btn-judge">
+      <span class="material-symbols-outlined">electric_bolt</span>
+      <span>Gemini Decision 1 で秒速判定する</span>
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-view" id="loading-view">
+    <div class="m3-spinner"></div>
+    <div style="text-align: center;">
+      <p style="font-weight: 700; color: var(--md-sys-color-primary); font-size: 1rem;">Gemini Decision 1 が事実を検証中...</p>
+      <p style="font-size: 0.8rem; color: var(--md-sys-color-on-surface-variant); margin-top: 4px;">客観的エビデンス・論理・確率を即座に計算しています</p>
+    </div>
+  </div>
+
+  <!-- Result Section -->
+  <div class="m3-card result-container" id="result-card" style="display: none;">
+    <div class="result-header">
+      <div style="font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; gap: 6px;">
+        <span class="material-symbols-outlined" style="color:var(--md-sys-color-primary);">verified</span>
+        <span>AIの判定結果</span>
+      </div>
+      <span class="latency-pill" id="latency-pill">⚡ 160ms</span>
+    </div>
+
+    <!-- Hero Badge: ◯ / ✕ / △ -->
+    <div class="verdict-hero" id="verdict-hero">
+      <div class="verdict-symbol" id="verdict-symbol">◯</div>
+      <div class="verdict-title" id="verdict-title">正しい（真実）</div>
+      <div class="verdict-subtitle" id="verdict-subtitle">客観的な科学的知見・事実として認められています。</div>
+    </div>
+
+    <!-- Probability Breakdown -->
+    <div class="prob-breakdown">
+      <div style="font-size: 0.8rem; font-weight: 700; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">
+        判定の確率内訳
+      </div>
+
+      <div class="prob-item">
+        <div class="prob-meta">
+          <span style="color:#059669;">◯ 正しい</span>
+          <span id="prob-val-correct">0%</span>
+        </div>
+        <div class="prob-track">
+          <div class="prob-fill fill-circle" id="prob-bar-correct" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <div class="prob-item">
+        <div class="prob-meta">
+          <span style="color:#DC2626;">✕ 間違い</span>
+          <span id="prob-val-incorrect">0%</span>
+        </div>
+        <div class="prob-track">
+          <div class="prob-fill fill-cross" id="prob-bar-incorrect" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <div class="prob-item">
+        <div class="prob-meta">
+          <span style="color:#D97706;">△ 何とも言えない</span>
+          <span id="prob-val-undetermined">0%</span>
+        </div>
+        <div class="prob-track">
+          <div class="prob-fill fill-triangle" id="prob-bar-undetermined" style="width: 0%;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sub Metrics (Objectivity & Confidence) -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-title">客観的事実度 (noul)</div>
+        <div class="metric-value" id="val-objectivity">98%</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-title">判定確信度 (score)</div>
+        <div class="metric-value" id="val-confidence">極めて高い</div>
+      </div>
+    </div>
+
+    <!-- Optional Detail Explanation (Powered by Flash) -->
+    <button class="btn-explain-toggle" id="btn-explain">
+      <span class="material-symbols-outlined">lightbulb</span>
+      <span>なぜその判定なのか？ AIの詳しい解説を見る</span>
+    </button>
+
+    <div class="explain-card" id="explain-box">
+      <div class="explain-title">
+        <span class="material-symbols-outlined">psychology</span>
+        <span>AIによる根拠・解説</span>
+      </div>
+      <p class="explain-text" id="explain-text">解説を取得中...</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Settings Dialog -->
+<div class="dialog-backdrop" id="dialog-settings">
+  <div class="m3-dialog">
+    <div style="font-size: 1.25rem; font-weight: 700;">Gemini API 設定</div>
+    <p style="font-size: 0.85rem; color: var(--md-sys-color-on-surface-variant);">
+      Google AI Studioで取得したAPIキーを入力してください。
+    </p>
+    <input type="password" class="dialog-input" id="dialog-key-input" value="AIzaSyDPUBuHqdu9TdnBOtbtBCxk8WVX33wgLfU" placeholder="AIzaSy...">
+    <div class="dialog-actions">
+      <button class="m3-btn-text" id="btn-dialog-cancel">キャンセル</button>
+      <button class="m3-btn-filled" id="btn-dialog-save">保存する</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================================
+// 1. Web Audio API による効果音シンセサイザー（ピンポン / ブー / ポロン）
+// ============================================================================
+let audioEnabled = true;
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(type) {
+  if (!audioEnabled) return;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+
+  const now = audioCtx.currentTime;
+
+  if (type === 'correct') {
+    // ピン・ポン♪（明るい2和音）
+    const osc1 = audioCtx.createOscillator();
+    const gain1 = audioCtx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(659.25, now); // E5
+    gain1.gain.setValueAtTime(0.2, now);
+    gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+    osc1.connect(gain1);
+    gain1.connect(audioCtx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.25);
+
+    const osc2 = audioCtx.createOscillator();
+    const gain2 = audioCtx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(880.00, now + 0.15); // A5
+    gain2.gain.setValueAtTime(0.25, now + 0.15);
+    gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+    osc2.connect(gain2);
+    gain2.connect(audioCtx.destination);
+    osc2.start(now + 0.15);
+    osc2.stop(now + 0.5);
+
+  } else if (type === 'incorrect') {
+    // ブッ・ブー！（低めの短音）
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(140, now);
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.35);
+
+  } else if (type === 'undetermined') {
+    // ポ・ロ・ン♪（中立的なアルペジオ）
+    [440, 554.37, 659.25].forEach((freq, idx) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+      gain.gain.setValueAtTime(0.18, now + idx * 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.08 + 0.3);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now + idx * 0.08);
+      osc.stop(now + idx * 0.08 + 0.3);
+    });
+  }
+}
+
+// サウンド切替
+const btnSound = document.getElementById("btn-sound-toggle");
+const soundIcon = document.getElementById("sound-icon");
+btnSound.addEventListener("click", () => {
+  audioEnabled = !audioEnabled;
+  soundIcon.textContent = audioEnabled ? "volume_up" : "volume_off";
+});
+
+// ============================================================================
+// 2. UI イベント・サンプル入力
+// ============================================================================
+const statementInput = document.getElementById("statement-input");
+const btnJudge = document.getElementById("btn-judge");
+const loadingView = document.getElementById("loading-view");
+const resultCard = document.getElementById("result-card");
+const latencyPill = document.getElementById("latency-pill");
+
+// サンプルチップクリックで入力欄にセット
+document.querySelectorAll(".m3-chip").forEach(chip => {
+  chip.addEventListener("click", () => {
+    statementInput.value = chip.dataset.text;
+    statementInput.focus();
+  });
+});
+
+// ============================================================================
+// 3. API 設定ダイアログ
+// ============================================================================
+let userApiKey = "AIzaSyDPUBuHqdu9TdnBOtbtBCxk8WVX33wgLfU";
+const dialogSettings = document.getElementById("dialog-settings");
+const dialogKeyInput = document.getElementById("dialog-key-input");
+const btnOpenSettings = document.getElementById("btn-open-settings");
+const btnDialogCancel = document.getElementById("btn-dialog-cancel");
+const btnDialogSave = document.getElementById("btn-dialog-save");
+
+btnOpenSettings.addEventListener("click", () => {
+  dialogKeyInput.value = userApiKey;
+  dialogSettings.style.display = "flex";
+});
+btnDialogCancel.addEventListener("click", () => dialogSettings.style.display = "none");
+btnDialogSave.addEventListener("click", () => {
+  const k = dialogKeyInput.value.trim();
+  if (k) { userApiKey = k; dialogSettings.style.display = "none"; }
+});
+
+// ============================================================================
+// 4. Gemini Decision 1 判定エンジン
+// ============================================================================
+let lastJudgedStatement = "";
+let lastVerdictKey = "";
+
+btnJudge.addEventListener("click", async () => {
+  const query = statementInput.value.trim();
+  if (!query) {
+    alert("判定したい質問や命題を入力してください。");
+    statementInput.focus();
+    return;
+  }
+  if (!userApiKey) {
+    alert("APIキーが設定されていません。右上の設定アイコンから設定してください。");
+    return;
+  }
+
+  lastJudgedStatement = query;
+
+  // 画面状態の切替
+  resultCard.style.display = "none";
+  document.getElementById("explain-box").style.display = "none";
+  loadingView.style.display = "flex";
+  btnJudge.disabled = true;
+
+  const t0 = performance.now();
+
+  // Gemini Decision 1 リクエストペイロード
+  const payload = {
+    model: "gemini-decision-1",
+    input: [
+      {
+        type: "text",
+        text: query
+      }
+    ],
+    questions: {
+      verdict: {
+        type: "choice",
+        instructions: "提示された言明・主張・質問について、客観的な事実、科学的知見、または一般的な論理に基づき『◯（正しい・真実）』『✕（間違い・誤り）』『△（何とも言えない・諸説あり・文脈や定義による）』のいずれに該当するか判定してください。",
+        criteria: {
+          correct: "◯ 正しい（客観的事実、科学的知見、公式な定義、または普遍的に真実と認められている主張）",
+          incorrect: "✕ 間違い（明確な事実誤認、誤謬、科学的に反証されたデマや迷信、偽の主張）",
+          undetermined: "△ 何とも言えない（前提や定義によって答えが変わる、諸説あり議論が分かれている、個人の主観・好み、または現代科学や人類の知見では真偽を断定できない事柄）"
+        }
+      },
+      is_objective: {
+        type: "noul",
+        instructions: "この言明や質問は、客観的に真偽を検証できる事実に関するものですか？それとも個人の主観・価値観・嗜好ですか？",
+        criteria: {
+          true_description: "科学的・歴史的・論理的に白黒を検証可能な客観的事実に関する命題",
+          false_description: "個人の好み、感情、倫理観、または主観的な感想に関する命題"
+        }
+      },
+      confidence_level: {
+        type: "score",
+        instructions: "この判定に関する証拠の明白さや確信度を3段階で評価してください。",
+        criteria: [
+          "例外や曖昧さが多く確信度が低い",
+          "概ね一般的見解が存在するが一部例外や文脈による",
+          "明確な科学的事実・普遍的定義に基づき極めて高い確信度で断定できる"
+        ]
+      }
+    }
+  };
+
+  try {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/decisions?key=${userApiKey}`;
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      throw new Error(`APIエラー (${res.status}): ${await res.text()}`);
+    }
+
+    const data = await res.json();
+    const duration = Math.round(performance.now() - t0);
+
+    renderVerdict(data, duration);
+
+  } catch (err) {
+    alert("判定中にエラーが発生しました: " + err.message);
+  } finally {
+    loadingView.style.display = "none";
+    btnJudge.disabled = false;
+  }
+});
+
+// ============================================================================
+// 5. 判定結果の描画
+// ============================================================================
+function renderVerdict(data, duration) {
+  const ans = data.answers;
+  if (!ans || !ans.verdict) {
+    alert("判定結果の形式が不正です。");
+    return;
+  }
+
+  latencyPill.textContent = `⚡ ${duration}ms`;
+  latencyPill.style.display = "inline-block";
+
+  const vChoice = ans.verdict.choice;
+  lastVerdictKey = vChoice;
+
+  const hero = document.getElementById("verdict-hero");
+  const symbol = document.getElementById("verdict-symbol");
+  const title = document.getElementById("verdict-title");
+  const sub = document.getElementById("verdict-subtitle");
+
+  // スタイルとテキストの切り替え
+  hero.className = "verdict-hero " + vChoice;
+
+  if (vChoice === "correct") {
+    symbol.textContent = "◯";
+    title.textContent = "正しい（真実）";
+    sub.textContent = "客観的な事実や科学的知見・公式定義として認められています。";
+    playSound("correct");
+  } else if (vChoice === "incorrect") {
+    symbol.textContent = "✕";
+    title.textContent = "間違い（誤謬・デマ）";
+    sub.textContent = "明確な事実誤認、または反証・否定されている主張です。";
+    playSound("incorrect");
+  } else {
+    symbol.textContent = "△";
+    title.textContent = "何とも言えない（諸説あり）";
+    sub.textContent = "前提や定義によって答えが変わるか、諸説あり議論中、または個人の主観です。";
+    playSound("undetermined");
+  }
+
+  // 確率プログレスバー
+  const probs = ans.verdict.probabilities || {};
+  const pCorrect = Math.round((probs.correct || 0) * 100);
+  const pIncorrect = Math.round((probs.incorrect || 0) * 100);
+  const pUndetermined = Math.round((probs.undetermined || 0) * 100);
+
+  document.getElementById("prob-val-correct").textContent = `${pCorrect}%`;
+  document.getElementById("prob-bar-correct").style.width = `${pCorrect}%`;
+
+  document.getElementById("prob-val-incorrect").textContent = `${pIncorrect}%`;
+  document.getElementById("prob-bar-incorrect").style.width = `${pIncorrect}%`;
+
+  document.getElementById("prob-val-undetermined").textContent = `${pUndetermined}%`;
+  document.getElementById("prob-bar-undetermined").style.width = `${pUndetermined}%`;
+
+  // 客観度 (noul)
+  if (ans.is_objective) {
+    const objPct = Math.round(ans.is_objective.noul * 100);
+    document.getElementById("val-objectivity").textContent = `${objPct}%`;
+  }
+
+  // 確信度 (score)
+  if (ans.confidence_level) {
+    const sc = ans.confidence_level.score;
+    let label = "中程度";
+    if (sc >= 1.5) label = "極めて高い";
+    else if (sc < 0.8) label = "低い（諸説あり）";
+    document.getElementById("val-confidence").textContent = `${label} (${sc.toFixed(1)}/2)`;
+  }
+
+  resultCard.style.display = "flex";
+  resultCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+// ============================================================================
+// 6. Gemini 2.5 Flash による詳しい解説（オプション機能）
+// ============================================================================
+const btnExplain = document.getElementById("btn-explain");
+const explainBox = document.getElementById("explain-box");
+const explainText = document.getElementById("explain-text");
+
+btnExplain.addEventListener("click", async () => {
+  if (!lastJudgedStatement) return;
+
+  btnExplain.disabled = true;
+  explainBox.style.display = "flex";
+  explainText.textContent = "Gemini Flash が科学的・論理的根拠を要約中...";
+
+  const verdictLabelMap = {
+    correct: "◯ 正しい（真実）",
+    incorrect: "✕ 間違い（誤謬）",
+    undetermined: "△ 何とも言えない（諸説あり・定義による）"
+  };
+
+  const prompt = `命題: 「${lastJudgedStatement}」\n判定結果: ${verdictLabelMap[lastVerdictKey] || "判定"}\n\n上記について、なぜこの判定になるのか、科学的・歴史的・論理的な理由を2〜3文（140文字程度）で分かりやすく端潔に解説してください。`;
+
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${userApiKey}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      })
+    });
+
+    if (!res.ok) throw new Error("解説生成に失敗しました: " + await res.text());
+    const data = await res.json();
+    const explanation = data.candidates?.[0]?.content?.parts?.[0]?.text || "解説が取得できませんでした。";
+    explainText.textContent = explanation;
+
+  } catch (err) {
+    explainText.textContent = "解説の取得中にエラーが発生しました: " + err.message;
+  } finally {
+    btnExplain.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
