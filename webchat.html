@@ -7,6 +7,7 @@
   <title>P2P Mesh Room</title>
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
@@ -102,13 +103,30 @@
     }
     @keyframes avatarRipple { 0% { transform: scale(0.95); opacity: 1; } 100% { transform: scale(1.35); opacity: 0; } }
 
-    #ytContainer, #syncMediaContainer {
+    #ytContainer, #syncMediaContainer, #iptvContainer {
       position: absolute; inset: 0; z-index: 5; background: #000; visibility: hidden; opacity: 0;
       pointer-events: none; transition: opacity 0.2s; display: flex; flex-direction: column; justify-content: center; align-items: center;
     }
-    #ytContainer.active, #syncMediaContainer.active { visibility: visible; opacity: 1; pointer-events: auto; }
+    #ytContainer.active, #syncMediaContainer.active, #iptvContainer.active { visibility: visible; opacity: 1; pointer-events: auto; }
     #player { width: 100%; height: 100%; }
-    #syncMediaVideo { width: 100%; height: 100%; object-fit: contain; }
+    #syncMediaVideo, #iptvVideo { width: 100%; height: 100%; object-fit: contain; }
+
+    .iptv-topbar {
+      position: absolute; top: 10px; left: 10px; right: 10px; z-index: 8;
+      display: flex; justify-content: space-between; align-items: center; pointer-events: none;
+    }
+    .iptv-live-badge {
+      background: rgba(20, 18, 24, 0.8); backdrop-filter: blur(6px);
+      border: 1px solid var(--md-outline-var); color: #fff; font-size: 0.75rem; font-weight: bold;
+      padding: 4px 10px; border-radius: var(--r-full); display: inline-flex; align-items: center; gap: 6px;
+      pointer-events: auto; max-width: 65%;
+    }
+    .iptv-live-dot { width: 8px; height: 8px; border-radius: 50%; background: #ff4d4f; box-shadow: 0 0 8px #ff4d4f; flex-shrink: 0; }
+    .iptv-error-overlay {
+      position: absolute; inset: 0; background: rgba(15, 13, 20, 0.9); z-index: 7;
+      display: none; flex-direction: column; justify-content: center; align-items: center; gap: 10px;
+      padding: 20px; text-align: center;
+    }
 
     .switch-to-yt-banner, .unmute-banner {
       position: absolute; border-radius: var(--r-full); font-size: 0.8rem; font-weight: bold;
@@ -122,8 +140,50 @@
     .camera-tile.speaking { border-color: var(--md-success) !important; box-shadow: 0 0 10px var(--md-success); }
     .camera-tile.focused { border-color: var(--md-primary); }
     .camera-tile video { width: 100%; height: 100%; object-fit: cover; }
-    .camera-tile.local video { transform: scaleX(-1); }
+    /* 外カメラ対応: mirroredクラスがついている時だけ左右反転 */
+    .camera-tile.local.mirrored video { transform: scaleX(-1); }
     .tile-badge { position: absolute; bottom: 4px; left: 4px; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(4px); padding: 1px 6px; border-radius: var(--r-full); font-size: 0.68rem; color: #fff; display: flex; align-items: center; gap: 3px; z-index: 3; }
+    .tile-hand-badge {
+      position: absolute; top: 4px; right: 4px; background: #faa81a; color: #000;
+      border-radius: var(--r-full); padding: 2px 6px; font-size: 0.7rem; font-weight: bold;
+      display: none; align-items: center; gap: 2px; z-index: 4; box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+    }
+    .tile-hand-badge.active { display: inline-flex; }
+
+    /* リアクションバー & フローティング絵文字 */
+    .reaction-popover {
+      position: absolute; bottom: 64px; left: 50%; transform: translateX(-50%);
+      background: var(--md-surface-highest); border: 1px solid var(--md-outline-var);
+      border-radius: var(--r-full); padding: 6px 10px; display: none; gap: 6px;
+      z-index: 45; box-shadow: 0 8px 24px rgba(0,0,0,0.75);
+    }
+    .reaction-popover.open { display: flex; }
+    .reaction-emoji-btn {
+      background: transparent; border: none; font-size: 1.4rem; cursor: pointer;
+      padding: 4px 6px; border-radius: 50%; transition: transform 0.12s, background 0.15s;
+    }
+    .reaction-emoji-btn:hover { background: rgba(255,255,255,0.1); transform: scale(1.18); }
+    .reaction-emoji-btn:active { transform: scale(0.9); }
+
+    .floating-reactions-layer {
+      position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 28;
+    }
+    .floating-reaction {
+      position: absolute; bottom: 16px; display: flex; flex-direction: column; align-items: center;
+      gap: 2px; animation: floatUpReaction 2.4s cubic-bezier(0.2, 0.8, 0.4, 1) forwards;
+      user-select: none;
+    }
+    .floating-reaction-emoji { font-size: 2.1rem; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.7)); }
+    .floating-reaction-name {
+      font-size: 0.65rem; background: rgba(0,0,0,0.65); color: #fff;
+      padding: 1px 6px; border-radius: var(--r-full); white-space: nowrap;
+    }
+    @keyframes floatUpReaction {
+      0% { transform: translateY(0) scale(0.6); opacity: 0; }
+      15% { transform: translateY(-25px) scale(1.15); opacity: 1; }
+      80% { opacity: 1; }
+      100% { transform: translateY(-220px) scale(0.95); opacity: 0; }
+    }
 
     .volume-toolbar {
       flex-shrink: 0; background: var(--md-surface-cnt); border-top: 1px solid var(--md-outline-var);
@@ -132,6 +192,10 @@
     }
     .vol-item { display: flex; align-items: center; gap: 6px; }
     .vol-item input[type="range"] { width: 65px; accent-color: var(--md-primary); cursor: pointer; }
+    .speed-select {
+      background: var(--md-surface-high); color: var(--md-on-surface); border: 1px solid var(--md-outline-var);
+      border-radius: var(--r-sm); padding: 2px 6px; font-size: 0.72rem; outline: none; cursor: pointer; font-family: inherit;
+    }
 
     .controls-bar {
       height: 56px; flex-shrink: 0; background: var(--md-surface); border-top: 1px solid var(--md-outline-var);
@@ -199,10 +263,15 @@
     .sb-btn .material-symbols-outlined { font-size: 26px; color: var(--md-primary); }
     .sb-btn-label { font-size: 0.72rem; font-weight: bold; text-align: center; word-break: break-all; }
 
-    .sb-search-item {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 8px 12px; background: var(--md-surface-cnt); border-radius: var(--r-sm);
-      gap: 8px; border: 1px solid var(--md-outline-var);
+    .iptv-channel-item {
+      display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+      border-radius: var(--r-sm); cursor: pointer; background: var(--md-surface-cnt);
+      border: 1px solid var(--md-outline-var); transition: background 0.15s;
+    }
+    .iptv-channel-item:hover { background: var(--md-surface-highest); }
+    .iptv-channel-logo {
+      width: 44px; height: 28px; object-fit: contain; background: #111;
+      border-radius: 4px; flex-shrink: 0;
     }
 
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); z-index: 100; display: none; justify-content: center; align-items: center; padding: 12px; }
@@ -237,6 +306,7 @@
       .volume-toolbar { gap: 6px; font-size: 0.68rem; padding: 4px 6px; }
       .vol-item input[type="range"] { width: 45px; }
       .stage-avatar-circle { width: 75px; height: 75px; font-size: 1.8rem; }
+      .speed-select { font-size: 12px !important; }
     }
   </style>
 </head>
@@ -317,15 +387,43 @@
               <span>小窓（バックグラウンド）再生</span>
             </button>
           </div>
+
+          <!-- IPTV (HLS / M3U8) 同時視聴プレイヤー -->
+          <div id="iptvContainer">
+            <div class="iptv-topbar">
+              <div class="iptv-live-badge">
+                <span class="iptv-live-dot"></span>
+                <span id="iptvChannelTitle" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">IPTV</span>
+              </div>
+              <div style="display:flex; gap:6px; pointer-events:auto;">
+                <button class="btn btn-tonal btn-xs" onclick="toggleIptvPiP()" title="小窓再生">
+                  <span class="material-symbols-outlined" style="font-size:14px;">picture_in_picture_alt</span>
+                </button>
+                <button class="btn btn-danger btn-xs" onclick="stopAndCloseIptv()" title="IPTVを閉じる">
+                  <span class="material-symbols-outlined" style="font-size:14px;">close</span>
+                </button>
+              </div>
+            </div>
+            <video id="iptvVideo" controls playsinline autoplay></video>
+            <div id="iptvErrorOverlay" class="iptv-error-overlay">
+              <span class="material-symbols-outlined" style="font-size:40px; color:var(--md-error);">signal_wifi_bad</span>
+              <div id="iptvErrorReason" style="font-size:0.85rem; color:var(--md-on-surface); max-width:340px;">ストリームを読み込めませんでした</div>
+              <button class="btn btn-primary btn-xs" onclick="toggleModal('iptvModal', true)">別のチャンネルを選ぶ</button>
+            </div>
+          </div>
+
+          <!-- フローティング絵文字リアクションレイヤー -->
+          <div class="floating-reactions-layer" id="floatingReactionsLayer"></div>
         </div>
       </div>
 
       <div class="camera-strip" id="cameraStrip">
-        <div class="camera-tile local focused" id="tile-local" onclick="focusVideo('local')">
+        <div class="camera-tile local mirrored focused" id="tile-local" onclick="focusVideo('local')">
           <video id="localVideo" autoplay playsinline muted></video>
           <div class="tile-avatar-placeholder" id="avatar-local" style="display:none;">
             <div class="avatar-circle tile-avatar-circle" id="avatarCircle-local"><span id="avatarText-local">自</span></div>
           </div>
+          <div class="tile-hand-badge" id="hand-local">✋</div>
           <div class="tile-badge">
             <span id="localTileName">自分</span>
             <span id="localTileMic" class="material-symbols-outlined" style="font-size:13px;">mic</span>
@@ -340,6 +438,19 @@
           <input type="range" id="ytVolumeSlider" min="0" max="100" value="40" oninput="changeYouTubeVolume(this.value)">
           <span id="ytVolVal" style="width:28px;">40%</span>
         </div>
+        <div class="vol-item" title="動画の再生速度（全員と同期）">
+          <span class="material-symbols-outlined" style="font-size:16px;">speed</span>
+          <select id="ytSpeedSelect" class="speed-select" onchange="changeYouTubeSpeed(this.value)">
+            <option value="0.25">0.25x</option>
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1.0x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="1.75">1.75x</option>
+            <option value="2">2.0x</option>
+          </select>
+        </div>
         <div class="vol-item">
           <span class="material-symbols-outlined" style="font-size:16px;">campaign</span>
           <span>SE</span>
@@ -353,7 +464,7 @@
           <span id="callVolVal" style="width:34px;">1.2x</span>
         </div>
         <div class="vol-item">
-          <button class="btn btn-tonal btn-xs" onclick="forceSyncWithOthers()" title="相手と動画の再生位置を強制同期">
+          <button class="btn btn-tonal btn-xs" onclick="forceSyncWithOthers()" title="相手と動画の再生位置・倍速を強制同期">
             <span class="material-symbols-outlined" style="font-size:14px;">sync</span>
             <span>同期</span>
           </button>
@@ -364,6 +475,16 @@
             <span id="splitAudioText">左右分離: OFF</span>
           </button>
         </div>
+      </div>
+
+      <!-- リアクション選択ポップオーバー -->
+      <div class="reaction-popover" id="reactionPopover">
+        <button class="reaction-emoji-btn" onclick="sendReaction('🎉')">🎉</button>
+        <button class="reaction-emoji-btn" onclick="sendReaction('👏')">👏</button>
+        <button class="reaction-emoji-btn" onclick="sendReaction('😂')">😂</button>
+        <button class="reaction-emoji-btn" onclick="sendReaction('❤️')">❤️</button>
+        <button class="reaction-emoji-btn" onclick="sendReaction('👍')">👍</button>
+        <button class="reaction-emoji-btn" onclick="sendReaction('🔥')">🔥</button>
       </div>
 
       <div class="controls-bar">
@@ -381,7 +502,14 @@
           </select>
         </div>
 
-        <!-- リアルサウンドボード起動ボタン -->
+        <button id="handBtn" class="btn btn-tonal" onclick="toggleRaiseHand()" title="挙手">
+          <span class="material-symbols-outlined">front_hand</span>
+        </button>
+
+        <button id="reactionToggleBtn" class="btn btn-tonal" onclick="toggleReactionPopover()" title="絵文字リアクション">
+          <span class="material-symbols-outlined">add_reaction</span>
+        </button>
+
         <button class="btn btn-tonal" onclick="openSoundboardModal()" title="サウンドボード（ミームSE）">
           <span class="material-symbols-outlined">campaign</span><span class="btn-text-mobile">SE</span>
         </button>
@@ -389,9 +517,15 @@
         <button class="btn btn-tonal" onclick="toggleMobileSidebar()" title="チャット・参加者">
           <span class="material-symbols-outlined">chat</span><span class="btn-text-mobile">チャット</span>
         </button>
+
         <button class="btn btn-tonal" onclick="toggleYouTubeStageOrModal()" title="YouTube同時視聴">
           <span class="material-symbols-outlined">smart_display</span><span class="btn-text-mobile">動画</span>
         </button>
+
+        <button class="btn btn-tonal" onclick="openIptvModal()" title="IPTV (M3U / M3U8) 視聴">
+          <span class="material-symbols-outlined">live_tv</span><span class="btn-text-mobile">TV</span>
+        </button>
+
         <button id="shareScreenBtn" class="btn btn-tonal" onclick="toggleScreenShare()" title="画面共有">
           <span class="material-symbols-outlined">screen_share</span><span class="btn-text-mobile">共有</span>
         </button>
@@ -458,7 +592,6 @@
         <button class="btn btn-tonal btn-icon-only" onclick="toggleModal('soundboardModal', false)"><span class="material-symbols-outlined">close</span></button>
       </div>
 
-      <!-- サウンドボード内タブ & 音量調節 -->
       <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; border-bottom:1px solid var(--md-outline-var); padding-bottom:6px;">
         <div class="sb-tabs" style="border-bottom:none; padding-bottom:0;">
           <button id="sbTabBoardBtn" class="btn btn-primary btn-xs" onclick="switchSoundboardTab('board')">マイ サウンドボード</button>
@@ -472,17 +605,14 @@
         </div>
       </div>
 
-      <!-- パネル1: サウンドボード一覧 -->
       <div id="sbPanelBoard" style="display:flex; flex-direction:column; gap:8px;">
         <div class="sb-grid" id="soundboardGrid"></div>
       </div>
 
-      <!-- パネル2: 手動追加 -->
       <div id="sbPanelSearch" style="display:none; flex-direction:column; gap:10px;">
         <div style="font-size:0.78rem; color:var(--md-on-surface-var); padding:4px 0;">
           お好きな音声ファイルの直リンク（MP3等）を追加できます。GitHub、Discord、CDNなどのURLに対応しています。
         </div>
-
         <div style="display:flex; flex-direction:column; gap:8px; background:var(--md-surface-cnt); padding:12px; border-radius:var(--r-md); border:1px solid var(--md-outline-var);">
           <div class="md-field">
             <input type="text" id="manualSoundName" placeholder="効果音の名前 (例: 拍手、歓声)">
@@ -498,6 +628,7 @@
     </div>
   </div>
 
+  <!-- YouTube 検索・再生モーダル -->
   <div class="modal-overlay" id="ytModal">
     <div class="modal-card">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -515,6 +646,49 @@
       <div class="search-results" id="ytSearchResults">
         <div style="font-size:0.8rem; color:var(--md-outline); text-align:center; padding:16px;">
           キーワードを入力して検索するか、動画URLを直接貼り付けてください。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- IPTV (M3U / M3U8) モーダル -->
+  <div class="modal-overlay" id="iptvModal">
+    <div class="modal-card">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="font-size:1rem; color:var(--md-primary); display:flex; align-items:center; gap:6px;">
+          <span class="material-symbols-outlined">live_tv</span>IPTV (M3U / M3U8) 同時視聴
+        </h3>
+        <button class="btn btn-tonal btn-icon-only" onclick="toggleModal('iptvModal', false)"><span class="material-symbols-outlined">close</span></button>
+      </div>
+
+      <div style="font-size:0.74rem; color:var(--md-on-surface-var); background:var(--md-surface-cnt); padding:8px 10px; border-radius:var(--r-sm); border:1px solid var(--md-outline-var);">
+        公開M3Uプレイリストまたは`.m3u8`ストリームURLを読み込めます。（配信元がCORS未対応またはHTTP専用の場合、ブラウザ仕様により再生できない局があります）
+      </div>
+
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button class="btn btn-tonal btn-xs" onclick="loadPresetIptv('https://iptv-org.github.io/iptv/countries/jp.m3u')">
+          🇯🇵 日本 (iptv-org jp.m3u)
+        </button>
+        <button class="btn btn-tonal btn-xs" onclick="loadPresetIptv('https://iptv-org.github.io/iptv/languages/jpn.m3u')">
+          🗣️ 日本語 (jpn.m3u)
+        </button>
+      </div>
+
+      <div style="display:flex; gap:6px;">
+        <div class="md-field" style="flex:1;">
+          <input type="text" id="iptvUrlInput" placeholder="M3U または M3U8 URL (https://...)" onkeydown="if(event.key==='Enter') loadCustomIptvInput()">
+        </div>
+        <button class="btn btn-primary" onclick="loadCustomIptvInput()">読込/再生</button>
+      </div>
+
+      <div class="md-field">
+        <span class="material-symbols-outlined" style="font-size:18px; color:var(--md-outline);">search</span>
+        <input type="text" id="iptvFilterInput" placeholder="チャンネル名で絞り込み..." oninput="filterIptvChannels()">
+      </div>
+
+      <div class="search-results" id="iptvChannelList" style="max-height:42vh;">
+        <div style="font-size:0.8rem; color:var(--md-outline); text-align:center; padding:16px;">
+          上のボタンから日本の公開チャンネルリストを読み込むか、URLを入力してください。
         </div>
       </div>
     </div>
@@ -559,6 +733,7 @@
     const MAX_FILE_SIZE = 50 * 1024 * 1024;
     const FILE_CHUNK_SIZE = 16 * 1024;
     const MAX_CHUNKS = Math.ceil(MAX_FILE_SIZE / FILE_CHUNK_SIZE) + 20;
+    const ALLOWED_REACTION_EMOJIS = new Set(['🎉', '👏', '😂', '❤️', '👍', '🔥']);
 
     const PEER_CONFIG = { config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] } };
 
@@ -568,7 +743,7 @@
     const seenMessageIds = new Set();
 
     let localStream = null, screenStream = null;
-    let isMicOn = true, isCamOn = true, isScreenSharing = false;
+    let isMicOn = true, isCamOn = true, isScreenSharing = false, isBackCamera = false, isHandRaised = false;
     let isMicBusy = false;
     let isUnloading = false, isTabHidden = false, tabHiddenTime = 0;
 
@@ -582,12 +757,19 @@
     let ytHeartbeatInterval = null;
     let ytSeekWatcherInterval = null;
     let lastYtLocalTime = 0;
+    let lastYtRate = 1;
     let pendingSeekTimeout = null;
     let isPlayerBufferingFromRemote = false;
+
+    // --- IPTV (HLS) 変数 ---
+    let hlsInstance = null;
+    let currentIptvChannel = null;
+    let loadedIptvChannels = [];
 
     const activeSoundboardAudios = new Set();
     const audioBufferCache = new Map();
     let lastSoundboardPlayTime = 0;
+    let lastReactionTime = 0;
     const MAX_CONCURRENT_SOUNDS = 4;
     let isTtsOn = true, isSpeaking = false, currentVote = null, voteTimerInterval = null, isReconnecting = false;
 
@@ -599,7 +781,6 @@
     let audioContext = null, masterCallGainNode = null, masterLimiterNode = null, voicePannerNode = null;
     let currentMasterGain = 1.2, isAudioSplit = false;
 
-    // --- OpenDNSでも絶対にブロックされない超定番ミーム音源20選 (jsDelivr CDN) ---
     const DEFAULT_REAL_SOUNDS = [
       { name: '🗿 ドカン', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/vine-boom.mp3', icon: 'crisis_alert' },
       { name: '⚡ 金属パイプ', url: 'https://cdn.jsdelivr.net/gh/3kh0/soundboard@main/sounds/metalpipe.mp3', icon: 'hardware' },
@@ -622,36 +803,51 @@
     ];
     let customSounds = [];
 
-    // --- サウンドボードのセキュリティ検証 ---
     function isSafeAudioUrl(urlStr) {
       if (typeof urlStr !== 'string') return false;
       const trimmed = urlStr.trim();
       if (!trimmed || trimmed.length > 2048) return false;
-
       try {
         const u = new URL(trimmed);
         if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
-
         const h = u.hostname.toLowerCase();
         if (
           h === 'localhost' || h === '127.0.0.1' || h === '::1' || h === '0.0.0.0' ||
           h.endsWith('.local') ||
-          /^10\./.test(h) ||
-          /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(h) ||
-          /^192\.168\./.test(h) ||
-          /^169\.254\./.test(h)
-        ) {
-          return false;
-        }
+          /^10\./.test(h) || /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(h) ||
+          /^192\.168\./.test(h) || /^169\.254\./.test(h)
+        ) return false;
         return true;
-      } catch (e) {
-        return false;
-      }
+      } catch (e) { return false; }
     }
 
     function sanitizeText(str, maxLen = 40) {
       if (typeof str !== 'string') return '';
       return str.replace(/[\x00-\x1F\x7F<>]/g, '').trim().slice(0, maxLen);
+    }
+
+    // --- 外カメラ判定 & 左右反転制御 ---
+    function detectCameraFacing(track, hintValue = '') {
+      try {
+        const settings = track?.getSettings ? track.getSettings() : {};
+        if (settings.facingMode === 'environment') return true;
+        if (settings.facingMode === 'user') return false;
+        const label = (track?.label || '').toLowerCase();
+        if (/back|rear|environment|背面|外カメラ|アウト/.test(label)) return true;
+        if (/front|user|facetime|前面|内カメラ|イン/.test(label)) return false;
+      } catch (e) {}
+      if (hintValue === 'environment') return true;
+      if (hintValue === 'user') return false;
+      return false;
+    }
+
+    function updateLocalMirrorState() {
+      const shouldMirror = !isBackCamera && !isScreenSharing;
+      const tile = $('tile-local');
+      if (tile) tile.classList.toggle('mirrored', shouldMirror);
+      if (currentFocusedPeerId === 'local') {
+        $('stageVideo').style.transform = shouldMirror ? 'scaleX(-1)' : 'none';
+      }
     }
 
     function getAudioPipeline() {
@@ -729,7 +925,6 @@
       return g[Math.abs(h) % g.length];
     }
 
-    // --- バックグラウンド復帰＆初期化 ---
     window.addEventListener('DOMContentLoaded', async () => {
       ['click', 'touchstart', 'touchend', 'keydown'].forEach(e => window.addEventListener(e, unlockAllAudio, { once: true }));
       await setupMedia();
@@ -737,6 +932,15 @@
       setupSyncMediaListeners();
       loadCustomSounds();
       initSoundboardVolume();
+
+      // 外側クリックでリアクションポップオーバーを閉じる
+      document.addEventListener('click', (e) => {
+        const pop = $('reactionPopover');
+        const btn = $('reactionToggleBtn');
+        if (pop && pop.classList.contains('open') && !pop.contains(e.target) && !btn.contains(e.target)) {
+          pop.classList.remove('open');
+        }
+      });
 
       const p = new URLSearchParams(window.location.search);
       if (p.get('room')) $('roomNameInput').value = p.get('room');
@@ -747,19 +951,12 @@
         if (isTabHidden) {
           tabHiddenTime = Date.now();
         } else {
-          // バックグラウンドから復帰時
           safeReconnect();
           ensureAudioContextResumed();
-
-          // 復帰ガードON：復帰直後5秒間は、遅れていた自分の状態を絶対に他人に送信しない！
           isCatchingUp = true;
           activateRemoteShield(5000);
           clearTimeout(catchUpCooldownTimer);
-          catchUpCooldownTimer = setTimeout(() => {
-            isCatchingUp = false;
-          }, 5000);
-
-          // 自分だけが最新の再生位置に追いつくためホストに問い合わせ
+          catchUpCooldownTimer = setTimeout(() => { isCatchingUp = false; }, 5000);
           if (isYtLoaded || currentSyncMediaId) {
             setTimeout(requestCatchUpSync, 600);
           }
@@ -771,17 +968,16 @@
         releaseRendezvousHost();
         clearInterval(ytHeartbeatInterval);
         clearInterval(ytSeekWatcherInterval);
+        destroyIptvHls();
         if (peer && !peer.destroyed) peer.destroy();
       });
       if (window.YT && window.YT.Player) initYouTubePlayer();
     });
 
-    // 復帰者が最新の再生状態をホストまたはアクティブピアに1対1で問い合わせる
     function requestCatchUpSync() {
       if (Object.keys(peers).length === 0) return;
       const hostPeerId = Object.keys(peers).find(id => peers[id].isHost);
       const targetId = hostPeerId || Object.keys(peers)[0];
-
       if (targetId && peers[targetId]?.conn?.open) {
         peers[targetId].conn.send({ type: 'sync-request' });
       }
@@ -799,6 +995,8 @@
             const label = d.label || (i === 0 ? '内カメラ (前面)' : '外カメラ (背面)');
             sel.appendChild(el('option', { value: d.deviceId, text: label }));
           });
+          const curId = localStream?.getVideoTracks()[0]?.getSettings?.().deviceId;
+          if (curId && Array.from(sel.options).some(o => o.value === curId)) sel.value = curId;
         }
       } catch (e) {}
     }
@@ -821,14 +1019,19 @@
         localStream.addTrack(newTrack);
         newTrack.enabled = isCamOn;
 
+        const sel = $('cameraSelect');
+        const selectedLabel = sel.options[sel.selectedIndex]?.text || '';
+        isBackCamera = detectCameraFacing(newTrack, val) || /back|rear|environment|背面|外カメラ/i.test(selectedLabel);
+
         Object.values(peers).forEach(p => {
           const sender = p.call?.peerConnection?.getSenders().find(s => s.track?.kind === 'video');
           if (sender) sender.replaceTrack(newTrack);
         });
 
         $('localVideo').srcObject = localStream;
+        updateLocalMirrorState();
         updateLocalAvatarUI();
-        showToast('カメラを切り替えました');
+        showToast(isBackCamera ? '外カメラに切り替えました' : '内カメラに切り替えました');
       } catch (err) {
         showToast('カメラ切り替えに失敗しました', 'error');
       }
@@ -858,6 +1061,8 @@
       const lv = $('localVideo');
       lv.srcObject = localStream;
       lv.muted = true; lv.volume = 0;
+      isBackCamera = detectCameraFacing(localStream.getVideoTracks()[0]);
+      updateLocalMirrorState();
       setupSpeakingDetector('local', localStream);
       updateLocalAvatarUI();
     }
@@ -970,20 +1175,13 @@
       try {
         const { ctx, master } = getAudioPipeline();
         if (stream.getAudioTracks().length === 0) return;
-
-        if (peers[id]?.userGainNode) {
-          try { peers[id].userGainNode.disconnect(); } catch (e) {}
-        }
-        if (peers[id]?.audioSourceNode) {
-          try { peers[id].audioSourceNode.disconnect(); } catch (e) {}
-        }
+        if (peers[id]?.userGainNode) { try { peers[id].userGainNode.disconnect(); } catch (e) {} }
+        if (peers[id]?.audioSourceNode) { try { peers[id].audioSourceNode.disconnect(); } catch (e) {} }
 
         const src = ctx.createMediaStreamSource(stream);
         const userGain = ctx.createGain();
         const currentVol = peers[id]?.userVolume ?? 100;
-
         userGain.gain.setValueAtTime(currentVol === 0 ? 0 : currentVol / 100, ctx.currentTime);
-
         src.connect(userGain);
         userGain.connect(master);
 
@@ -1022,24 +1220,25 @@
 
       conn.on('open', () => {
         clearTimeout(guestFallbackTimer);
-        conn.send({ type: 'intro', userName: myUserName, isHost, isMuted: !isMicOn, isCamOff: !isCamOn });
+        conn.send({ type: 'intro', userName: myUserName, isHost, isMuted: !isMicOn, isCamOff: !isCamOn, isHandRaised });
         
-        // ★重要: ホストだけが入室者に現在の動画状態を案内する（ゲストからの逆流巻き戻しを完全防止）
-        if (isHost && isYtLoaded && ytPlayer && ytPlayer.getVideoData && ytPlayer.getPlayerState) {
-          try {
-            const vData = ytPlayer.getVideoData();
-            if (vData && vData.video_id) {
-              conn.send({
-                type: 'yt-state',
-                videoId: vData.video_id,
-                time: ytPlayer.getCurrentTime(),
-                isPlaying: ytPlayer.getPlayerState() === YT.PlayerState.PLAYING
-              });
-            }
-          } catch (e) {}
-        }
-
         if (isHost) {
+          if (isYtLoaded && ytPlayer && ytPlayer.getVideoData && ytPlayer.getPlayerState) {
+            try {
+              const vData = ytPlayer.getVideoData();
+              if (vData && vData.video_id) {
+                conn.send({
+                  type: 'yt-state',
+                  videoId: vData.video_id,
+                  time: ytPlayer.getCurrentTime(),
+                  isPlaying: ytPlayer.getPlayerState() === YT.PlayerState.PLAYING,
+                  rate: ytPlayer.getPlaybackRate ? ytPlayer.getPlaybackRate() : lastYtRate
+                });
+              }
+            } catch (e) {}
+          } else if (currentIptvChannel) {
+            conn.send({ type: 'iptv-load', url: currentIptvChannel.url, name: currentIptvChannel.name });
+          }
           conn.send({ type: 'mesh-members', members: Object.keys(peers).filter(id => id !== pId && !kickedPeers.has(id)) });
         }
       });
@@ -1066,8 +1265,9 @@
           peers[fromPeerId].isHost = !!data.isHost;
           peers[fromPeerId].isMuted = !!data.isMuted;
           peers[fromPeerId].isCamOff = !!data.isCamOff;
+          peers[fromPeerId].isHandRaised = !!data.isHandRaised;
           updateTileName(fromPeerId, peers[fromPeerId].userName);
-          updateTileIcons(fromPeerId, data.isMuted, data.isCamOff);
+          updateTileIcons(fromPeerId, data.isMuted, data.isCamOff, data.isHandRaised);
           updateUserListUI();
           
           if (!peers[fromPeerId].hasAnnounced) {
@@ -1096,16 +1296,28 @@
 
         case 'status-update':
           if (peers[fromPeerId]) {
+            const prevHand = !!peers[fromPeerId].isHandRaised;
             peers[fromPeerId].isMuted = !!data.isMuted;
             peers[fromPeerId].isCamOff = !!data.isCamOff;
-            updateTileIcons(fromPeerId, data.isMuted, data.isCamOff);
+            if ('isHandRaised' in data) peers[fromPeerId].isHandRaised = !!data.isHandRaised;
+            updateTileIcons(fromPeerId, data.isMuted, data.isCamOff, peers[fromPeerId].isHandRaised);
             updateUserListUI();
             if (currentFocusedPeerId === fromPeerId) updateStageView();
 
+            if (!prevHand && peers[fromPeerId].isHandRaised) {
+              showToast(`${peers[fromPeerId].userName || '参加者'} が挙手しました ✋`);
+            }
             if (data.isMuted) {
               $(`tile-${fromPeerId}`)?.classList.remove('speaking');
               if (currentFocusedPeerId === fromPeerId) $('aspectScreen')?.classList.remove('speaking');
             }
+          }
+          break;
+
+        case 'reaction':
+          if (typeof data.emoji === 'string' && ALLOWED_REACTION_EMOJIS.has(data.emoji)) {
+            const sender = sanitizeText(peers[fromPeerId]?.userName || data.senderName, 20) || '参加者';
+            spawnFloatingReaction(data.emoji, sender);
           }
           break;
 
@@ -1119,12 +1331,21 @@
 
         case 'yt-state':
         case 'yt-heartbeat':
-          // ホストからの定期同期、または復帰時の状態取得
           handleRemoteYouTubeState(data);
           break;
 
+        case 'iptv-load':
+          if (typeof data.url === 'string' && isSafeAudioUrl(data.url)) {
+            openIptvScreen(data.url, data.name || 'IPTV');
+            showToast(`IPTV切替: ${sanitizeText(data.name, 40) || 'ライブ'}`);
+          }
+          break;
+
+        case 'iptv-close':
+          stopAndCloseIptv(true);
+          break;
+
         case 'sync-request':
-          // 復帰者（問い合わせ元）にだけ、自分の最新再生状態を1対1で教える
           if (!document.hidden && !isTabHidden && !isCatchingUp) {
             if (isYtLoaded && ytPlayer && ytPlayer.getVideoData) {
               try {
@@ -1132,25 +1353,30 @@
                   type: 'yt-state',
                   videoId: ytPlayer.getVideoData().video_id,
                   time: ytPlayer.getCurrentTime(),
-                  isPlaying: ytPlayer.getPlayerState() === YT.PlayerState.PLAYING
+                  isPlaying: ytPlayer.getPlayerState() === YT.PlayerState.PLAYING,
+                  rate: ytPlayer.getPlaybackRate ? ytPlayer.getPlaybackRate() : lastYtRate
                 });
               } catch (e) {}
+            } else if (currentIptvChannel) {
+              peers[fromPeerId]?.conn?.send({
+                type: 'iptv-load',
+                url: currentIptvChannel.url,
+                name: currentIptvChannel.name
+              });
             } else if (currentSyncMediaId) {
               const player = sharedMediaFiles[currentSyncMediaId]?.mime.startsWith('audio/') ? $('syncMediaAudio') : $('syncMediaVideo');
               peers[fromPeerId]?.conn?.send({
                 type: 'sync-media-action',
                 fileId: currentSyncMediaId,
                 action: player.paused ? 'pause' : 'play',
-                time: player.currentTime
+                time: player.currentTime,
+                rate: player.playbackRate || 1
               });
             }
           }
           break;
 
-        case 'soundboard-play':
-          handleRemoteSoundboardPlay(data);
-          break;
-
+        case 'soundboard-play': handleRemoteSoundboardPlay(data); break;
         case 'sync-media-start': handleSyncMediaStart(data); break;
         case 'sync-media-action': handleSyncMediaAction(data); break;
         case 'vote-kick-start': handleVoteKickStart(fromPeerId, data); break;
@@ -1160,7 +1386,6 @@
       }
     }
 
-    // --- ホスト自動昇格 & ランデブー（新参者受付）常駐処理 ---
     function checkAndElectNewHost(removedPeerId) {
       const remaining = [myPeerId, ...Object.keys(peers).filter(id => id !== removedPeerId && !kickedPeers.has(id))].sort();
       const newHostId = remaining[0];
@@ -1195,16 +1420,9 @@
 
     function tryRendezvousHost(hostId, attempt) {
       if (!isHost) return;
-      if (rendezvousPeer && !rendezvousPeer.destroyed) {
-        try { rendezvousPeer.destroy(); } catch (e) {}
-      }
-
+      if (rendezvousPeer && !rendezvousPeer.destroyed) { try { rendezvousPeer.destroy(); } catch (e) {} }
       rendezvousPeer = new Peer(hostId, PEER_CONFIG);
-
-      rendezvousPeer.on('open', () => {
-        setupRendezvousEvents(rendezvousPeer);
-      });
-
+      rendezvousPeer.on('open', () => setupRendezvousEvents(rendezvousPeer));
       rendezvousPeer.on('error', (err) => {
         if (err.type === 'unavailable-id' && attempt < 12) {
           rendezvousRetryTimer = setTimeout(() => {
@@ -1220,19 +1438,14 @@
       rPeer.on('connection', conn => {
         conn.on('open', () => {
           const activeMembers = [myPeerId, ...Object.keys(peers).filter(id => !kickedPeers.has(id))];
-          conn.send({
-            type: 'mesh-members',
-            members: activeMembers
-          });
+          conn.send({ type: 'mesh-members', members: activeMembers });
         });
       });
     }
 
     function releaseRendezvousHost() {
       clearTimeout(rendezvousRetryTimer);
-      if (rendezvousPeer && !rendezvousPeer.destroyed) {
-        try { rendezvousPeer.destroy(); } catch (e) {}
-      }
+      if (rendezvousPeer && !rendezvousPeer.destroyed) { try { rendezvousPeer.destroy(); } catch (e) {} }
       rendezvousPeer = null;
     }
 
@@ -1342,6 +1555,7 @@
             el('span', { id: `avatarText-${id}`, text: initial })
           )
         ),
+        el('div', { className: 'tile-hand-badge', id: `hand-${id}`, text: '✋' }),
         el('div', { className: 'tile-badge' },
           el('span', { id: `name-${id}`, text: name }),
           el('span', { id: `mic-${id}`, className: 'material-symbols-outlined', style: { fontSize: '13px' }, text: 'mic' })
@@ -1362,10 +1576,11 @@
       if (c) c.style.background = getAvatarGradient(name);
     }
 
-    function updateTileIcons(id, isMuted, isCamOff) {
-      const mic = $(`mic-${id}`), av = $(`avatar-${id}`), vid = $(`vid-${id}`);
+    function updateTileIcons(id, isMuted, isCamOff, handRaised = false) {
+      const mic = $(`mic-${id}`), av = $(`avatar-${id}`), vid = $(`vid-${id}`), hand = $(`hand-${id}`);
       if (mic) mic.textContent = isMuted ? 'mic_off' : 'mic';
       if (av && vid) { av.style.display = isCamOff ? 'flex' : 'none'; vid.style.opacity = isCamOff ? '0' : '1'; }
+      if (hand) hand.classList.toggle('active', !!handRaised);
     }
 
     function focusVideo(id) {
@@ -1373,15 +1588,17 @@
       document.querySelectorAll('.camera-tile').forEach(t => t.classList.remove('focused'));
       const target = $(`tile-${id}`); if (target) target.classList.add('focused');
       updateStageView();
-      if (isYtLoaded || currentSyncMediaId) $('switchToYtBtn').style.display = 'inline-flex';
+      if (isYtLoaded || currentSyncMediaId || currentIptvChannel) $('switchToYtBtn').style.display = 'inline-flex';
     }
 
     function updateStageView() {
       $('ytContainer').classList.remove('active');
       $('syncMediaContainer').classList.remove('active');
+      $('iptvContainer').classList.remove('active');
 
       const id = currentFocusedPeerId;
       let targetName = (id === 'local') ? `${myUserName} (自分)` : (peers[id]?.userName || '参加者');
+      let handRaised = (id === 'local') ? isHandRaised : !!peers[id]?.isHandRaised;
       let isCamOff = (id === 'local') ? (!isCamOn && !isScreenSharing) : !!peers[id]?.isCamOff;
       let stream = (id === 'local') ? (isScreenSharing && screenStream ? screenStream : localStream) : peers[id]?.stream;
 
@@ -1390,38 +1607,83 @@
         $('stageAvatar').style.display = 'flex';
         $('stageAvatarText').textContent = targetName.charAt(0);
         $('stageAvatarCircle').style.background = getAvatarGradient(targetName);
-        $('stageAvatarNameText').textContent = targetName;
+        $('stageAvatarNameText').textContent = targetName + (handRaised ? ' ✋' : '');
       } else {
         $('stageAvatar').style.display = 'none';
         $('stageVideo').style.display = 'block';
         if (stream) {
           $('stageVideo').srcObject = stream;
           $('stageVideo').muted = true; $('stageVideo').volume = 0; $('stageVideo').defaultMuted = true;
-          $('stageVideo').style.transform = (id === 'local' && !isScreenSharing) ? 'scaleX(-1)' : 'none';
+          $('stageVideo').style.transform = (id === 'local' && !isScreenSharing && !isBackCamera) ? 'scaleX(-1)' : 'none';
         }
       }
     }
 
     function switchToYouTubeStage() {
-      if (currentSyncMediaId) {
-        currentStageMode = 'sync-media';
-        $('stageVideo').style.display = 'none'; $('stageAvatar').style.display = 'none';
+      $('stageVideo').style.display = 'none'; $('stageAvatar').style.display = 'none';
+      $('switchToYtBtn').style.display = 'none';
+      document.querySelectorAll('.camera-tile').forEach(t => t.classList.remove('focused'));
+
+      if (currentIptvChannel) {
+        currentStageMode = 'iptv';
         $('ytContainer').classList.remove('active');
+        $('syncMediaContainer').classList.remove('active');
+        $('iptvContainer').classList.add('active');
+      } else if (currentSyncMediaId) {
+        currentStageMode = 'sync-media';
+        $('ytContainer').classList.remove('active');
+        $('iptvContainer').classList.remove('active');
         $('syncMediaContainer').classList.add('active');
-        $('switchToYtBtn').style.display = 'none';
       } else {
         currentStageMode = 'youtube';
-        $('stageVideo').style.display = 'none'; $('stageAvatar').style.display = 'none';
         $('syncMediaContainer').classList.remove('active');
+        $('iptvContainer').classList.remove('active');
         $('ytContainer').classList.add('active');
-        $('switchToYtBtn').style.display = 'none';
       }
-      document.querySelectorAll('.camera-tile').forEach(t => t.classList.remove('focused'));
     }
 
     function toggleYouTubeStageOrModal() {
       if ((isYtLoaded || currentSyncMediaId) && currentStageMode === 'camera') switchToYouTubeStage();
       else toggleModal('ytModal', true);
+    }
+
+    // --- 挙手 & リアクション機能 ---
+    function toggleRaiseHand() {
+      isHandRaised = !isHandRaised;
+      const btn = $('handBtn');
+      btn.classList.toggle('btn-active', isHandRaised);
+      $('hand-local')?.classList.toggle('active', isHandRaised);
+      if (currentFocusedPeerId === 'local') updateStageView();
+      updateUserListUI();
+      broadcast({ type: 'status-update', isMuted: !isMicOn, isCamOff: !isCamOn, isHandRaised });
+      showToast(isHandRaised ? '挙手しました ✋' : '挙手を下げました');
+    }
+
+    function toggleReactionPopover() {
+      $('reactionPopover').classList.toggle('open');
+    }
+
+    function sendReaction(emoji) {
+      if (!ALLOWED_REACTION_EMOJIS.has(emoji)) return;
+      const now = Date.now();
+      if (now - lastReactionTime < 150) return;
+      lastReactionTime = now;
+
+      $('reactionPopover').classList.remove('open');
+      spawnFloatingReaction(emoji, myUserName);
+      broadcast({ type: 'reaction', emoji, senderName: myUserName });
+    }
+
+    function spawnFloatingReaction(emoji, senderName) {
+      const layer = $('floatingReactionsLayer');
+      if (!layer) return;
+      const leftPct = 12 + Math.random() * 76;
+      const node = el('div', { className: 'floating-reaction', style: { left: `${leftPct}%` } },
+        el('span', { className: 'floating-reaction-emoji', text: emoji }),
+        el('span', { className: 'floating-reaction-name', text: senderName })
+      );
+      layer.appendChild(node);
+      setTimeout(() => node.remove(), 2500);
     }
 
     function setupSpeakingDetector(id, stream) {
@@ -1464,9 +1726,7 @@
 
           const tile = $(`tile-${id}`);
           if (tile) tile.classList.toggle('speaking', isSpeakingNow);
-          if (currentFocusedPeerId === id) {
-            $('aspectScreen').classList.toggle('speaking', isSpeakingNow);
-          }
+          if (currentFocusedPeerId === id) $('aspectScreen').classList.toggle('speaking', isSpeakingNow);
 
           detector.animId = requestAnimationFrame(check);
         };
@@ -1478,14 +1738,46 @@
       currentYtVolume = Number(val);
       $('ytVolVal').textContent = `${val}%`;
       if (ytPlayer && ytPlayer.setVolume) ytPlayer.setVolume(val);
-      const v = $('syncMediaVideo'), a = $('syncMediaAudio');
+      const v = $('syncMediaVideo'), a = $('syncMediaAudio'), tv = $('iptvVideo');
       if (v) v.volume = currentYtVolume / 100;
       if (a) a.volume = currentYtVolume / 100;
+      if (tv) tv.volume = currentYtVolume / 100;
     }
 
     // ==========================================
-    // --- YouTube 同期・反響防止エンジン ---
+    // --- YouTube 同期・倍速・反響防止エンジン ---
     // ==========================================
+    function updateYtSpeedUI(rate) {
+      const sel = $('ytSpeedSelect');
+      if (!sel) return;
+      const str = String(rate);
+      if (Array.from(sel.options).some(o => o.value === str)) sel.value = str;
+    }
+
+    function changeYouTubeSpeed(val) {
+      const rate = Number(val) || 1;
+      lastYtRate = rate;
+      updateYtSpeedUI(rate);
+
+      if (isYtLoaded && ytPlayer && ytPlayer.setPlaybackRate) {
+        try {
+          ytPlayer.setPlaybackRate(rate);
+          if (Object.keys(peers).length > 0 && !isRemoteAction && !isCatchingUp) {
+            const time = ytPlayer.getCurrentTime ? ytPlayer.getCurrentTime() : 0;
+            const isPlaying = ytPlayer.getPlayerState ? (ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) : false;
+            broadcast({ type: 'yt-action', action: 'rate', rate, time, isPlaying });
+            showToast(`再生速度を ${rate}x に同期しました`);
+          }
+        } catch (e) {}
+      }
+
+      if (currentSyncMediaId) {
+        const v = $('syncMediaVideo'), a = $('syncMediaAudio');
+        if (v) v.playbackRate = rate;
+        if (a) a.playbackRate = rate;
+      }
+    }
+
     function initYouTubePlayer() {
       if (ytPlayer || !window.YT || !window.YT.Player) return;
       ytPlayer = new YT.Player('player', {
@@ -1503,6 +1795,7 @@
             }
           },
           onStateChange: onPlayerStateChange,
+          onPlaybackRateChange: onPlayerPlaybackRateChange,
           onError: e => {
             if ([101, 150].includes(e.data)) showToast('この動画は外部サイトでの再生が制限されています', 'error');
             else showToast('動画の読み込みに失敗しました', 'error');
@@ -1514,17 +1807,25 @@
 
     function openYouTubeScreen(videoId) {
       currentSyncMediaId = null;
-      isYtLoaded = true; switchToYouTubeStage();
+      destroyIptvHls();
+      currentIptvChannel = null;
+      $('syncMediaVideo').pause();
+      $('syncMediaAudio').pause();
+
+      isYtLoaded = true;
+      lastYtRate = 1;
+      updateYtSpeedUI(1);
+      switchToYouTubeStage();
       startYtSyncWatchers();
       if (isYtReady && ytPlayer && ytPlayer.loadVideoById) {
         activateRemoteShield(2500);
         ytPlayer.loadVideoById(videoId);
         ytPlayer.setVolume(currentYtVolume);
+        if (ytPlayer.setPlaybackRate) ytPlayer.setPlaybackRate(1);
         lastYtLocalTime = 0;
       }
     }
 
-    // リモート指示の反映中は、ローカルの検知・発信を完全に停止するシールド
     function activateRemoteShield(durationMs = 2500) {
       isRemoteAction = true;
       clearTimeout(remoteActionShieldTimer);
@@ -1536,7 +1837,6 @@
       }, durationMs);
     }
 
-    // シーク検知 & ホスト主導型ハートビートタイマー
     function startYtSyncWatchers() {
       clearInterval(ytSeekWatcherInterval);
       ytSeekWatcherInterval = setInterval(() => {
@@ -1549,22 +1849,27 @@
           const state = ytPlayer.getPlayerState();
           if (typeof curTime !== 'number' || state === YT.PlayerState.BUFFERING) return;
 
+          const rate = ytPlayer.getPlaybackRate ? ytPlayer.getPlaybackRate() : 1;
           const delta = curTime - lastYtLocalTime;
 
-          // ユーザー自身による2.0秒以上のシークジャンプを検知（操作完了後に1回だけ送信）
-          if (Math.abs(delta) > 2.0 && lastYtLocalTime > 0) {
+          // 倍速時(例: 2x)でも誤検知しないよう許容幅を速度に比例させる
+          const threshold = Math.max(2.2, rate * 1.6);
+
+          if (Math.abs(delta) > threshold && lastYtLocalTime > 0) {
             clearTimeout(pendingSeekTimeout);
             pendingSeekTimeout = setTimeout(() => {
               if (isRemoteAction || isCatchingUp) return;
               try {
                 const freshTime = ytPlayer.getCurrentTime();
                 const freshState = ytPlayer.getPlayerState();
+                const freshRate = ytPlayer.getPlaybackRate ? ytPlayer.getPlaybackRate() : lastYtRate;
                 lastYtLocalTime = freshTime;
                 broadcast({
                   type: 'yt-action',
                   action: 'seek',
                   time: freshTime,
-                  isPlaying: (freshState === YT.PlayerState.PLAYING)
+                  isPlaying: (freshState === YT.PlayerState.PLAYING),
+                  rate: freshRate
                 });
               } catch(e) {}
             }, 250);
@@ -1574,7 +1879,6 @@
         } catch (e) {}
       }, 500);
 
-      // ホストのみが3.5秒おきにハートビートを送信（ゲストからの発信による衝突を根絶）
       clearInterval(ytHeartbeatInterval);
       ytHeartbeatInterval = setInterval(() => {
         if (!isHost || !isYtLoaded || !ytPlayer || !isYtReady) return;
@@ -1585,22 +1889,39 @@
         try {
           const state = ytPlayer.getPlayerState();
           const vData = ytPlayer.getVideoData();
+          const rate = ytPlayer.getPlaybackRate ? ytPlayer.getPlaybackRate() : lastYtRate;
           if (vData && vData.video_id && state !== YT.PlayerState.BUFFERING) {
             broadcast({
               type: 'yt-heartbeat',
               videoId: vData.video_id,
               time: ytPlayer.getCurrentTime(),
-              isPlaying: (state === YT.PlayerState.PLAYING)
+              isPlaying: (state === YT.PlayerState.PLAYING),
+              rate
             });
           }
         } catch (e) {}
       }, 3500);
     }
 
+    function onPlayerPlaybackRateChange(e) {
+      const newRate = Number(e.data) || 1;
+      updateYtSpeedUI(newRate);
+      if (newRate === lastYtRate) return;
+      lastYtRate = newRate;
+
+      if (isUnloading || Object.keys(peers).length === 0) return;
+      if (isRemoteAction || isCatchingUp || document.hidden || isTabHidden || (Date.now() - tabHiddenTime < 5000)) return;
+
+      try {
+        const time = ytPlayer.getCurrentTime ? ytPlayer.getCurrentTime() : 0;
+        const isPlaying = ytPlayer.getPlayerState ? (ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) : false;
+        broadcast({ type: 'yt-action', action: 'rate', rate: newRate, time, isPlaying });
+        showToast(`再生速度を ${newRate}x に同期しました`);
+      } catch (err) {}
+    }
+
     function onPlayerStateChange(e) {
       if (isUnloading || Object.keys(peers).length === 0) return;
-
-      // リモート操作中、バックグラウンド中、復帰直後（5秒間）は絶対に送信しない！
       if (isRemoteAction || isCatchingUp || document.hidden || isTabHidden || (Date.now() - tabHiddenTime < 5000)) {
         if (e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.PAUSED) {
           isPlayerBufferingFromRemote = false;
@@ -1610,14 +1931,14 @@
 
       try {
         const time = ytPlayer.getCurrentTime();
+        const rate = ytPlayer.getPlaybackRate ? ytPlayer.getPlaybackRate() : lastYtRate;
         lastYtLocalTime = time;
 
         if (e.data === YT.PlayerState.PLAYING) {
           isPlayerBufferingFromRemote = false;
-          broadcast({ type: 'yt-action', action: 'play', time });
+          broadcast({ type: 'yt-action', action: 'play', time, rate });
         } else if (e.data === YT.PlayerState.PAUSED) {
-          // 一時停止時はタイムスタンプでシークさせない（微小な巻き戻りバグを防止）
-          broadcast({ type: 'yt-action', action: 'pause', time });
+          broadcast({ type: 'yt-action', action: 'pause', time, rate });
         }
       } catch (err) {}
     }
@@ -1630,9 +1951,19 @@
 
       activateRemoteShield(2500);
       try {
-        const curTime = ytPlayer.getCurrentTime ? ytPlayer.getCurrentTime() : 0;
+        if (typeof data.rate === 'number' && ytPlayer.setPlaybackRate) {
+          if (ytPlayer.getPlaybackRate && ytPlayer.getPlaybackRate() !== data.rate) {
+            lastYtRate = data.rate;
+            ytPlayer.setPlaybackRate(data.rate);
+            updateYtSpeedUI(data.rate);
+            if (data.action === 'rate') showToast(`再生速度が ${data.rate}x に変更されました`);
+          } else {
+            lastYtRate = data.rate;
+            updateYtSpeedUI(data.rate);
+          }
+        }
 
-        // シーク操作が明示されている場合、または明らかな大きなズレ（2.2秒以上）のみシーク
+        const curTime = ytPlayer.getCurrentTime ? ytPlayer.getCurrentTime() : 0;
         if (typeof data.time === 'number') {
           if (data.action === 'seek' || Math.abs(curTime - data.time) > 2.2) {
             isPlayerBufferingFromRemote = true;
@@ -1654,7 +1985,6 @@
       } catch (e) {}
     }
 
-    // 相手から状態・時刻を受け取った時の安全な追いつき処理（リロードなし）
     function handleRemoteYouTubeState(data) {
       if (!data || typeof data.videoId !== 'string') return;
       if (!isYtReady || !ytPlayer) {
@@ -1663,27 +1993,31 @@
       }
 
       const curVideoId = (ytPlayer.getVideoData && ytPlayer.getVideoData().video_id) ? ytPlayer.getVideoData().video_id : null;
-
-      // 動画が異なる場合のみ全体を切り替える
       if (curVideoId !== data.videoId) {
         openYouTubeScreen(data.videoId);
         setTimeout(() => {
-          applySyncTimeAndState(data.time, data.isPlaying);
+          applySyncTimeAndState(data.time, data.isPlaying, data.rate);
         }, 1200);
         return;
       }
 
-      // 同じ動画ならリロードせず、時間と再生状態のみ滑らかに合わせる
-      applySyncTimeAndState(data.time, data.isPlaying);
+      applySyncTimeAndState(data.time, data.isPlaying, data.rate);
     }
 
-    function applySyncTimeAndState(targetTime, shouldPlay) {
+    function applySyncTimeAndState(targetTime, shouldPlay, targetRate) {
       if (!ytPlayer || typeof ytPlayer.getCurrentTime !== 'function') return;
 
       activateRemoteShield(2000);
       try {
+        if (typeof targetRate === 'number' && ytPlayer.setPlaybackRate) {
+          if (ytPlayer.getPlaybackRate && ytPlayer.getPlaybackRate() !== targetRate) {
+            lastYtRate = targetRate;
+            ytPlayer.setPlaybackRate(targetRate);
+            updateYtSpeedUI(targetRate);
+          }
+        }
+
         const curTime = ytPlayer.getCurrentTime();
-        // 2.2秒以上のズレがある場合のみシーク（微小なズレでの音飛び・巻き戻りを完全防止）
         if (typeof targetTime === 'number' && Math.abs(curTime - targetTime) > 2.2) {
           isPlayerBufferingFromRemote = true;
           ytPlayer.seekTo(targetTime, true);
@@ -1706,14 +2040,19 @@
 
     function forceSyncWithOthers() {
       if (ytPlayer && isYtLoaded && ytPlayer.getVideoData) {
+        const rate = ytPlayer.getPlaybackRate ? ytPlayer.getPlaybackRate() : lastYtRate;
         broadcast({
           type: 'yt-state', videoId: ytPlayer.getVideoData().video_id,
-          time: ytPlayer.getCurrentTime(), isPlaying: ytPlayer.getPlayerState() === YT.PlayerState.PLAYING
+          time: ytPlayer.getCurrentTime(), isPlaying: ytPlayer.getPlayerState() === YT.PlayerState.PLAYING,
+          rate
         });
-        showToast('動画の再生位置を全員に同期しました');
+        showToast('動画の再生位置・速度を全員に同期しました');
+      } else if (currentIptvChannel) {
+        broadcast({ type: 'iptv-load', url: currentIptvChannel.url, name: currentIptvChannel.name });
+        showToast('IPTVチャンネルを全員に同期しました');
       } else if (currentSyncMediaId) {
         const player = sharedMediaFiles[currentSyncMediaId]?.mime.startsWith('audio/') ? $('syncMediaAudio') : $('syncMediaVideo');
-        broadcast({ type: 'sync-media-action', fileId: currentSyncMediaId, action: player.paused ? 'pause' : 'play', time: player.currentTime });
+        broadcast({ type: 'sync-media-action', fileId: currentSyncMediaId, action: player.paused ? 'pause' : 'play', time: player.currentTime, rate: player.playbackRate || 1 });
         showToast('メディアの再生位置を同期しました');
       }
     }
@@ -1772,6 +2111,215 @@
       openYouTubeScreen(videoId);
       broadcast({ type: 'yt-load', videoId });
       showToast(`再生: ${title}`);
+    }
+
+    // ==========================================
+    // --- IPTV (M3U / M3U8) 同時視聴エンジン ---
+    // ==========================================
+    function openIptvModal() {
+      if (currentIptvChannel && currentStageMode === 'camera') {
+        switchToYouTubeStage();
+      } else {
+        toggleModal('iptvModal', true);
+      }
+    }
+
+    function loadPresetIptv(url) {
+      $('iptvUrlInput').value = url;
+      loadIptvPlaylist(url);
+    }
+
+    function loadCustomIptvInput() {
+      const url = $('iptvUrlInput').value.trim();
+      if (!isSafeAudioUrl(url)) return alert('有効な http:// または https:// URLを入力してください');
+      if (/\.m3u8(\?|$)/i.test(url)) {
+        selectAndBroadcastIptv(url, 'カスタムストリーム');
+        toggleModal('iptvModal', false);
+      } else {
+        loadIptvPlaylist(url);
+      }
+    }
+
+    async function loadIptvPlaylist(url) {
+      const box = $('iptvChannelList');
+      box.replaceChildren(el('div', { style: { textAlign: 'center', padding: '16px' }, text: 'プレイリストを読み込み中...' }));
+
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const text = await res.text();
+        if (!text.includes('#EXTM3U') && !text.includes('#EXTINF') && /\.m3u8/i.test(url)) {
+          selectAndBroadcastIptv(url, 'IPTVストリーム');
+          toggleModal('iptvModal', false);
+          return;
+        }
+        loadedIptvChannels = parseM3uPlaylist(text);
+        renderIptvChannelList(loadedIptvChannels);
+      } catch (e) {
+        box.replaceChildren(el('div', { style: { textAlign: 'center', padding: '14px', color: 'var(--md-error)', fontSize: '0.8rem' }, text: 'プレイリストの取得に失敗しました（CORS制限またはURLエラー）' }));
+      }
+    }
+
+    function parseM3uPlaylist(text) {
+      const lines = text.split(/\r?\n/);
+      const channels = [];
+      let currentMeta = null;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        if (line.startsWith('#EXTINF:')) {
+          const nameMatch = line.match(/,(.+)$/);
+          const groupMatch = line.match(/group-title="([^"]*)"/i);
+          const logoMatch = line.match(/tvg-logo="([^"]*)"/i);
+          currentMeta = {
+            name: sanitizeText(nameMatch ? nameMatch[1] : 'チャンネル', 50) || 'チャンネル',
+            group: sanitizeText(groupMatch ? groupMatch[1] : '', 30),
+            logo: (logoMatch && isSafeAudioUrl(logoMatch[1])) ? logoMatch[1] : ''
+          };
+        } else if (!line.startsWith('#')) {
+          if (isSafeAudioUrl(line)) {
+            channels.push({
+              name: currentMeta?.name || `チャンネル ${channels.length + 1}`,
+              group: currentMeta?.group || '',
+              logo: currentMeta?.logo || '',
+              url: line
+            });
+          }
+          currentMeta = null;
+        }
+      }
+      return channels;
+    }
+
+    function filterIptvChannels() {
+      const q = $('iptvFilterInput').value.trim().toLowerCase();
+      if (!q) return renderIptvChannelList(loadedIptvChannels);
+      const filtered = loadedIptvChannels.filter(c =>
+        c.name.toLowerCase().includes(q) || c.group.toLowerCase().includes(q)
+      );
+      renderIptvChannelList(filtered);
+    }
+
+    function renderIptvChannelList(list) {
+      const box = $('iptvChannelList');
+      box.replaceChildren();
+      if (!list.length) {
+        box.appendChild(el('div', { style: { textAlign: 'center', padding: '16px', color: 'var(--md-outline)', fontSize: '0.8rem' }, text: 'チャンネルが見つかりません' }));
+        return;
+      }
+      const isHttpsPage = window.location.protocol === 'https:';
+      list.slice(0, 150).forEach(ch => {
+        const isHttpStream = ch.url.startsWith('http://');
+        const warnText = (isHttpsPage && isHttpStream) ? ' [HTTP/要注意]' : '';
+        const item = el('div', {
+          className: 'iptv-channel-item',
+          onclick: () => { selectAndBroadcastIptv(ch.url, ch.name); toggleModal('iptvModal', false); }
+        },
+          ch.logo
+            ? el('img', { className: 'iptv-channel-logo', src: ch.logo, onerror: e => { e.target.style.display = 'none'; } })
+            : el('span', { className: 'material-symbols-outlined', style: { fontSize: '26px', color: 'var(--md-primary)', width: '44px', textAlign: 'center' }, text: 'live_tv' }),
+          el('div', { style: { flex: '1', overflow: 'hidden' } },
+            el('div', { style: { fontSize: '0.84rem', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }, text: ch.name }),
+            el('div', { style: { fontSize: '0.7rem', color: isHttpStream && isHttpsPage ? 'var(--md-error)' : 'var(--md-outline)' }, text: (ch.group || '公開ストリーム') + warnText })
+          )
+        );
+        box.appendChild(item);
+      });
+    }
+
+    function selectAndBroadcastIptv(url, name) {
+      openIptvScreen(url, name);
+      broadcast({ type: 'iptv-load', url, name });
+      showToast(`IPTV再生: ${name}`);
+    }
+
+    function destroyIptvHls() {
+      if (hlsInstance) {
+        try { hlsInstance.destroy(); } catch (e) {}
+        hlsInstance = null;
+      }
+      const v = $('iptvVideo');
+      if (v) {
+        v.pause();
+        v.removeAttribute('src');
+        v.load();
+      }
+    }
+
+    function openIptvScreen(url, name) {
+      if (!isSafeAudioUrl(url)) return showToast('無効なストリームURLです', 'error');
+
+      isYtLoaded = false;
+      currentSyncMediaId = null;
+      try { if (ytPlayer?.pauseVideo) ytPlayer.pauseVideo(); } catch (e) {}
+      $('syncMediaVideo').pause();
+      $('syncMediaAudio').pause();
+      destroyIptvHls();
+
+      currentIptvChannel = { url, name: sanitizeText(name, 50) || 'IPTV' };
+      currentStageMode = 'iptv';
+
+      $('stageVideo').style.display = 'none';
+      $('stageAvatar').style.display = 'none';
+      $('ytContainer').classList.remove('active');
+      $('syncMediaContainer').classList.remove('active');
+      $('iptvContainer').classList.add('active');
+      $('switchToYtBtn').style.display = 'none';
+      $('iptvChannelTitle').textContent = currentIptvChannel.name;
+      $('iptvErrorOverlay').style.display = 'none';
+      document.querySelectorAll('.camera-tile').forEach(t => t.classList.remove('focused'));
+
+      const video = $('iptvVideo');
+      video.volume = currentYtVolume / 100;
+
+      if (window.Hls && Hls.isSupported()) {
+        hlsInstance = new Hls({ enableWorker: true, lowLatencyMode: true });
+        hlsInstance.loadSource(url);
+        hlsInstance.attachMedia(video);
+        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+          video.play().catch(() => {});
+        });
+        hlsInstance.on(Hls.Events.ERROR, (event, data) => {
+          if (data.fatal) {
+            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+              $('iptvErrorOverlay').style.display = 'flex';
+              $('iptvErrorReason').textContent = 'ストリームに接続できません（CORS制限・配信停止・またはHTTP混在ブロックの可能性があります）';
+            } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+              hlsInstance.recoverMediaError();
+            } else {
+              $('iptvErrorOverlay').style.display = 'flex';
+              $('iptvErrorReason').textContent = '映像の再生エラーが発生しました';
+            }
+          }
+        });
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = url;
+        video.onerror = () => {
+          $('iptvErrorOverlay').style.display = 'flex';
+          $('iptvErrorReason').textContent = 'ストリームを再生できませんでした';
+        };
+        video.play().catch(() => {});
+      } else {
+        $('iptvErrorOverlay').style.display = 'flex';
+        $('iptvErrorReason').textContent = 'このブラウザはHLS再生に対応していません';
+      }
+    }
+
+    function stopAndCloseIptv(fromRemote = false) {
+      destroyIptvHls();
+      currentIptvChannel = null;
+      $('iptvContainer').classList.remove('active');
+      if (!fromRemote) broadcast({ type: 'iptv-close' });
+      focusVideo(currentFocusedPeerId || 'local');
+    }
+
+    async function toggleIptvPiP() {
+      const v = $('iptvVideo');
+      try {
+        if (document.pictureInPictureElement) await document.exitPictureInPicture();
+        else if (document.pictureInPictureEnabled && v) await v.requestPictureInPicture();
+      } catch (e) { showToast('小窓再生に対応していません', 'error'); }
     }
 
     // ==========================================
@@ -1910,12 +2458,8 @@
       changeSoundboardVolume(currentSbVolume);
     }
 
-    // iPad / iOS Safari 完全対応 Web Audio API ハイブリッド再生エンジン
     async function playAudioUrl(url) {
-      if (!isSafeAudioUrl(url)) {
-        console.warn('安全ではないまたは不正な音声URLがブロックされました:', url);
-        return;
-      }
+      if (!isSafeAudioUrl(url)) return;
 
       const now = Date.now();
       if (now - lastSoundboardPlayTime < 180) return;
@@ -1923,9 +2467,7 @@
 
       try {
         const { ctx, master } = getAudioPipeline();
-        if (ctx.state === 'suspended') {
-          await ctx.resume().catch(() => {});
-        }
+        if (ctx.state === 'suspended') await ctx.resume().catch(() => {});
 
         let buffer = audioBufferCache.get(url);
         if (!buffer) {
@@ -1958,44 +2500,28 @@
         if (buffer) {
           const source = ctx.createBufferSource();
           source.buffer = buffer;
-
           const gainNode = ctx.createGain();
           gainNode.gain.setValueAtTime(currentSbVolume / 100, ctx.currentTime);
-
           source.connect(gainNode);
-          if (master) {
-            gainNode.connect(master);
-          } else {
-            gainNode.connect(ctx.destination);
-          }
-
+          if (master) gainNode.connect(master);
+          else gainNode.connect(ctx.destination);
           source.start(0);
 
           const audioRef = {
             gainNode,
-            set volume(v) {
-              try { gainNode.gain.setValueAtTime(v, ctx.currentTime); } catch (e) {}
-            },
-            pause() {
-              try { source.stop(); } catch (e) {}
-            }
+            set volume(v) { try { gainNode.gain.setValueAtTime(v, ctx.currentTime); } catch (e) {} },
+            pause() { try { source.stop(); } catch (e) {} }
           };
           activeSoundboardAudios.add(audioRef);
           source.onended = () => activeSoundboardAudios.delete(audioRef);
           return audioRef;
         }
-      } catch (webaudioErr) {
-        console.warn('Web Audio再生に失敗、HTML5 Audioにフォールバック:', webaudioErr);
-      }
+      } catch (webaudioErr) {}
 
-      // フォールバック: HTML5 Audio 要素
       try {
         if (activeSoundboardAudios.size >= MAX_CONCURRENT_SOUNDS) {
           const oldest = activeSoundboardAudios.values().next().value;
-          if (oldest) {
-            try { oldest.pause(); } catch (e) {}
-            activeSoundboardAudios.delete(oldest);
-          }
+          if (oldest) { try { oldest.pause(); } catch (e) {} activeSoundboardAudios.delete(oldest); }
         }
 
         const audio = document.createElement('audio');
@@ -2005,27 +2531,14 @@
         audio.setAttribute('webkit-playsinline', '');
         audio.style.display = 'none';
         document.body.appendChild(audio);
-
-        try {
-          audio.volume = currentSbVolume / 100;
-        } catch (e) {}
+        try { audio.volume = currentSbVolume / 100; } catch (e) {}
 
         activeSoundboardAudios.add(audio);
-        const cleanup = () => {
-          activeSoundboardAudios.delete(audio);
-          try { audio.remove(); } catch (e) {}
-        };
-
+        const cleanup = () => { activeSoundboardAudios.delete(audio); try { audio.remove(); } catch (e) {} };
         audio.addEventListener('ended', cleanup, { once: true });
         audio.addEventListener('error', cleanup, { once: true });
-
         const p = audio.play();
-        if (p && typeof p.catch === 'function') {
-          p.catch(err => {
-            console.warn('HTML5 Audio再生スキップ:', err);
-            cleanup();
-          });
-        }
+        if (p && typeof p.catch === 'function') p.catch(() => cleanup());
         return audio;
       } catch (e) {}
     }
@@ -2036,16 +2549,21 @@
       [v, a].forEach(player => {
         player.onplay = () => {
           if (isSyncRemoteAction || !currentSyncMediaId || isCatchingUp) return;
-          broadcast({ type: 'sync-media-action', fileId: currentSyncMediaId, action: 'play', time: player.currentTime });
+          broadcast({ type: 'sync-media-action', fileId: currentSyncMediaId, action: 'play', time: player.currentTime, rate: player.playbackRate });
         };
         player.onpause = () => {
           if (isSyncRemoteAction || !currentSyncMediaId || isCatchingUp) return;
           if (document.hidden || isTabHidden || (Date.now() - tabHiddenTime < 5000)) return;
-          broadcast({ type: 'sync-media-action', fileId: currentSyncMediaId, action: 'pause', time: player.currentTime });
+          broadcast({ type: 'sync-media-action', fileId: currentSyncMediaId, action: 'pause', time: player.currentTime, rate: player.playbackRate });
         };
         player.onseeked = () => {
           if (isSyncRemoteAction || !currentSyncMediaId || isCatchingUp) return;
-          broadcast({ type: 'sync-media-action', fileId: currentSyncMediaId, action: 'seek', time: player.currentTime });
+          broadcast({ type: 'sync-media-action', fileId: currentSyncMediaId, action: 'seek', time: player.currentTime, rate: player.playbackRate });
+        };
+        player.onratechange = () => {
+          updateYtSpeedUI(player.playbackRate);
+          if (isSyncRemoteAction || !currentSyncMediaId || isCatchingUp) return;
+          broadcast({ type: 'sync-media-action', fileId: currentSyncMediaId, action: 'rate', time: player.currentTime, rate: player.playbackRate });
         };
       });
     }
@@ -2053,20 +2571,14 @@
     async function togglePiP() {
       const v = $('syncMediaVideo');
       try {
-        if (document.pictureInPictureElement) {
-          await document.exitPictureInPicture();
-        } else if (document.pictureInPictureEnabled && v) {
-          await v.requestPictureInPicture();
-        }
-      } catch (err) {
-        showToast('小窓再生に対応していません', 'error');
-      }
+        if (document.pictureInPictureElement) await document.exitPictureInPicture();
+        else if (document.pictureInPictureEnabled && v) await v.requestPictureInPicture();
+      } catch (err) { showToast('小窓再生に対応していません', 'error'); }
     }
 
     function startSyncSharedMedia(fileId) {
       const f = sharedMediaFiles[fileId];
       if (!f) return showToast('メディアファイルが見つかりません', 'error');
-
       broadcast({ type: 'sync-media-start', fileId, name: f.name, mime: f.mime });
       handleSyncMediaStart({ fileId, name: f.name, mime: f.mime });
     }
@@ -2075,11 +2587,17 @@
       const f = sharedMediaFiles[data.fileId];
       if (!f) return showToast(`${data.name} の受信が完了していません`, 'error');
 
+      isYtLoaded = false;
+      try { if (ytPlayer?.pauseVideo) ytPlayer.pauseVideo(); } catch (e) {}
+      destroyIptvHls();
+      currentIptvChannel = null;
+
       currentSyncMediaId = data.fileId;
       currentStageMode = 'sync-media';
       $('stageVideo').style.display = 'none';
       $('stageAvatar').style.display = 'none';
       $('ytContainer').classList.remove('active');
+      $('iptvContainer').classList.remove('active');
       $('syncMediaContainer').classList.add('active');
       $('switchToYtBtn').style.display = 'none';
 
@@ -2088,14 +2606,15 @@
 
       if (isAudio) {
         v.style.display = 'none'; v.pause(); v.src = ''; pip.style.display = 'none';
-        a.style.display = 'block'; a.src = f.url; a.volume = currentYtVolume / 100;
+        a.style.display = 'block'; a.src = f.url; a.volume = currentYtVolume / 100; a.playbackRate = 1;
         vis.style.display = 'flex'; $('syncAudioTitle').textContent = data.name;
       } else {
         a.style.display = 'none'; a.pause(); a.src = '';
         vis.style.display = 'none';
-        v.style.display = 'block'; v.src = f.url; v.volume = currentYtVolume / 100;
+        v.style.display = 'block'; v.src = f.url; v.volume = currentYtVolume / 100; v.playbackRate = 1;
         pip.style.display = document.pictureInPictureEnabled ? 'inline-flex' : 'none';
       }
+      updateYtSpeedUI(1);
       showToast(`同時視聴開始: ${data.name}`);
     }
 
@@ -2105,6 +2624,10 @@
       const player = f.mime.startsWith('audio/') ? $('syncMediaAudio') : $('syncMediaVideo');
 
       isSyncRemoteAction = true;
+      if (typeof data.rate === 'number' && player.playbackRate !== data.rate) {
+        player.playbackRate = data.rate;
+        updateYtSpeedUI(data.rate);
+      }
       if (typeof data.time === 'number' && Math.abs(player.currentTime - data.time) > 1.2) {
         player.currentTime = data.time;
       }
@@ -2170,14 +2693,9 @@
           });
           success = true;
         }
-      } catch (e) {
-        success = false;
-      }
+      } catch (e) { success = false; }
 
-      if (!success) {
-        await speakNativeSpeech(text);
-      }
-
+      if (!success) await speakNativeSpeech(text);
       isSpeaking = false;
       processFastTtsQueue();
     }
@@ -2189,10 +2707,7 @@
       try {
         if (isMicOn) {
           isMicOn = false;
-          localStream.getAudioTracks().forEach(t => {
-            t.stop();
-            localStream.removeTrack(t);
-          });
+          localStream.getAudioTracks().forEach(t => { t.stop(); localStream.removeTrack(t); });
 
           if (speakingDetectors['local']) {
             speakingDetectors['local'].active = false;
@@ -2237,7 +2752,7 @@
       );
       btn.classList.toggle('btn-danger', !isMicOn);
       $('localTileMic').textContent = isMicOn ? 'mic' : 'mic_off';
-      broadcast({ type: 'status-update', isMuted: !isMicOn, isCamOff: !isCamOn });
+      broadcast({ type: 'status-update', isMuted: !isMicOn, isCamOff: !isCamOn, isHandRaised });
     }
 
     function toggleCam() {
@@ -2250,7 +2765,7 @@
       );
       $('camBtn').classList.toggle('btn-danger', !isCamOn);
       updateLocalAvatarUI();
-      broadcast({ type: 'status-update', isMuted: !isMicOn, isCamOff: !isCamOn });
+      broadcast({ type: 'status-update', isMuted: !isMicOn, isCamOff: !isCamOn, isHandRaised });
     }
 
     async function toggleScreenShare() {
@@ -2274,6 +2789,7 @@
       });
       $('localVideo').srcObject = stream;
       isScreenSharing = true;
+      updateLocalMirrorState();
       $('shareScreenBtn').classList.add('btn-active');
       $('shareScreenBtn').replaceChildren(el('span', { className: 'material-symbols-outlined', text: 'stop_screen_share' }), el('span', { className: 'btn-text-mobile', text: '停止' }));
       updateLocalAvatarUI(); focusVideo('local');
@@ -2288,6 +2804,8 @@
       });
       $('localVideo').srcObject = localStream;
       isScreenSharing = false;
+      isBackCamera = detectCameraFacing(localTrack);
+      updateLocalMirrorState();
       $('shareScreenBtn').classList.remove('btn-active');
       $('shareScreenBtn').replaceChildren(el('span', { className: 'material-symbols-outlined', text: 'screen_share' }), el('span', { className: 'btn-text-mobile', text: '共有' }));
       updateLocalAvatarUI(); showToast('画面共有を終了しました');
@@ -2338,17 +2856,12 @@
 
         for (const p of activePeers) {
           const dc = p.conn?.dataChannel || p.conn?._dc;
-          if (dc && dc.bufferedAmount > 64 * 1024) {
-            await new Promise(r => setTimeout(r, 20));
-          }
+          if (dc && dc.bufferedAmount > 64 * 1024) await new Promise(r => setTimeout(r, 20));
         }
 
         broadcast({ type: 'file-chunk', id: fileId, index: current, data: chunkData });
         updateFileProgress(fileId, Math.round(((current + 1) / total) * 100));
-
-        if (current % 5 === 0) {
-          await new Promise(r => setTimeout(r, 4));
-        }
+        if (current % 5 === 0) await new Promise(r => setTimeout(r, 4));
       }
       showToast(`送信完了: ${safeName}`);
     }
@@ -2371,11 +2884,7 @@
       if (f.receivedIndices.has(data.index)) return;
 
       let chunkBlobPart = null;
-      if (data.data instanceof ArrayBuffer) {
-        chunkBlobPart = data.data;
-      } else if (ArrayBuffer.isView(data.data)) {
-        chunkBlobPart = data.data;
-      } else if (data.data instanceof Blob) {
+      if (data.data instanceof ArrayBuffer || ArrayBuffer.isView(data.data) || data.data instanceof Blob) {
         chunkBlobPart = data.data;
       } else {
         return;
@@ -2429,9 +2938,7 @@
     function completeDownloadItem(fileId, url) {
       const f = sharedMediaFiles[fileId]; if (!f) return;
       const act = $(`file-actions-${fileId}`);
-      if (act) {
-        act.replaceChildren(renderActionButtons(fileId, f.name, url, f.mime, f.mime.startsWith('video/') || f.mime.startsWith('audio/')));
-      }
+      if (act) act.replaceChildren(renderActionButtons(fileId, f.name, url, f.mime, f.mime.startsWith('video/') || f.mime.startsWith('audio/')));
     }
 
     function renderActionButtons(fileId, name, url, mime, isMedia) {
@@ -2487,7 +2994,7 @@
 
       box.appendChild(el('div', { className: 'user-item' },
         el('div', { className: 'user-item-header' },
-          el('span', { text: `${myUserName} (自分) ${isHost ? '👑' : ''}` }),
+          el('span', { text: `${myUserName} (自分) ${isHost ? '👑' : ''} ${isHandRaised ? '✋' : ''}` }),
           el('span', { className: 'material-symbols-outlined', style: { fontSize: '18px' }, text: isMicOn ? 'mic' : 'mic_off' })
         )
       ));
@@ -2496,7 +3003,7 @@
         const vol = p.userVolume ?? 100;
         box.appendChild(el('div', { className: 'user-item' },
           el('div', { className: 'user-item-header' },
-            el('span', { text: `${p.userName || '参加者'} ${p.isHost ? '👑' : ''}` }),
+            el('span', { text: `${p.userName || '参加者'} ${p.isHost ? '👑' : ''} ${p.isHandRaised ? '✋' : ''}` }),
             el('div', { style: { display: 'flex', alignItems: 'center', gap: '6px' } },
               el('span', { className: 'material-symbols-outlined', style: { fontSize: '18px' }, text: p.isMuted ? 'mic_off' : 'mic' }),
               el('button', { className: 'btn btn-danger btn-xs', title: '投票キック', onclick: () => startKickVote(id) },
@@ -2531,6 +3038,7 @@
       releaseRendezvousHost();
       clearInterval(ytHeartbeatInterval);
       clearInterval(ytSeekWatcherInterval);
+      destroyIptvHls();
       if (peer && !peer.destroyed) peer.destroy();
       location.reload();
     }
