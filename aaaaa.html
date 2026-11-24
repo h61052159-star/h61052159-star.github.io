@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>WEB-LiDAR 3D SCANNER</title>
+  <title>WEB-LiDAR 3D PRO v2</title>
 
-  <!-- Three.js Import Map -->
   <script type="importmap">
     {
       "imports": {
@@ -18,14 +17,14 @@
   <style>
     :root {
       --bg: #05080f;
-      --panel: rgba(8, 16, 28, 0.78);
-      --border: rgba(0, 240, 255, 0.3);
+      --panel: rgba(8, 15, 28, 0.82);
+      --border: rgba(0, 240, 255, 0.28);
       --cyan: #00f0ff;
       --lime: #00ff9d;
       --amber: #ffb800;
       --red: #ff3b5c;
-      --text: #e6f4ff;
-      --muted: #7a93ad;
+      --text: #eaf6ff;
+      --muted: #829ab3;
     }
 
     * {
@@ -45,13 +44,13 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", sans-serif;
     }
 
-    /* Header / Mode Switcher */
+    /* Header */
     .topbar {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
-      z-index: 50;
+      z-index: 60;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -59,35 +58,24 @@
       background: linear-gradient(180deg, rgba(5, 8, 15, 0.92) 0%, rgba(5, 8, 15, 0) 100%);
       pointer-events: none;
     }
-
-    .topbar > * {
-      pointer-events: auto;
-    }
+    .topbar > * { pointer-events: auto; }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 7px;
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
       font-weight: 700;
-      font-size: 13px;
-      letter-spacing: 0.08em;
+      font-size: 12.5px;
       color: var(--cyan);
-      text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+      letter-spacing: 0.05em;
     }
-
     .brand-dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
       background: var(--lime);
       box-shadow: 0 0 8px var(--lime);
-      animation: pulse 1.6s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.75); }
     }
 
     .tabs {
@@ -98,23 +86,19 @@
       padding: 3px;
       backdrop-filter: blur(10px);
     }
-
     .tab-btn {
       border: none;
       background: transparent;
       color: var(--muted);
       font-size: 12px;
-      font-weight: 600;
-      padding: 6px 14px;
+      font-weight: 700;
+      padding: 6px 13px;
       border-radius: 999px;
       cursor: pointer;
-      transition: all 0.2s;
     }
-
     .tab-btn.active {
       background: var(--cyan);
-      color: #021018;
-      box-shadow: 0 0 12px rgba(0, 240, 255, 0.45);
+      color: #03121a;
     }
 
     /* Views */
@@ -125,12 +109,8 @@
       height: 100%;
       display: none;
     }
+    .view.active { display: block; }
 
-    .view.active {
-      display: block;
-    }
-
-    /* Scanner View */
     #video {
       position: absolute;
       inset: 0;
@@ -155,52 +135,43 @@
       right: 0;
       height: 3px;
       background: linear-gradient(90deg, transparent, var(--cyan), var(--lime), transparent);
-      box-shadow: 0 0 18px var(--cyan), 0 0 36px var(--lime);
-      z-index: 12;
+      box-shadow: 0 0 18px var(--cyan);
+      z-index: 15;
       pointer-events: none;
-      opacity: 0;
+      display: none;
     }
-
     .scan-laser.scanning {
-      opacity: 1;
-      animation: laserSweep 1.1s ease-in-out infinite;
+      display: block;
+      animation: laserSweep 0.9s ease-in-out infinite;
     }
-
     @keyframes laserSweep {
-      0% { top: 10%; }
-      50% { top: 88%; }
-      100% { top: 10%; }
+      0% { top: 12%; }
+      50% { top: 86%; }
+      100% { top: 12%; }
     }
 
-    /* Telemetry Box */
+    /* Telemetry */
     .telemetry {
       position: fixed;
       top: max(54px, calc(env(safe-area-inset-top) + 46px));
       left: 12px;
-      z-index: 20;
+      z-index: 25;
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 8px 10px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 10.5px;
+      padding: 7px 10px;
+      font-family: ui-monospace, monospace;
+      font-size: 10px;
       line-height: 1.45;
       backdrop-filter: blur(8px);
       pointer-events: none;
-      min-width: 175px;
+      min-width: 165px;
     }
-
-    .telemetry-row {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
+    .telemetry-row { display: flex; justify-content: space-between; gap: 8px; }
     .telemetry-label { color: var(--muted); }
-    .telemetry-val { color: var(--cyan); font-weight: 600; }
+    .telemetry-val { color: var(--cyan); font-weight: 700; }
 
-    /* Target Lock Banner */
-    .lock-pill {
+    .target-pill {
       position: fixed;
       top: max(54px, calc(env(safe-area-inset-top) + 46px));
       right: 12px;
@@ -208,39 +179,36 @@
       display: none;
       align-items: center;
       gap: 6px;
-      background: rgba(255, 184, 0, 0.18);
+      background: rgba(255, 184, 0, 0.2);
       border: 1px solid var(--amber);
       color: var(--amber);
       border-radius: 999px;
-      padding: 6px 12px;
+      padding: 6px 11px;
       font-size: 11px;
       font-weight: 700;
       backdrop-filter: blur(8px);
       cursor: pointer;
     }
+    .target-pill.visible { display: flex; }
 
-    .lock-pill.visible {
-      display: flex;
-    }
-
-    /* Bottom Controls for Scanner */
+    /* Bottom Controls */
     .scanner-controls {
       position: fixed;
       left: 0;
       right: 0;
       bottom: 0;
       z-index: 30;
-      padding: 12px 12px max(14px, env(safe-area-inset-bottom));
-      background: linear-gradient(0deg, rgba(5, 8, 15, 0.96) 55%, rgba(5, 8, 15, 0) 100%);
+      padding: 10px 12px max(14px, env(safe-area-inset-bottom));
+      background: linear-gradient(0deg, rgba(5, 8, 15, 0.96) 60%, rgba(5, 8, 15, 0) 100%);
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 9px;
     }
 
     .quick-toggles {
       display: flex;
       justify-content: center;
-      gap: 8px;
+      gap: 6px;
       flex-wrap: wrap;
     }
 
@@ -250,25 +218,27 @@
       color: var(--text);
       font-size: 11px;
       font-weight: 600;
-      padding: 6px 11px;
+      padding: 6px 10px;
       border-radius: 999px;
       cursor: pointer;
       backdrop-filter: blur(8px);
-      transition: all 0.15s;
     }
-
     .chip-btn.on {
       border-color: var(--lime);
       color: var(--lime);
       background: rgba(0, 255, 157, 0.14);
-      box-shadow: 0 0 10px rgba(0, 255, 157, 0.2);
+    }
+    .chip-btn.xr-ready {
+      border-color: var(--amber);
+      color: var(--amber);
+      background: rgba(255, 184, 0, 0.16);
     }
 
     .action-row {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 12px;
+      gap: 10px;
     }
 
     .btn-primary {
@@ -276,18 +246,15 @@
       background: linear-gradient(135deg, var(--cyan), var(--lime));
       color: #03131c;
       font-weight: 800;
-      font-size: 14px;
-      padding: 13px 22px;
+      font-size: 13.5px;
+      padding: 12px 20px;
       border-radius: 999px;
       cursor: pointer;
-      box-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
-      display: flex;
+      box-shadow: 0 0 18px rgba(0, 240, 255, 0.35);
+      display: inline-flex;
       align-items: center;
-      gap: 8px;
-      transition: transform 0.12s;
+      gap: 6px;
     }
-
-    .btn-primary:active { transform: scale(0.96); }
     .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 
     .btn-secondary {
@@ -296,17 +263,14 @@
       color: var(--text);
       font-weight: 700;
       font-size: 12px;
-      padding: 12px 15px;
+      padding: 11px 14px;
       border-radius: 999px;
       cursor: pointer;
-      backdrop-filter: blur(8px);
     }
-
     .btn-secondary.recording {
       border-color: var(--red);
+      background: rgba(255, 59, 92, 0.88);
       color: #fff;
-      background: rgba(255, 59, 92, 0.85);
-      box-shadow: 0 0 16px rgba(255, 59, 92, 0.5);
     }
 
     /* Viewer View */
@@ -321,198 +285,186 @@
 
     .viewer-panel {
       position: fixed;
-      left: 10px;
-      right: 10px;
-      bottom: max(10px, env(safe-area-inset-bottom));
+      left: 8px;
+      right: 8px;
+      bottom: max(8px, env(safe-area-inset-bottom));
       z-index: 30;
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 16px;
-      padding: 12px;
+      padding: 10px 12px;
       backdrop-filter: blur(12px);
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      max-width: 680px;
+      gap: 8px;
+      max-width: 700px;
       margin: 0 auto;
     }
 
     .style-pills {
       display: flex;
-      gap: 6px;
+      gap: 5px;
       overflow-x: auto;
-      padding-bottom: 2px;
     }
-
-    .style-pills .chip-btn {
-      flex: 1;
-      white-space: nowrap;
-      text-align: center;
-    }
+    .style-pills .chip-btn { flex: 1; white-space: nowrap; text-align: center; }
 
     .sliders-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
-      gap: 8px 14px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px 12px;
     }
-
     .slider-item {
       display: flex;
       flex-direction: column;
-      gap: 2px;
-      font-size: 11px;
+      gap: 1px;
+      font-size: 10.5px;
     }
-
     .slider-head {
       display: flex;
       justify-content: space-between;
       color: var(--muted);
     }
-
     .slider-head span:last-child {
       color: var(--cyan);
       font-family: ui-monospace, monospace;
     }
-
-    input[type="range"] {
-      width: 100%;
-      accent-color: var(--cyan);
-      margin: 0;
-    }
+    input[type="range"] { width: 100%; accent-color: var(--cyan); margin: 0; }
 
     .export-row {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       flex-wrap: wrap;
     }
-
     .export-row button {
       flex: 1;
-      min-width: 105px;
-      padding: 9px 10px;
+      min-width: 88px;
+      padding: 8px 8px;
       border-radius: 10px;
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 700;
       cursor: pointer;
     }
 
-    /* Boot / Loading Overlay */
+    /* WebXR DOM Overlay */
+    #xrOverlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+      pointer-events: none;
+    }
+    #xrOverlay.active { display: flex; }
+    #xrOverlay > * { pointer-events: auto; }
+
+    .xr-status {
+      background: rgba(5, 10, 20, 0.78);
+      border: 1px solid var(--cyan);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-family: ui-monospace, monospace;
+      font-size: 12px;
+      color: var(--cyan);
+      align-self: flex-start;
+    }
+    .xr-controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    /* Boot Modal */
     .overlay-modal {
       position: fixed;
       inset: 0;
-      z-index: 100;
-      background: rgba(3, 7, 14, 0.92);
+      z-index: 120;
+      background: rgba(3, 7, 14, 0.94);
       backdrop-filter: blur(12px);
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 18px;
     }
-
-    .overlay-modal.hidden {
-      display: none;
-    }
+    .overlay-modal.hidden { display: none; }
 
     .modal-card {
       width: 100%;
-      max-width: 430px;
-      background: rgba(10, 20, 36, 0.95);
+      max-width: 420px;
+      background: rgba(10, 20, 36, 0.96);
       border: 1px solid var(--border);
       border-radius: 18px;
-      padding: 22px;
-      box-shadow: 0 0 40px rgba(0, 240, 255, 0.15);
+      padding: 20px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
     }
+    .modal-card h1 { margin: 0; font-size: 19px; color: var(--cyan); }
+    .modal-card p { margin: 0; font-size: 12.5px; line-height: 1.55; color: #c5d7ea; }
 
-    .modal-card h1 {
-      margin: 0;
-      font-size: 20px;
-      color: var(--cyan);
-      letter-spacing: 0.04em;
+    .model-select {
+      display: flex;
+      gap: 8px;
     }
-
-    .modal-card p {
-      margin: 0;
-      font-size: 13px;
-      line-height: 1.6;
-      color: #c2d4e6;
-    }
-
-    .warn-box {
-      background: rgba(255, 59, 92, 0.14);
-      border: 1px solid var(--red);
-      color: #ffb3c0;
-      padding: 10px 12px;
+    .model-opt {
+      flex: 1;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
       border-radius: 10px;
-      font-size: 12px;
-      line-height: 1.5;
-      display: none;
+      padding: 9px;
+      text-align: left;
+      cursor: pointer;
+      font-size: 11.5px;
     }
-
-    .progress-wrap {
-      display: none;
-      flex-direction: column;
-      gap: 6px;
+    .model-opt.selected {
+      border-color: var(--lime);
+      background: rgba(0, 255, 157, 0.12);
     }
+    .model-opt strong { display: block; color: var(--cyan); margin-bottom: 2px; }
 
-    .progress-wrap.active {
-      display: flex;
-    }
-
+    .progress-wrap { display: none; flex-direction: column; gap: 5px; }
+    .progress-wrap.active { display: flex; }
     .progress-bar-bg {
-      width: 100%;
-      height: 8px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 999px;
-      overflow: hidden;
+      width: 100%; height: 7px; background: rgba(255,255,255,0.1);
+      border-radius: 999px; overflow: hidden;
     }
-
     .progress-bar-fill {
-      width: 0%;
-      height: 100%;
+      width: 0%; height: 100%;
       background: linear-gradient(90deg, var(--cyan), var(--lime));
       transition: width 0.15s;
     }
+    .progress-text { font-family: ui-monospace, monospace; font-size: 11px; color: var(--cyan); }
 
-    .progress-text {
-      font-family: ui-monospace, monospace;
-      font-size: 11px;
-      color: var(--cyan);
-    }
-
-    /* Toast */
     .toast {
       position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      z-index: 90;
-      background: rgba(4, 12, 22, 0.92);
+      z-index: 250;
+      background: rgba(4, 12, 22, 0.94);
       border: 1px solid var(--cyan);
       color: var(--text);
-      padding: 12px 18px;
+      padding: 11px 16px;
       border-radius: 12px;
-      font-size: 13px;
-      font-weight: 600;
+      font-size: 12.5px;
+      font-weight: 700;
       pointer-events: none;
       opacity: 0;
-      transition: opacity 0.2s;
+      transition: opacity 0.18s;
       text-align: center;
-      max-width: 85%;
+      max-width: 86%;
     }
-
     .toast.show { opacity: 1; }
   </style>
 </head>
 <body>
 
-  <!-- Top Bar -->
-  <header class="topbar">
+  <header class="topbar" id="topbar">
     <div class="brand">
       <span class="brand-dot"></span>
-      <span>WEB-LiDAR 3D</span>
+      <span>WEB-LiDAR v2</span>
     </div>
     <div class="tabs">
       <button class="tab-btn active" id="tabScanner">📷 ARスキャン</button>
@@ -523,23 +475,36 @@
   <!-- Boot Modal -->
   <div class="overlay-modal" id="bootModal">
     <div class="modal-card">
-      <h1>WEB-LiDAR 3D SCANNER</h1>
+      <h1>WEB-LiDAR 3D PRO v2</h1>
       <p>
-        カメラ映像・ジャイロセンサー・ブラウザ内AI（物体認識＆単眼深度推定）を組み合わせ、現実の物体や空間を3Dモデル化します。<br>
-        <small style="color: var(--muted)">※映像は外部サーバーへ送信されず、すべてお使いの端末内で処理されます。初回のみAIモデル（約35〜55MB）を読み込みます。</small>
+        物体検出を軽量版（MediaPipe）に、深度AIを別スレッド（Web Worker）に分離し、ラグを抑えつつエッジ保存平滑化＋立体ソリッド生成で高精度化しました。<br>
+        <small style="color: var(--muted)">※画面をタップするとその物体だけを切り抜いて3D化できます。</small>
       </p>
-      <div class="warn-box" id="protocolWarn">
-        <strong>⚠ 注意：</strong> ローカルファイル（<code>file://</code>）で直接開いている場合、ブラウザの制限でカメラやAIが動作しません。<code>http://localhost</code> または <code>https://</code> 環境で開いてください。
+
+      <div class="model-select">
+        <button class="model-opt selected" data-quality="fast">
+          <strong>⚡ 高速モード (Small)</strong>
+          約28〜50MB・軽快に動作
+        </button>
+        <button class="model-opt" data-quality="high">
+          <strong>🧠 高精細モード (Base)</strong>
+          約100〜190MB・高精度
+        </button>
       </div>
+
       <div class="progress-wrap" id="bootProgressWrap">
         <div class="progress-bar-bg"><div class="progress-bar-fill" id="bootProgressFill"></div></div>
-        <div class="progress-text" id="bootProgressText">準備中...</div>
+        <div class="progress-text" id="bootProgressText">起動準備中...</div>
       </div>
-      <button class="btn-primary" id="btnStartSystem" style="justify-content: center;">
+
+      <button class="btn-primary" id="btnStartSystem" style="justify-content:center;">
         🚀 カメラ・ジャイロ・AIを起動
       </button>
-      <button class="btn-secondary" id="btnStartImageOnly" style="width: 100%; text-align: center;">
-        📁 カメラなしで画像から3D化を始める
+      <button class="btn-secondary" id="btnStartWebXRDirect" style="display:none; width:100%; border-color:var(--amber); color:var(--amber);">
+        ⚡ 本物ARスキャン (WebXR Depth) をすぐ開始
+      </button>
+      <button class="btn-secondary" id="btnStartImageOnly" style="width:100%;">
+        📁 画像ファイル読込のみで始める
       </button>
     </div>
   </div>
@@ -551,21 +516,22 @@
     <div class="scan-laser" id="scanLaser"></div>
 
     <div class="telemetry">
-      <div class="telemetry-row"><span class="telemetry-label">ENGINE</span><span class="telemetry-val" id="telBackend">--</span></div>
-      <div class="telemetry-row"><span class="telemetry-label">GYRO Y/P/R</span><span class="telemetry-val" id="telGyro">WAIT</span></div>
-      <div class="telemetry-row"><span class="telemetry-label">OBJECTS</span><span class="telemetry-val" id="telObj">0</span></div>
-      <div class="telemetry-row"><span class="telemetry-label">SPATIAL PTS</span><span class="telemetry-val" id="telPts">0</span></div>
+      <div class="telemetry-row"><span class="telemetry-label">AI WORKER</span><span class="telemetry-val" id="telWorker">INIT</span></div>
+      <div class="telemetry-row"><span class="telemetry-label">DETECTOR</span><span class="telemetry-val" id="telDet">--</span></div>
+      <div class="telemetry-row"><span class="telemetry-label">GYRO Y/P</span><span class="telemetry-val" id="telGyro">WAIT</span></div>
+      <div class="telemetry-row"><span class="telemetry-label">3D POINTS</span><span class="telemetry-val" id="telPts">0</span></div>
     </div>
 
-    <button class="lock-pill" id="btnClearLock">
-      <span>🎯 ロック中: <strong id="lockName">---</strong></span>
+    <button class="target-pill" id="btnClearTarget">
+      <span>🎯 ターゲット: <strong id="targetName">AUTO</strong></span>
       <span>✕</span>
     </button>
 
     <div class="scanner-controls">
       <div class="quick-toggles">
-        <button class="chip-btn on" id="btnToggleDetect">👁 物体認識 ON</button>
-        <button class="chip-btn" id="btnResetGyro">🧭 方位リセット</button>
+        <button class="chip-btn" id="btnToggleDetect">👁 物体枠 OFF</button>
+        <button class="chip-btn" id="btnResetGyro">🧭 方位0°</button>
+        <button class="chip-btn xr-ready" id="btnWebXRScan" style="display:none;">⚡ 本物AR(WebXR)</button>
         <label class="chip-btn" style="display:inline-flex;align-items:center;">
           📁 画像読込
           <input type="file" id="fileInput" accept="image/*" hidden />
@@ -573,8 +539,8 @@
       </div>
 
       <div class="action-row">
-        <button class="btn-secondary" id="btnMultiScan">🔄 360°空間スキャン</button>
-        <button class="btn-primary" id="btnSingleScan">📸 3Dモデル生成</button>
+        <button class="btn-secondary" id="btnMultiScan">🔄 360°スキャン</button>
+        <button class="btn-primary" id="btnSingleScan">📸 高精度3D化</button>
       </div>
     </div>
   </section>
@@ -585,61 +551,162 @@
 
     <div class="viewer-panel">
       <div class="style-pills">
-        <button class="chip-btn on" data-render="mesh">🧱 カラーメッシュ</button>
-        <button class="chip-btn" data-render="points">✨ LiDAR点群</button>
+        <button class="chip-btn on" data-render="mesh">🧱 カラー</button>
+        <button class="chip-btn" data-render="points">✨ 点群</button>
         <button class="chip-btn" data-render="wire">🕸 ワイヤー</button>
-        <button class="chip-btn" data-render="heat">🌡 深度マップ</button>
+        <button class="chip-btn" data-render="heat">🌡 深度</button>
       </div>
 
       <div class="sliders-grid" id="singleSliders">
         <div class="slider-item">
-          <div class="slider-head"><span>奥行き強調</span><span id="valDepthScale">1.0</span></div>
-          <input type="range" id="rngDepthScale" min="0.2" max="2.5" step="0.05" value="1.0" />
+          <div class="slider-head"><span>奥行き立体感</span><span id="valDepthScale">1.0</span></div>
+          <input type="range" id="rngDepthScale" min="0.2" max="2.4" step="0.05" value="1.0" />
         </div>
         <div class="slider-item">
-          <div class="slider-head"><span>背景カット</span><span id="valBgCut">10%</span></div>
-          <input type="range" id="rngBgCut" min="0" max="85" step="1" value="10" />
+          <div class="slider-head"><span>滑らか平滑化</span><span id="valSmooth">2</span></div>
+          <input type="range" id="rngSmooth" min="0" max="3" step="1" value="2" />
         </div>
         <div class="slider-item">
-          <div class="slider-head"><span>境界分離</span><span id="valEdgeCut">1.12</span></div>
-          <input type="range" id="rngEdgeCut" min="1.02" max="1.60" step="0.02" value="1.12" />
+          <div class="slider-head"><span>背景カット(手前残)</span><span id="valBgCut">12%</span></div>
+          <input type="range" id="rngBgCut" min="0" max="85" step="1" value="12" />
+        </div>
+        <div class="slider-item">
+          <div class="slider-head"><span>立体厚み(ソリッド)</span><span id="valThickness">0.10</span></div>
+          <input type="range" id="rngThickness" min="0" max="0.35" step="0.01" value="0.10" />
         </div>
       </div>
 
       <div class="export-row">
-        <button class="chip-btn" id="btnViewerCropToggle" style="display:none;">🎯 物体のみ切抜</button>
-        <button class="chip-btn" id="btnGyroOrbit">📱 ジャイロ覗き見 OFF</button>
+        <button class="chip-btn on" id="btnCropToggle" style="display:none;">🎯 前景のみ切抜</button>
+        <button class="chip-btn" id="btnGyroOrbit">📱 ジャイロ OFF</button>
         <button class="btn-secondary" id="btnExportPLY">☁️ PLY保存</button>
-        <button class="btn-primary" id="btnExportGLB" style="padding: 9px 12px; font-size: 12px; justify-content: center;">📦 GLB保存</button>
+        <button class="btn-primary" id="btnExportGLB" style="padding:8px 10px; font-size:11.5px; justify-content:center;">📦 GLB保存</button>
       </div>
     </div>
   </section>
 
+  <!-- WebXR AR Overlay -->
+  <div id="xrOverlay">
+    <div class="xr-status" id="xrStatus">WebXR AR LiDAR 待機中...</div>
+    <div class="xr-controls">
+      <button class="btn-secondary recording" id="btnXrToggleCapture">⏺ スキャン記録中</button>
+      <button class="btn-primary" id="btnXrFinish">✅ 完了・3D表示</button>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
+
+  <!-- Web Worker Script for Zero-Lag Depth AI Inference -->
+  <script id="depthWorkerScript" type="text/plain">
+    import { pipeline, RawImage, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2';
+    env.allowLocalModels = false;
+
+    let depthPipe = null;
+    let activeQuality = 'fast';
+
+    async function loadDepthModel(quality) {
+      activeQuality = quality || 'fast';
+      const modelId = activeQuality === 'high'
+        ? 'onnx-community/depth-anything-v2-base'
+        : 'onnx-community/depth-anything-v2-small';
+
+      let hasWebGPU = false;
+      if (typeof navigator !== 'undefined' && navigator.gpu) {
+        try {
+          const adapter = await navigator.gpu.requestAdapter();
+          if (adapter) hasWebGPU = true;
+        } catch (e) {}
+      }
+
+      const fileProg = {};
+      const progress_callback = (info) => {
+        if (info.status === 'progress' && info.file) {
+          fileProg[info.file] = info.progress || 0;
+          const vals = Object.values(fileProg);
+          const avg = vals.reduce((a, b) => a + b, 0) / Math.max(1, vals.length);
+          self.postMessage({ type: 'progress', pct: avg, file: info.file.split('/').pop() });
+        }
+      };
+
+      let backend = 'wasm';
+      try {
+        depthPipe = await pipeline('depth-estimation', modelId, {
+          device: hasWebGPU ? 'webgpu' : 'wasm',
+          dtype: hasWebGPU ? 'fp16' : 'q8',
+          progress_callback
+        });
+        backend = hasWebGPU ? 'WebGPU' : 'WASM';
+      } catch (err) {
+        depthPipe = await pipeline('depth-estimation', modelId, {
+          device: 'wasm',
+          dtype: 'q8',
+          progress_callback
+        });
+        backend = 'WASM';
+      }
+
+      self.postMessage({ type: 'ready', backend, quality: activeQuality });
+    }
+
+    self.onmessage = async (e) => {
+      const msg = e.data;
+      try {
+        if (msg.type === 'init') {
+          await loadDepthModel(msg.quality);
+        } else if (msg.type === 'infer') {
+          if (!depthPipe) throw new Error('Model not initialized');
+          const rgba = new Uint8ClampedArray(msg.rgbaBuffer);
+          const rawImg = new RawImage(rgba, msg.w, msg.h, 4);
+          const res = await depthPipe(rawImg);
+
+          if (res.predicted_depth && res.predicted_depth.data) {
+            const tensor = res.predicted_depth;
+            const dims = tensor.dims;
+            const ph = dims[dims.length - 2];
+            const pw = dims[dims.length - 1];
+            const floatCopy = new Float32Array(tensor.data);
+            self.postMessage(
+              { type: 'result', jobId: msg.jobId, pw, ph, depthBuffer: floatCopy.buffer },
+              [floatCopy.buffer]
+            );
+          } else if (res.depth) {
+            const dImg = res.depth;
+            const pw = dImg.width, ph = dImg.height, ch = dImg.channels || 1;
+            const floatCopy = new Float32Array(pw * ph);
+            for (let i = 0; i < pw * ph; i++) floatCopy[i] = dImg.data[i * ch] / 255.0;
+            self.postMessage(
+              { type: 'result', jobId: msg.jobId, pw, ph, depthBuffer: floatCopy.buffer },
+              [floatCopy.buffer]
+            );
+          } else {
+            throw new Error('No depth output');
+          }
+        }
+      } catch (err) {
+        self.postMessage({ type: 'error', jobId: msg.jobId, message: err.message || String(err) });
+      }
+    };
+  </script>
 
   <script type="module">
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
-    import { pipeline, RawImage, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.6';
-
-    env.allowLocalModels = false;
 
     // ---------------------------------------------------------
     // Global State
     // ---------------------------------------------------------
     const state = {
-      hasWebGPU: false,
-      depthEstimator: null,
-      objectDetector: null,
+      quality: 'fast',
+      workerReady: false,
+      detector: null,
+      detectEnabled: false,
       cameraActive: false,
-      detectEnabled: true,
-      isDetecting: false,
       isScanning: false,
       multiScanActive: false,
-      detections: [],
-      lockedDet: null, // { label, score, box: {xmin, ymin, xmax, ymax} } (normalized 0..1 on capture)
-      lastCaptureSize: { w: 384, h: 288 },
+
+      detections: [], // { label, score, boxNorm: {xmin,ymin,xmax,ymax} }
+      target: null,   // { label, boxNorm, tapNorm: {x, y} }
 
       // Gyro
       gyroAvailable: false,
@@ -647,41 +714,55 @@
       currentQuat: new THREE.Quaternion(),
       yawOffsetQuat: new THREE.Quaternion(),
       lastMultiQuat: null,
-      multiRefRange: null, // { minVal, maxVal } for multi-scan consistency
+      prevMultiData: null, // For depth alignment across frames
+      multiVoxelSet: new Set(),
       multiPointsCount: 0,
 
-      // Viewer data
-      viewMode: 'single', // 'single' | 'multi'
-      renderStyle: 'mesh', // 'mesh' | 'points' | 'wire' | 'heat'
+      // Viewer
+      viewMode: 'single', // 'single' | 'multi' | 'xr'
+      renderStyle: 'mesh',
       gyroOrbit: false,
-      cropToLockedObject: false,
-      singleScanData: null, // { w, h, rgb, normDepth, lockedBoxNorm }
+      cropForeground: false,
+      singleRawData: null, // { gw, gh, rgbGrid, rawDepthGrid, targetNorm, tapNorm, label }
     };
 
-    // DOM refs
     const video = document.getElementById('video');
     const hudCanvas = document.getElementById('hudCanvas');
     const hudCtx = hudCanvas.getContext('2d');
     const scanLaser = document.getElementById('scanLaser');
     const bootModal = document.getElementById('bootModal');
-    const bootProgressWrap = document.getElementById('bootProgressWrap');
-    const bootProgressFill = document.getElementById('bootProgressFill');
-    const bootProgressText = document.getElementById('bootProgressText');
     const toastEl = document.getElementById('toast');
 
-    if (window.location.protocol === 'file:') {
-      document.getElementById('protocolWarn').style.display = 'block';
-    }
-
-    function showToast(msg, ms = 2400) {
+    function showToast(msg, ms = 2200) {
       toastEl.textContent = msg;
       toastEl.classList.add('show');
       clearTimeout(showToast._t);
       showToast._t = setTimeout(() => toastEl.classList.remove('show'), ms);
     }
 
+    // Quality Picker
+    document.querySelectorAll('.model-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.model-opt').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        state.quality = btn.dataset.quality;
+      });
+    });
+
+    // Check WebXR AR support
+    let webxrSupported = false;
+    if (navigator.xr) {
+      navigator.xr.isSessionSupported('immersive-ar').then(ok => {
+        webxrSupported = ok;
+        if (ok) {
+          document.getElementById('btnWebXRScan').style.display = 'inline-block';
+          document.getElementById('btnStartWebXRDirect').style.display = 'block';
+        }
+      }).catch(() => {});
+    }
+
     // ---------------------------------------------------------
-    // Tab Switching
+    // Tabs
     // ---------------------------------------------------------
     const tabScanner = document.getElementById('tabScanner');
     const tabViewer = document.getElementById('tabViewer');
@@ -694,32 +775,123 @@
       tabViewer.classList.toggle('active', !isScan);
       scannerView.classList.toggle('active', isScan);
       viewerView.classList.toggle('active', !isScan);
-      if (!isScan) {
-        onViewerResize();
-      }
+      if (!isScan) onViewerResize();
     }
-
     tabScanner.addEventListener('click', () => switchTab('scanner'));
     tabViewer.addEventListener('click', () => switchTab('viewer'));
 
     // ---------------------------------------------------------
-    // Gyroscope & Quaternion Math
+    // Depth Web Worker Bridge (Non-blocking AI)
+    // ---------------------------------------------------------
+    const workerBlob = new Blob(
+      [document.getElementById('depthWorkerScript').textContent],
+      { type: 'application/javascript' }
+    );
+    const depthWorker = new Worker(URL.createObjectURL(workerBlob), { type: 'module' });
+    let nextJobId = 1;
+    const pendingJobs = new Map();
+
+    depthWorker.onmessage = (e) => {
+      const msg = e.data;
+      if (msg.type === 'progress') {
+        document.getElementById('bootProgressFill').style.width = `${Math.min(100, msg.pct).toFixed(1)}%`;
+        document.getElementById('bootProgressText').textContent = `深度AI読込中: ${msg.file} (${Math.round(msg.pct)}%)`;
+      } else if (msg.type === 'ready') {
+        state.workerReady = true;
+        document.getElementById('telWorker').textContent = `${msg.backend}`;
+        if (pendingJobs.has('__init__')) {
+          pendingJobs.get('__init__').resolve();
+          pendingJobs.delete('__init__');
+        }
+      } else if (msg.type === 'result') {
+        const job = pendingJobs.get(msg.jobId);
+        if (job) {
+          pendingJobs.delete(msg.jobId);
+          job.resolve({ pw: msg.pw, ph: msg.ph, data: new Float32Array(msg.depthBuffer) });
+        }
+      } else if (msg.type === 'error') {
+        const job = pendingJobs.get(msg.jobId || '__init__');
+        if (job) {
+          pendingJobs.delete(msg.jobId || '__init__');
+          job.reject(new Error(msg.message));
+        }
+      }
+    };
+
+    function initWorkerModel(quality) {
+      return new Promise((resolve, reject) => {
+        pendingJobs.set('__init__', { resolve, reject });
+        depthWorker.postMessage({ type: 'init', quality });
+      });
+    }
+
+    function inferDepthInWorker(rgbaUint8Clamped, w, h) {
+      return new Promise((resolve, reject) => {
+        const jobId = nextJobId++;
+        pendingJobs.set(jobId, { resolve, reject });
+        const copy = new Uint8ClampedArray(rgbaUint8Clamped);
+        depthWorker.postMessage(
+          { type: 'infer', jobId, w, h, rgbaBuffer: copy.buffer },
+          [copy.buffer]
+        );
+      });
+    }
+
+    // ---------------------------------------------------------
+    // Lightweight MediaPipe ObjectDetector (~30ms)
+    // ---------------------------------------------------------
+    async function initMediaPipeDetector() {
+      try {
+        const mp = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs');
+        const vision = await mp.FilesetResolver.forVisionTasks(
+          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+        );
+        const modelUrl = 'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite';
+        try {
+          state.detector = await mp.ObjectDetector.createFromOptions(vision, {
+            baseOptions: { modelAssetPath: modelUrl, delegate: 'GPU' },
+            runningMode: 'VIDEO',
+            scoreThreshold: 0.42,
+            maxResults: 6
+          });
+          document.getElementById('telDet').textContent = 'MP-GPU';
+        } catch (gpuErr) {
+          state.detector = await mp.ObjectDetector.createFromOptions(vision, {
+            baseOptions: { modelAssetPath: modelUrl, delegate: 'CPU' },
+            runningMode: 'VIDEO',
+            scoreThreshold: 0.42,
+            maxResults: 6
+          });
+          document.getElementById('telDet').textContent = 'MP-CPU';
+        }
+        // Enable fast detector by default once loaded
+        state.detectEnabled = true;
+        const btn = document.getElementById('btnToggleDetect');
+        btn.classList.add('on');
+        btn.textContent = '👁 物体枠 ON';
+      } catch (err) {
+        console.warn('MediaPipe load failed (optional):', err);
+        document.getElementById('telDet').textContent = 'OFF';
+      }
+    }
+
+    // ---------------------------------------------------------
+    // Gyroscope
     // ---------------------------------------------------------
     const _zee = new THREE.Vector3(0, 0, 1);
     const _euler = new THREE.Euler();
     const _q0 = new THREE.Quaternion();
-    const _q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)); // -PI/2 around X
+    const _q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
 
-    function computeDeviceQuaternion(alphaDeg, betaDeg, gammaDeg) {
-      const alpha = THREE.MathUtils.degToRad(alphaDeg || 0);
-      const beta = THREE.MathUtils.degToRad(betaDeg || 0);
-      const gamma = THREE.MathUtils.degToRad(gammaDeg || 0);
-      const orientAngle = (screen.orientation && typeof screen.orientation.angle === 'number')
-        ? screen.orientation.angle
-        : (window.orientation || 0);
-      const orient = THREE.MathUtils.degToRad(orientAngle);
+    function computeDeviceQuat(alphaDeg, betaDeg, gammaDeg) {
+      const a = THREE.MathUtils.degToRad(alphaDeg || 0);
+      const b = THREE.MathUtils.degToRad(betaDeg || 0);
+      const g = THREE.MathUtils.degToRad(gammaDeg || 0);
+      const orientDeg = (screen.orientation && typeof screen.orientation.angle === 'number')
+        ? screen.orientation.angle : (window.orientation || 0);
+      const orient = THREE.MathUtils.degToRad(orientDeg);
 
-      _euler.set(beta, alpha, -gamma, 'YXZ');
+      _euler.set(b, a, -g, 'YXZ');
       const q = new THREE.Quaternion().setFromEuler(_euler);
       q.multiply(_q1);
       q.multiply(_q0.setFromAxisAngle(_zee, -orient));
@@ -730,7 +902,7 @@
       const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(state.currentQuat);
       const yaw = Math.atan2(fwd.x, -fwd.z);
       state.yawOffsetQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
-      showToast('正面方位をリセットしました');
+      showToast('方位を0°にリセットしました');
     }
 
     function getRelativeWorldQuat() {
@@ -740,141 +912,59 @@
     function handleOrientation(e) {
       if (e.alpha === null && e.beta === null && e.gamma === null) return;
       state.gyroAvailable = true;
-      state.rawOrient = {
-        alpha: e.alpha ?? 0,
-        beta: e.beta ?? 90,
-        gamma: e.gamma ?? 0
-      };
-      state.currentQuat.copy(computeDeviceQuaternion(state.rawOrient.alpha, state.rawOrient.beta, state.rawOrient.gamma));
-
-      const tel = document.getElementById('telGyro');
-      tel.textContent = `${Math.round(state.rawOrient.alpha)}°/${Math.round(state.rawOrient.beta)}°/${Math.round(state.rawOrient.gamma)}°`;
+      state.rawOrient = { alpha: e.alpha ?? 0, beta: e.beta ?? 90, gamma: e.gamma ?? 0 };
+      state.currentQuat.copy(computeDeviceQuat(state.rawOrient.alpha, state.rawOrient.beta, state.rawOrient.gamma));
+      document.getElementById('telGyro').textContent = `${Math.round(state.rawOrient.alpha)}°/${Math.round(state.rawOrient.beta)}°`;
     }
 
-    async function requestGyroPermissionFirst() {
-      // iOS 13+ requires requestPermission() immediately inside user gesture
+    async function requestGyroFirst() {
       if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        try {
-          const res = await DeviceOrientationEvent.requestPermission();
-          if (res !== 'granted') {
-            showToast('ジャイロセンサーの許可が拒否されました');
-            return;
-          }
-        } catch (err) {
-          console.warn('DeviceOrientation permission error:', err);
-        }
+        try { await DeviceOrientationEvent.requestPermission(); } catch (e) {}
       }
-
-      let hasAbsolute = false;
+      let hasAbs = false;
       window.addEventListener('deviceorientationabsolute', (e) => {
-        if (e.alpha !== null) {
-          hasAbsolute = true;
-          handleOrientation(e);
-        }
+        if (e.alpha !== null) { hasAbs = true; handleOrientation(e); }
       });
       window.addEventListener('deviceorientation', (e) => {
-        if (!hasAbsolute) handleOrientation(e);
+        if (!hasAbs) handleOrientation(e);
       });
     }
 
     // ---------------------------------------------------------
-    // Camera & AI Initialization
+    // Boot Flow
     // ---------------------------------------------------------
-    async function initAIModels() {
-      bootProgressWrap.classList.add('active');
-      document.getElementById('btnStartSystem').disabled = true;
-      document.getElementById('btnStartImageOnly').disabled = true;
-
-      // Check WebGPU
-      if (navigator.gpu) {
-        try {
-          const adapter = await navigator.gpu.requestAdapter();
-          if (adapter) state.hasWebGPU = true;
-        } catch (e) {
-          state.hasWebGPU = false;
-        }
-      }
-
-      const fileProgress = {};
-      const onProgress = (info) => {
-        if (info.status === 'progress' && info.file) {
-          fileProgress[info.file] = info.progress || 0;
-          const vals = Object.values(fileProgress);
-          const avg = vals.reduce((a, b) => a + b, 0) / Math.max(1, vals.length);
-          bootProgressFill.style.width = `${Math.min(100, avg).toFixed(1)}%`;
-          bootProgressText.textContent = `モデル読込中: ${info.file.split('/').pop()} (${Math.round(info.progress)}%)`;
-        } else if (info.status === 'ready') {
-          bootProgressText.textContent = 'エンジン初期化完了...';
-        }
-      };
-
-      // 1. Depth Anything V2 Small
-      bootProgressText.textContent = 'Depth Anything V2 (深度AI) を読込中...';
-      try {
-        state.depthEstimator = await pipeline('depth-estimation', 'onnx-community/depth-anything-v2-small', {
-          device: state.hasWebGPU ? 'webgpu' : 'wasm',
-          dtype: state.hasWebGPU ? 'fp16' : 'q8',
-          progress_callback: onProgress
-        });
-      } catch (err) {
-        console.warn('WebGPU depth failed, falling back to WASM:', err);
-        state.hasWebGPU = false;
-        state.depthEstimator = await pipeline('depth-estimation', 'onnx-community/depth-anything-v2-small', {
-          device: 'wasm',
-          dtype: 'q8',
-          progress_callback: onProgress
-        });
-      }
-
-      // 2. YOLOS-Tiny (Object Detection)
-      bootProgressText.textContent = 'YOLOS-Tiny (物体認識AI) を読込中...';
-      try {
-        state.objectDetector = await pipeline('object-detection', 'Xenova/yolos-tiny', {
-          device: state.hasWebGPU ? 'webgpu' : 'wasm',
-          dtype: 'q8',
-          progress_callback: onProgress
-        });
-      } catch (err) {
-        console.warn('WebGPU detector failed, falling back to WASM:', err);
-        state.objectDetector = await pipeline('object-detection', 'Xenova/yolos-tiny', {
-          device: 'wasm',
-          dtype: 'q8',
-          progress_callback: onProgress
-        });
-      }
-
-      document.getElementById('telBackend').textContent = state.hasWebGPU ? 'WebGPU' : 'WASM';
-      bootModal.classList.add('hidden');
-    }
-
     async function startCamera() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: 'environment' },
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          },
+          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: false
         });
         video.srcObject = stream;
         await video.play();
         state.cameraActive = true;
         return true;
-      } catch (err) {
-        console.warn('Camera unavailable:', err);
-        showToast('カメラが起動できませんでした。「📁 画像読込」でテストできます。', 3500);
+      } catch (e) {
+        showToast('カメラ起動不可。「📁 画像読込」でテストできます', 3200);
         return false;
       }
     }
 
     document.getElementById('btnStartSystem').addEventListener('click', async () => {
-      await requestGyroPermissionFirst(); // MUST be first in user gesture
+      await requestGyroFirst();
+      document.getElementById('bootProgressWrap').classList.add('active');
+      document.getElementById('btnStartSystem').disabled = true;
+      document.getElementById('btnStartImageOnly').disabled = true;
+
+      // Start camera immediately so preview shows smoothly
+      await startCamera();
       try {
-        await startCamera();
-        await initAIModels();
-        setTimeout(() => { if (state.gyroAvailable) resetGyroYaw(); }, 400);
-        startLoops();
+        await Promise.all([
+          initWorkerModel(state.quality),
+          initMediaPipeDetector()
+        ]);
+        bootModal.classList.add('hidden');
+        if (state.gyroAvailable) setTimeout(resetGyroYaw, 300);
+        startRuntimeLoops();
       } catch (err) {
         alert('初期化エラー: ' + err.message);
         document.getElementById('btnStartSystem').disabled = false;
@@ -883,108 +973,28 @@
     });
 
     document.getElementById('btnStartImageOnly').addEventListener('click', async () => {
+      document.getElementById('bootProgressWrap').classList.add('active');
+      document.getElementById('btnStartSystem').disabled = true;
+      document.getElementById('btnStartImageOnly').disabled = true;
       try {
-        await initAIModels();
-        startLoops();
-        showToast('下の「📁 画像読込」から写真を選択してください');
+        await initWorkerModel(state.quality);
+        bootModal.classList.add('hidden');
+        startRuntimeLoops();
+        showToast('「📁 画像読込」から写真を選んでください');
       } catch (err) {
-        alert('初期化エラー: ' + err.message);
+        alert('AI初期化エラー: ' + err.message);
       }
     });
 
     // ---------------------------------------------------------
-    // Frame Capture & Depth Utilities
-    // ---------------------------------------------------------
-    const capCanvas = document.createElement('canvas');
-    const capCtx = capCanvas.getContext('2d', { willReadFrequently: true });
-
-    function captureSourceToCanvas(sourceEl, srcW, srcH, maxSide = 384) {
-      const scale = Math.min(1, maxSide / Math.max(srcW, srcH));
-      // Keep dimensions even for clean grid indexing
-      const w = Math.max(64, Math.round((srcW * scale) / 2) * 2);
-      const h = Math.max(64, Math.round((srcH * scale) / 2) * 2);
-      capCanvas.width = w;
-      capCanvas.height = h;
-      capCtx.drawImage(sourceEl, 0, 0, w, h);
-      const imgData = capCtx.getImageData(0, 0, w, h);
-      return {
-        w,
-        h,
-        rgb: imgData.data,
-        rawImage: RawImage.fromCanvas(capCanvas)
-      };
-    }
-
-    function extractDepthArray(depthResult, targetW, targetH, fixedRange = null) {
-      if (depthResult.predicted_depth && depthResult.predicted_depth.data) {
-        const tensor = depthResult.predicted_depth;
-        const dims = tensor.dims;
-        const ph = dims[dims.length - 2];
-        const pw = dims[dims.length - 1];
-        const src = tensor.data;
-
-        let minVal = Infinity, maxVal = -Infinity;
-        if (fixedRange) {
-          minVal = fixedRange.minVal;
-          maxVal = fixedRange.maxVal;
-        } else {
-          for (let i = 0; i < src.length; i++) {
-            if (src[i] < minVal) minVal = src[i];
-            if (src[i] > maxVal) maxVal = src[i];
-          }
-        }
-        const range = (maxVal - minVal) || 1e-6;
-        const norm = new Float32Array(targetW * targetH);
-
-        for (let y = 0; y < targetH; y++) {
-          const fy = (y / Math.max(1, targetH - 1)) * (ph - 1);
-          const y0 = Math.floor(fy);
-          const y1 = Math.min(ph - 1, y0 + 1);
-          const dy = fy - y0;
-
-          for (let x = 0; x < targetW; x++) {
-            const fx = (x / Math.max(1, targetW - 1)) * (pw - 1);
-            const x0 = Math.floor(fx);
-            const x1 = Math.min(pw - 1, x0 + 1);
-            const dx = fx - x0;
-
-            const v00 = src[y0 * pw + x0];
-            const v10 = src[y0 * pw + x1];
-            const v01 = src[y1 * pw + x0];
-            const v11 = src[y1 * pw + x1];
-
-            const val = (v00 + (v10 - v00) * dx) * (1 - dy) + (v01 + (v11 - v01) * dx) * dy;
-            norm[y * targetW + x] = Math.max(0, Math.min(1, (val - minVal) / range));
-          }
-        }
-        return { norm, minVal, maxVal };
-      } else if (depthResult.depth) {
-        const dImg = depthResult.depth;
-        const norm = new Float32Array(targetW * targetH);
-        const dw = dImg.width, dh = dImg.height, ch = dImg.channels || 1;
-        for (let y = 0; y < targetH; y++) {
-          const sy = Math.min(dh - 1, Math.round((y / Math.max(1, targetH - 1)) * (dh - 1)));
-          for (let x = 0; x < targetW; x++) {
-            const sx = Math.min(dw - 1, Math.round((x / Math.max(1, targetW - 1)) * (dw - 1)));
-            norm[y * targetW + x] = dImg.data[(sy * dw + sx) * ch] / 255.0;
-          }
-        }
-        return { norm, minVal: 0, maxVal: 255 };
-      }
-      throw new Error('Depth output unavailable');
-    }
-
-    // ---------------------------------------------------------
-    // AR HUD & Real-time Object Detection Loop
+    // HUD & Throttled MediaPipe Loop (60fps smooth)
     // ---------------------------------------------------------
     function getVideoCoverTransform(viewW, viewH, srcW, srcH) {
       const scale = Math.max(viewW / srcW, viewH / srcH);
-      const drawW = srcW * scale;
-      const drawH = srcH * scale;
       return {
         scale,
-        offsetX: (viewW - drawW) / 2,
-        offsetY: (viewH - drawH) / 2
+        offsetX: (viewW - srcW * scale) / 2,
+        offsetY: (viewH - srcH * scale) / 2
       };
     }
 
@@ -992,6 +1002,7 @@
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const vw = hudCanvas.clientWidth;
       const vh = hudCanvas.clientHeight;
+      if (!vw || !vh) return;
       if (hudCanvas.width !== vw * dpr || hudCanvas.height !== vh * dpr) {
         hudCanvas.width = vw * dpr;
         hudCanvas.height = vh * dpr;
@@ -1001,213 +1012,293 @@
       hudCtx.scale(dpr, dpr);
       hudCtx.clearRect(0, 0, vw, vh);
 
-      // 1. Gyro Artificial Horizon & Reticle
-      const cx = vw / 2;
-      const cy = vh / 2;
+      // Gyro horizon & crosshair
+      const cx = vw / 2, cy = vh / 2;
       const pitchDeg = state.gyroAvailable ? (state.rawOrient.beta - 90) : 0;
       const rollRad = state.gyroAvailable ? THREE.MathUtils.degToRad(-state.rawOrient.gamma) : 0;
 
       hudCtx.save();
       hudCtx.translate(cx, cy);
       hudCtx.rotate(rollRad);
-      const pitchPx = Math.max(-140, Math.min(140, pitchDeg * 2.2));
-
-      // Horizon line
-      hudCtx.strokeStyle = 'rgba(0, 240, 255, 0.38)';
+      const py = Math.max(-130, Math.min(130, pitchDeg * 2.0));
+      hudCtx.strokeStyle = 'rgba(0, 240, 255, 0.35)';
       hudCtx.lineWidth = 1.2;
       hudCtx.beginPath();
-      hudCtx.moveTo(-110, pitchPx);
-      hudCtx.lineTo(-28, pitchPx);
-      hudCtx.moveTo(28, pitchPx);
-      hudCtx.lineTo(110, pitchPx);
+      hudCtx.moveTo(-95, py); hudCtx.lineTo(-24, py);
+      hudCtx.moveTo(24, py); hudCtx.lineTo(95, py);
       hudCtx.stroke();
 
-      // Center LiDAR crosshair
-      hudCtx.strokeStyle = 'rgba(0, 255, 157, 0.65)';
+      hudCtx.strokeStyle = 'rgba(0, 255, 157, 0.6)';
       hudCtx.beginPath();
-      hudCtx.arc(0, 0, 18, 0, Math.PI * 2);
-      hudCtx.moveTo(-26, 0); hudCtx.lineTo(-10, 0);
-      hudCtx.moveTo(10, 0); hudCtx.lineTo(26, 0);
-      hudCtx.moveTo(0, -26); hudCtx.lineTo(0, -10);
-      hudCtx.moveTo(0, 10); hudCtx.lineTo(0, 26);
+      hudCtx.arc(0, 0, 14, 0, Math.PI * 2);
       hudCtx.stroke();
       hudCtx.restore();
 
-      // 2. Detected Objects Bounding Boxes
-      if (state.cameraActive && video.videoWidth > 0 && state.detections.length > 0) {
-        const tf = getVideoCoverTransform(vw, vh, state.lastCaptureSize.w, state.lastCaptureSize.h);
+      // MediaPipe detections
+      if (state.cameraActive && video.videoWidth > 0) {
+        const tf = getVideoCoverTransform(vw, vh, video.videoWidth, video.videoHeight);
 
         for (const det of state.detections) {
-          const x1 = tf.offsetX + det.boxNorm.xmin * state.lastCaptureSize.w * tf.scale;
-          const y1 = tf.offsetY + det.boxNorm.ymin * state.lastCaptureSize.h * tf.scale;
-          const x2 = tf.offsetX + det.boxNorm.xmax * state.lastCaptureSize.w * tf.scale;
-          const y2 = tf.offsetY + det.boxNorm.ymax * state.lastCaptureSize.h * tf.scale;
-          const bw = x2 - x1;
-          const bh = y2 - y1;
+          const x1 = tf.offsetX + det.boxNorm.xmin * video.videoWidth * tf.scale;
+          const y1 = tf.offsetY + det.boxNorm.ymin * video.videoHeight * tf.scale;
+          const x2 = tf.offsetX + det.boxNorm.xmax * video.videoWidth * tf.scale;
+          const y2 = tf.offsetY + det.boxNorm.ymax * video.videoHeight * tf.scale;
+          const bw = x2 - x1, bh = y2 - y1;
 
-          const isLocked = state.lockedDet && state.lockedDet.label === det.label &&
-            Math.abs(state.lockedDet.boxNorm.xmin - det.boxNorm.xmin) < 0.25;
+          const isTarget = state.target && state.target.label === det.label;
+          const col = isTarget ? '#ffb800' : '#00ff9d';
+          hudCtx.strokeStyle = col;
+          hudCtx.lineWidth = isTarget ? 2.4 : 1.5;
+          hudCtx.strokeRect(x1, y1, bw, bh);
 
-          const color = isLocked ? '#ffb800' : '#00ff9d';
-          hudCtx.strokeStyle = color;
-          hudCtx.lineWidth = isLocked ? 2.5 : 1.6;
-          hudCtx.fillStyle = isLocked ? 'rgba(255, 184, 0, 0.12)' : 'rgba(0, 255, 157, 0.06)';
-          hudCtx.fillRect(x1, y1, bw, bh);
-
-          // Cyber corner brackets
-          const cLen = Math.min(18, bw * 0.25, bh * 0.25);
-          hudCtx.beginPath();
-          // Top-left
-          hudCtx.moveTo(x1, y1 + cLen); hudCtx.lineTo(x1, y1); hudCtx.lineTo(x1 + cLen, y1);
-          // Top-right
-          hudCtx.moveTo(x2 - cLen, y1); hudCtx.lineTo(x2, y1); hudCtx.lineTo(x2, y1 + cLen);
-          // Bottom-left
-          hudCtx.moveTo(x1, y2 - cLen); hudCtx.lineTo(x1, y2); hudCtx.lineTo(x1 + cLen, y2);
-          // Bottom-right
-          hudCtx.moveTo(x2 - cLen, y2); hudCtx.lineTo(x2, y2); hudCtx.lineTo(x2, y2 - cLen);
-          hudCtx.stroke();
-
-          // Label tag
-          const labelTxt = `${det.label.toUpperCase()} ${Math.round(det.score * 100)}%`;
+          const tag = `${det.label.toUpperCase()} ${Math.round(det.score * 100)}%`;
           hudCtx.font = 'bold 11px ui-monospace, monospace';
-          const tw = hudCtx.measureText(labelTxt).width + 12;
-          hudCtx.fillStyle = color;
-          hudCtx.fillRect(x1, Math.max(0, y1 - 20), tw, 18);
-          hudCtx.fillStyle = '#041016';
-          hudCtx.fillText(labelTxt, x1 + 6, Math.max(13, y1 - 7));
+          const tw = hudCtx.measureText(tag).width + 10;
+          hudCtx.fillStyle = col;
+          hudCtx.fillRect(x1, Math.max(0, y1 - 18), tw, 18);
+          hudCtx.fillStyle = '#031016';
+          hudCtx.fillText(tag, x1 + 5, Math.max(13, y1 - 5));
 
-          // Save screen rect for tap detection
-          det._screenRect = { x1, y1, x2, y2 };
+          det._screen = { x1, y1, x2, y2 };
+        }
+
+        // Manual tap focus point reticle
+        if (state.target && state.target.tapNorm) {
+          const tx = tf.offsetX + state.target.tapNorm.x * video.videoWidth * tf.scale;
+          const ty = tf.offsetY + state.target.tapNorm.y * video.videoHeight * tf.scale;
+          hudCtx.strokeStyle = '#ffb800';
+          hudCtx.lineWidth = 2;
+          hudCtx.beginPath();
+          hudCtx.arc(tx, ty, 20, 0, Math.PI * 2);
+          hudCtx.moveTo(tx - 26, ty); hudCtx.lineTo(tx + 26, ty);
+          hudCtx.moveTo(tx, ty - 26); hudCtx.lineTo(tx, ty + 26);
+          hudCtx.stroke();
         }
       }
-
       hudCtx.restore();
     }
 
-    async function detectionLoop() {
-      if (state.cameraActive && state.detectEnabled && !state.isDetecting && !state.isScanning &&
-          state.objectDetector && video.readyState >= 2 && video.videoWidth > 0 &&
-          scannerView.classList.contains('active')) {
-        state.isDetecting = true;
-        try {
-          const cap = captureSourceToCanvas(video, video.videoWidth, video.videoHeight, 320);
-          state.lastCaptureSize = { w: cap.w, h: cap.h };
-          const results = await state.objectDetector(cap.rawImage, { threshold: 0.42, percentage: false });
-          state.detections = results.map(r => ({
-            label: r.label,
-            score: r.score,
-            boxNorm: {
-              xmin: Math.max(0, r.box.xmin / cap.w),
-              ymin: Math.max(0, r.box.ymin / cap.h),
-              xmax: Math.min(1, r.box.xmax / cap.w),
-              ymax: Math.min(1, r.box.ymax / cap.h)
-            }
-          }));
-          document.getElementById('telObj').textContent = String(state.detections.length);
-        } catch (err) {
-          console.warn('Detection tick error:', err);
-        } finally {
-          state.isDetecting = false;
+    let lastVideoTime = -1;
+    let lastMpTs = 0;
+    let lastDetectRun = 0;
+
+    function startRuntimeLoops() {
+      function tick() {
+        const now = performance.now();
+        if (scannerView.classList.contains('active')) {
+          drawHUD();
+
+          // Run lightweight MediaPipe every ~150ms when enabled & idle
+          if (state.cameraActive && state.detectEnabled && !state.isScanning &&
+              state.detector && video.readyState >= 2 && video.videoWidth > 0 &&
+              now - lastDetectRun > 150 && video.currentTime !== lastVideoTime) {
+            lastDetectRun = now;
+            lastVideoTime = video.currentTime;
+            lastMpTs = Math.max(lastMpTs + 1, Math.round(now));
+            try {
+              const res = state.detector.detectForVideo(video, lastMpTs);
+              const vw = video.videoWidth, vh = video.videoHeight;
+              state.detections = (res.detections || []).map(d => {
+                const cat = d.categories?.[0] || { categoryName: 'object', score: 0.5 };
+                const b = d.boundingBox;
+                return {
+                  label: cat.categoryName,
+                  score: cat.score,
+                  boxNorm: {
+                    xmin: Math.max(0, b.originX / vw),
+                    ymin: Math.max(0, b.originY / vh),
+                    xmax: Math.min(1, (b.originX + b.width) / vw),
+                    ymax: Math.min(1, (b.originY + b.height) / vh)
+                  }
+                };
+              });
+            } catch (e) {}
+          }
         }
+        requestAnimationFrame(tick);
       }
-      setTimeout(detectionLoop, 260);
-    }
-
-    function hudAnimLoop() {
-      if (scannerView.classList.contains('active')) {
-        drawHUD();
-      }
-      requestAnimationFrame(hudAnimLoop);
-    }
-
-    function startLoops() {
-      hudAnimLoop();
-      detectionLoop();
+      requestAnimationFrame(tick);
       multiScanCheckLoop();
     }
 
-    // Tap HUD to lock/unlock an object
+    // Tap HUD: lock object box OR lock tap focus point for foreground extraction!
     hudCanvas.addEventListener('pointerdown', (e) => {
+      if (!state.cameraActive || video.videoWidth === 0) return;
       const rect = hudCanvas.getBoundingClientRect();
       const px = e.clientX - rect.left;
       const py = e.clientY - rect.top;
 
-      // Find smallest matching box
-      let hit = null;
-      let minArea = Infinity;
+      let hit = null, minArea = Infinity;
       for (const det of state.detections) {
-        const sr = det._screenRect;
-        if (!sr) continue;
-        if (px >= sr.x1 && px <= sr.x2 && py >= sr.y1 && py <= sr.y2) {
-          const area = (sr.x2 - sr.x1) * (sr.y2 - sr.y1);
-          if (area < minArea) {
-            minArea = area;
-            hit = det;
-          }
+        const s = det._screen;
+        if (s && px >= s.x1 && px <= s.x2 && py >= s.y1 && py <= s.y2) {
+          const area = (s.x2 - s.x1) * (s.y2 - s.y1);
+          if (area < minArea) { minArea = area; hit = det; }
         }
       }
 
+      const tf = getVideoCoverTransform(rect.width, rect.height, video.videoWidth, video.videoHeight);
+      const nx = Math.max(0, Math.min(1, (px - tf.offsetX) / (video.videoWidth * tf.scale)));
+      const ny = Math.max(0, Math.min(1, (py - tf.offsetY) / (video.videoHeight * tf.scale)));
+
       if (hit) {
-        state.lockedDet = hit;
-        document.getElementById('lockName').textContent = hit.label.toUpperCase();
-        document.getElementById('btnClearLock').classList.add('visible');
-        showToast(`ターゲットロック: ${hit.label.toUpperCase()} (3Dモデル時に切抜可能)`);
+        state.target = { label: hit.label, boxNorm: hit.boxNorm, tapNorm: { x: nx, y: ny } };
+        document.getElementById('targetName').textContent = hit.label.toUpperCase();
+        showToast(`🎯 ${hit.label.toUpperCase()} をロック（そのまま3D化で自動切抜）`);
+      } else {
+        state.target = { label: 'POINT', boxNorm: null, tapNorm: { x: nx, y: ny } };
+        document.getElementById('targetName').textContent = 'タップ位置';
+        showToast('🎯 タップ位置の物体を切抜ターゲットに設定');
       }
+      document.getElementById('btnClearTarget').classList.add('visible');
     });
 
-    document.getElementById('btnClearLock').addEventListener('click', () => {
-      state.lockedDet = null;
-      document.getElementById('btnClearLock').classList.remove('visible');
-      showToast('ロックを解除しました');
+    document.getElementById('btnClearTarget').addEventListener('click', () => {
+      state.target = null;
+      document.getElementById('btnClearTarget').classList.remove('visible');
+      showToast('ターゲット解除');
     });
 
     document.getElementById('btnToggleDetect').addEventListener('click', (e) => {
+      if (!state.detector) { showToast('物体認識モジュール未読込'); return; }
       state.detectEnabled = !state.detectEnabled;
       e.target.classList.toggle('on', state.detectEnabled);
-      e.target.textContent = state.detectEnabled ? '👁 物体認識 ON' : '👁 物体認識 OFF';
-      if (!state.detectEnabled) {
-        state.detections = [];
-        document.getElementById('telObj').textContent = '0';
-      }
+      e.target.textContent = state.detectEnabled ? '👁 物体枠 ON' : '👁 物体枠 OFF';
+      if (!state.detectEnabled) state.detections = [];
     });
 
     document.getElementById('btnResetGyro').addEventListener('click', resetGyroYaw);
 
     // ---------------------------------------------------------
-    // Three.js 3D Viewer Setup
+    // Depth Extraction + Fast Joint Bilateral Filter
+    // ---------------------------------------------------------
+    const capCanvas = document.createElement('canvas');
+    const capCtx = capCanvas.getContext('2d', { willReadFrequently: true });
+
+    function captureToCanvas(srcEl, srcW, srcH, maxSide = 448) {
+      const scale = Math.min(1, maxSide / Math.max(srcW, srcH));
+      const w = Math.max(64, Math.round((srcW * scale) / 2) * 2);
+      const h = Math.max(64, Math.round((srcH * scale) / 2) * 2);
+      capCanvas.width = w;
+      capCanvas.height = h;
+      capCtx.drawImage(srcEl, 0, 0, w, h);
+      const imgData = capCtx.getImageData(0, 0, w, h);
+      return { w, h, rgb: imgData.data };
+    }
+
+    function resampleToGrid(srcW, srcH, rgb, pw, ph, rawDepth, gw, gh) {
+      const rgbGrid = new Uint8Array(gw * gh * 3);
+      const depthGrid = new Float32Array(gw * gh);
+
+      let minD = Infinity, maxD = -Infinity;
+      for (let i = 0; i < rawDepth.length; i++) {
+        if (rawDepth[i] < minD) minD = rawDepth[i];
+        if (rawDepth[i] > maxD) maxD = rawDepth[i];
+      }
+      const range = (maxD - minD) || 1e-6;
+
+      for (let gy = 0; gy < gh; gy++) {
+        const sy = Math.min(srcH - 1, Math.round((gy / (gh - 1)) * (srcH - 1)));
+        const fy = (gy / (gh - 1)) * (ph - 1);
+        const y0 = Math.floor(fy), y1 = Math.min(ph - 1, y0 + 1), dy = fy - y0;
+
+        for (let gx = 0; gx < gw; gx++) {
+          const sx = Math.min(srcW - 1, Math.round((gx / (gw - 1)) * (srcW - 1)));
+          const cIdx = (sy * srcW + sx) * 4;
+          const gIdx = gy * gw + gx;
+          rgbGrid[gIdx * 3] = rgb[cIdx];
+          rgbGrid[gIdx * 3 + 1] = rgb[cIdx + 1];
+          rgbGrid[gIdx * 3 + 2] = rgb[cIdx + 2];
+
+          const fx = (gx / (gw - 1)) * (pw - 1);
+          const x0 = Math.floor(fx), x1 = Math.min(pw - 1, x0 + 1), dx = fx - x0;
+          const v00 = rawDepth[y0 * pw + x0], v10 = rawDepth[y0 * pw + x1];
+          const v01 = rawDepth[y1 * pw + x0], v11 = rawDepth[y1 * pw + x1];
+          const val = (v00 + (v10 - v00) * dx) * (1 - dy) + (v01 + (v11 - v01) * dx) * dy;
+          depthGrid[gIdx] = Math.max(0, Math.min(1, (val - minD) / range));
+        }
+      }
+      return { rgbGrid, depthGrid, minD, maxD };
+    }
+
+    // Joint Bilateral Filter: smooths depth staircasing while keeping RGB object edges sharp (~5ms)
+    function jointBilateralSmooth(depthIn, rgbGrid, gw, gh, passes) {
+      if (passes <= 0) return depthIn;
+      let cur = new Float32Array(depthIn);
+      let nxt = new Float32Array(depthIn.length);
+
+      // Color edge sensitivity
+      const invColorVar = 1.0 / (2.0 * 28 * 28 * 3);
+      const spatialW = [1.0, 0.78, 0.45]; // dist 0, 1, 2
+
+      for (let p = 0; p < passes; p++) {
+        for (let y = 0; y < gh; y++) {
+          for (let x = 0; x < gw; x++) {
+            const idx = y * gw + x;
+            const r0 = rgbGrid[idx * 3], g0 = rgbGrid[idx * 3 + 1], b0 = rgbGrid[idx * 3 + 2];
+            const d0 = cur[idx];
+            let sum = 0, wSum = 0;
+
+            for (let ky = -2; ky <= 2; ky++) {
+              const ny = y + ky;
+              if (ny < 0 || ny >= gh) continue;
+              const wy = spatialW[Math.abs(ky)];
+              for (let kx = -2; kx <= 2; kx++) {
+                const nx = x + kx;
+                if (nx < 0 || nx >= gw) continue;
+                const nIdx = ny * gw + nx;
+                const dr = rgbGrid[nIdx * 3] - r0;
+                const dg = rgbGrid[nIdx * 3 + 1] - g0;
+                const db = rgbGrid[nIdx * 3 + 2] - b0;
+                const cDiff = dr * dr + dg * dg + db * db;
+                // Also protect strong depth boundaries
+                const dd = cur[nIdx] - d0;
+                const w = wy * spatialW[Math.abs(kx)] * Math.exp(-cDiff * invColorVar - dd * dd * 180.0);
+                sum += cur[nIdx] * w;
+                wSum += w;
+              }
+            }
+            nxt[idx] = wSum > 0 ? (sum / wSum) : d0;
+          }
+        }
+        cur.set(nxt);
+      }
+      return cur;
+    }
+
+    // ---------------------------------------------------------
+    // Three.js Viewer
     // ---------------------------------------------------------
     const threeContainer = document.getElementById('threeContainer');
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.05, 50);
-    camera.position.set(0, 0.15, 1.35);
+    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.03, 60);
+    camera.position.set(0, 0.1, 1.25);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     threeContainer.appendChild(renderer.domElement);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.07;
+    controls.dampingFactor = 0.08;
 
-    // Lights
-    scene.add(new THREE.AmbientLight(0xffffff, 1.3));
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.4);
-    dirLight.position.set(1.5, 2.5, 2.0);
+    scene.add(new THREE.AmbientLight(0xffffff, 1.35));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.15);
+    dirLight.position.set(1.2, 2.0, 2.5);
     scene.add(dirLight);
 
-    // Reference Cyber Grid
     const gridHelper = new THREE.GridHelper(6, 24, 0x00f0ff, 0x102438);
-    gridHelper.position.y = -0.85;
+    gridHelper.position.y = -0.8;
     scene.add(gridHelper);
 
     const modelGroup = new THREE.Group();
-    scene.add(modelGroup);
-
     const multiCloudGroup = new THREE.Group();
-    scene.add(multiCloudGroup);
+    const xrCloudGroup = new THREE.Group();
+    scene.add(modelGroup, multiCloudGroup, xrCloudGroup);
 
     function onViewerResize() {
+      if (renderer.xr.isPresenting) return;
       const w = threeContainer.clientWidth || window.innerWidth;
       const h = threeContainer.clientHeight || window.innerHeight;
       camera.aspect = w / h;
@@ -1216,13 +1307,13 @@
     }
     window.addEventListener('resize', onViewerResize);
 
-    function clearGroup(group) {
-      while (group.children.length > 0) {
-        const child = group.children.pop();
-        if (child.geometry) child.geometry.dispose();
-        if (child.material) {
-          if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
-          else child.material.dispose();
+    function clearGroup(grp) {
+      while (grp.children.length > 0) {
+        const c = grp.children.pop();
+        if (c.geometry) c.geometry.dispose();
+        if (c.material) {
+          if (Array.isArray(c.material)) c.material.forEach(m => m.dispose());
+          else c.material.dispose();
         }
       }
     }
@@ -1236,73 +1327,78 @@
     }
 
     // ---------------------------------------------------------
-    // Build Single 3D Mesh / Point Cloud from Depth + RGB
+    // Build High-Precision Mesh + Optional Solid Back Shell
     // ---------------------------------------------------------
     function buildSingle3DModel() {
-      if (!state.singleScanData) return;
+      const sd = state.singleRawData;
+      if (!sd) return;
+
       clearGroup(modelGroup);
-      multiCloudGroup.visible = false;
       modelGroup.visible = true;
+      multiCloudGroup.visible = false;
+      xrCloudGroup.visible = false;
 
-      const { w, h, rgb, normDepth, lockedBoxNorm } = state.singleScanData;
+      const { gw, gh, rgbGrid, rawNormDepth, boxNorm, tapNorm } = sd;
       const depthScale = parseFloat(document.getElementById('rngDepthScale').value);
+      const smoothPasses = parseInt(document.getElementById('rngSmooth').value, 10);
       const bgCutPct = parseFloat(document.getElementById('rngBgCut').value) / 100;
-      const edgeRatio = parseFloat(document.getElementById('rngEdgeCut').value);
-      const cropBox = (state.cropToLockedObject && lockedBoxNorm) ? lockedBoxNorm : null;
+      const thickness = parseFloat(document.getElementById('rngThickness').value);
 
-      const step = 2; // Sample grid step -> crisp & fast
-      const gw = Math.floor(w / step);
-      const gh = Math.floor(h / step);
+      // 1. Joint Bilateral Smooth
+      const smoothD = jointBilateralSmooth(rawNormDepth, rgbGrid, gw, gh, smoothPasses);
+
+      // 2. Determine foreground mask
+      const activeMask = new Uint8Array(gw * gh);
+      let refD = null;
+      if (state.cropForeground && (boxNorm || tapNorm)) {
+        const rx = tapNorm ? Math.floor(tapNorm.x * (gw - 1))
+                           : Math.floor(((boxNorm.xmin + boxNorm.xmax) * 0.5) * (gw - 1));
+        const ry = tapNorm ? Math.floor(tapNorm.y * (gh - 1))
+                           : Math.floor(((boxNorm.ymin + boxNorm.ymax) * 0.5) * (gh - 1));
+        refD = smoothD[Math.max(0, Math.min(gh - 1, ry)) * gw + Math.max(0, Math.min(gw - 1, rx))];
+      }
 
       const fovRad = THREE.MathUtils.degToRad(55);
-      const focal = (h / 2) / Math.tan(fovRad / 2);
+      const focal = (gh / 2) / Math.tan(fovRad / 2);
+      const zGrid = new Float32Array(gw * gh);
+      const frontIdxMap = new Int32Array(gw * gh).fill(-1);
 
-      // Compute vertices
       const positions = [];
       const colors = [];
-      const uvs = [];
-      const validIndex = new Int32Array(gw * gh).fill(-1);
-      const zGrid = new Float32Array(gw * gh);
-
       let sumX = 0, sumY = 0, sumZ = 0, vCount = 0;
 
       for (let gy = 0; gy < gh; gy++) {
-        const y = gy * step;
-        const ny = y / h;
+        const ny = gy / (gh - 1);
         for (let gx = 0; gx < gw; gx++) {
-          const x = gx * step;
-          const nx = x / w;
+          const nx = gx / (gw - 1);
+          const idx = gy * gw + gx;
+          const d = smoothD[idx];
 
-          if (cropBox) {
-            if (nx < cropBox.xmin || nx > cropBox.xmax || ny < cropBox.ymin || ny > cropBox.ymax) {
-              continue;
+          if (d < bgCutPct) continue;
+          if (state.cropForeground) {
+            if (boxNorm) {
+              const pad = 0.04;
+              if (nx < boxNorm.xmin - pad || nx > boxNorm.xmax + pad ||
+                  ny < boxNorm.ymin - pad || ny > boxNorm.ymax + pad) continue;
             }
+            if (refD !== null && Math.abs(d - refD) > 0.24) continue;
           }
 
-          const pIdx = y * w + x;
-          const d = normDepth[pIdx];
-          if (d < bgCutPct) continue;
-
-          // Perspective unprojection from inverse depth
-          const invOffset = 0.22;
-          const zMeters = (0.55 * depthScale) / (d + invOffset);
-          const wx = ((x - w / 2) * zMeters) / focal;
-          const wy = -((y - h / 2) * zMeters) / focal;
+          activeMask[idx] = 1;
+          const zMeters = (0.62 * depthScale) / (d + 0.25);
+          const wx = ((gx - gw / 2) * zMeters) / focal;
+          const wy = -((gy - gh / 2) * zMeters) / focal;
           const wz = -zMeters;
 
-          const gIdx = gy * gw + gx;
-          validIndex[gIdx] = vCount;
-          zGrid[gIdx] = zMeters;
-
+          zGrid[idx] = zMeters;
+          frontIdxMap[idx] = vCount;
           positions.push(wx, wy, wz);
-          uvs.push(nx, 1 - ny);
 
           if (state.renderStyle === 'heat') {
             const [hr, hg, hb] = depthToHeatColor(d);
             colors.push(hr, hg, hb);
           } else {
-            const cIdx = pIdx * 4;
-            colors.push(rgb[cIdx] / 255, rgb[cIdx + 1] / 255, rgb[cIdx + 2] / 255);
+            colors.push(rgbGrid[idx * 3] / 255, rgbGrid[idx * 3 + 1] / 255, rgbGrid[idx * 3 + 2] / 255);
           }
 
           sumX += wx; sumY += wy; sumZ += wz;
@@ -1312,10 +1408,7 @@
 
       if (vCount === 0) return;
 
-      // Center the generated 3D model around (0, 0, 0)
-      const cx = sumX / vCount;
-      const cy = sumY / vCount;
-      const cz = sumZ / vCount;
+      const cx = sumX / vCount, cy = sumY / vCount, cz = sumZ / vCount;
       for (let i = 0; i < vCount; i++) {
         positions[i * 3] -= cx;
         positions[i * 3 + 1] -= cy;
@@ -1323,66 +1416,129 @@
       }
 
       const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-      geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-      geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
 
       if (state.renderStyle === 'points') {
-        const ptsMat = new THREE.PointsMaterial({
-          size: 0.012,
-          vertexColors: true,
-          sizeAttenuation: true
-        });
-        modelGroup.add(new THREE.Points(geometry, ptsMat));
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+        modelGroup.add(new THREE.Points(geometry, new THREE.PointsMaterial({
+          size: 0.011, vertexColors: true, sizeAttenuation: true
+        })));
       } else {
-        // Build Triangle Indices with depth-discontinuity culling
+        // Front Triangles with sharp gradient culling (removes stretched rubber edges)
         const indices = [];
+        const frontTriList = [];
+        const maxJumpRatio = 1.075;
+
         for (let gy = 0; gy < gh - 1; gy++) {
           for (let gx = 0; gx < gw - 1; gx++) {
-            const i00 = gy * gw + gx;
-            const i10 = i00 + 1;
-            const i01 = i00 + gw;
-            const i11 = i01 + 1;
-
-            const v00 = validIndex[i00];
-            const v10 = validIndex[i10];
-            const v01 = validIndex[i01];
-            const v11 = validIndex[i11];
+            const i00 = gy * gw + gx, i10 = i00 + 1, i01 = i00 + gw, i11 = i01 + 1;
+            const v00 = frontIdxMap[i00], v10 = frontIdxMap[i10];
+            const v01 = frontIdxMap[i01], v11 = frontIdxMap[i11];
 
             if (v00 >= 0 && v10 >= 0 && v01 >= 0) {
               const zMin = Math.min(zGrid[i00], zGrid[i10], zGrid[i01]);
               const zMax = Math.max(zGrid[i00], zGrid[i10], zGrid[i01]);
-              if (zMax / zMin < edgeRatio) {
+              if (zMax / zMin < maxJumpRatio) {
                 indices.push(v00, v01, v10);
+                frontTriList.push([i00, i01, i10]);
               }
             }
             if (v10 >= 0 && v01 >= 0 && v11 >= 0) {
               const zMin = Math.min(zGrid[i10], zGrid[i01], zGrid[i11]);
               const zMax = Math.max(zGrid[i10], zGrid[i01], zGrid[i11]);
-              if (zMax / zMin < edgeRatio) {
+              if (zMax / zMin < maxJumpRatio) {
                 indices.push(v10, v01, v11);
+                frontTriList.push([i10, i01, i11]);
               }
             }
           }
         }
 
+        // Solid Back Shell Extrusion (makes isolated objects truly 3D from any angle!)
+        if (thickness > 0.005 && indices.length > 0) {
+          // Compute BFS distance from mesh boundary (depth discontinuity or mask edge)
+          const edgeDist = new Int16Array(gw * gh).fill(-1);
+          const queue = [];
+          const hasTriNeighbor = new Uint8Array(gw * gh);
+          for (const [a, b, c] of frontTriList) {
+            hasTriNeighbor[a] = hasTriNeighbor[b] = hasTriNeighbor[c] = 1;
+          }
+
+          for (let gy = 0; gy < gh; gy++) {
+            for (let gx = 0; gx < gw; gx++) {
+              const idx = gy * gw + gx;
+              if (frontIdxMap[idx] < 0 || !hasTriNeighbor[idx]) continue;
+              const isBorder =
+                gx === 0 || gx === gw - 1 || gy === 0 || gy === gh - 1 ||
+                frontIdxMap[idx - 1] < 0 || frontIdxMap[idx + 1] < 0 ||
+                frontIdxMap[idx - gw] < 0 || frontIdxMap[idx + gw] < 0 ||
+                Math.abs(zGrid[idx] - zGrid[idx - 1]) / zGrid[idx] > 0.07 ||
+                Math.abs(zGrid[idx] - zGrid[idx + 1]) / zGrid[idx] > 0.07 ||
+                Math.abs(zGrid[idx] - zGrid[idx - gw]) / zGrid[idx] > 0.07 ||
+                Math.abs(zGrid[idx] - zGrid[idx + gw]) / zGrid[idx] > 0.07;
+              if (isBorder) {
+                edgeDist[idx] = 0;
+                queue.push(idx);
+              }
+            }
+          }
+
+          let head = 0;
+          const maxSteps = 10;
+          while (head < queue.length) {
+            const cur = queue[head++];
+            const dNext = edgeDist[cur] + 1;
+            if (dNext > maxSteps) continue;
+            const cy0 = Math.floor(cur / gw), cx0 = cur % gw;
+            const nbs = [
+              cx0 > 0 ? cur - 1 : -1,
+              cx0 < gw - 1 ? cur + 1 : -1,
+              cy0 > 0 ? cur - gw : -1,
+              cy0 < gh - 1 ? cur + gw : -1
+            ];
+            for (const nb of nbs) {
+              if (nb >= 0 && frontIdxMap[nb] >= 0 && edgeDist[nb] === -1) {
+                edgeDist[nb] = dNext;
+                queue.push(nb);
+              }
+            }
+          }
+
+          // Create back vertices (border has 0 offset -> sealed watertight edges!)
+          const backIdxMap = new Int32Array(gw * gh).fill(-1);
+          for (let idx = 0; idx < gw * gh; idx++) {
+            const fv = frontIdxMap[idx];
+            if (fv < 0 || !hasTriNeighbor[idx]) continue;
+            const stepVal = edgeDist[idx] >= 0 ? edgeDist[idx] : maxSteps;
+            const k = Math.min(1, stepVal / maxSteps);
+            const offsetZ = thickness * Math.sqrt(k); // Smooth dome back
+
+            backIdxMap[idx] = vCount++;
+            positions.push(positions[fv * 3], positions[fv * 3 + 1], positions[fv * 3 + 2] - offsetZ);
+            // Slightly darken back color for natural shading
+            colors.push(colors[fv * 3] * 0.72, colors[fv * 3 + 1] * 0.72, colors[fv * 3 + 2] * 0.72);
+          }
+
+          // Back triangles (reversed winding)
+          for (const [ia, ib, ic] of frontTriList) {
+            const ba = backIdxMap[ia], bb = backIdxMap[ib], bc = backIdxMap[ic];
+            if (ba >= 0 && bb >= 0 && bc >= 0) {
+              indices.push(ba, bc, bb);
+            }
+          }
+        }
+
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
         geometry.setIndex(indices);
         geometry.computeVertexNormals();
 
-        let mat;
-        if (state.renderStyle === 'wire') {
-          mat = new THREE.MeshBasicMaterial({
-            color: 0x00f0ff,
-            wireframe: true
-          });
-        } else {
-          mat = new THREE.MeshStandardMaterial({
-            vertexColors: true,
-            roughness: 0.65,
-            metalness: 0.05,
-            side: THREE.DoubleSide
-          });
-        }
+        const mat = state.renderStyle === 'wire'
+          ? new THREE.MeshBasicMaterial({ color: 0x00f0ff, wireframe: true })
+          : new THREE.MeshStandardMaterial({
+              vertexColors: true, roughness: 0.58, metalness: 0.06, side: THREE.FrontSide
+            });
+
         modelGroup.add(new THREE.Mesh(geometry, mat));
       }
 
@@ -1390,81 +1546,54 @@
     }
 
     // ---------------------------------------------------------
-    // Single Scan Trigger (Camera or File)
+    // Single Scan Action
     // ---------------------------------------------------------
-    async function runSingleScanFromSource(sourceEl, srcW, srcH) {
-      if (!state.depthEstimator || state.isScanning) return;
+    async function runSingleScanFromSource(srcEl, srcW, srcH) {
+      if (!state.workerReady || state.isScanning) return;
       state.isScanning = true;
       scanLaser.classList.add('scanning');
-      showToast('LiDAR解析・3Dモデル生成中...', 3000);
+      showToast('高精度スキャン解析中...');
 
       try {
-        const cap = captureSourceToCanvas(sourceEl, srcW, srcH, 384);
-        const [depthRes, detRes] = await Promise.all([
-          state.depthEstimator(cap.rawImage),
-          state.objectDetector ? state.objectDetector(cap.rawImage, { threshold: 0.42, percentage: false }) : Promise.resolve([])
-        ]);
+        const cap = captureToCanvas(srcEl, srcW, srcH, 480);
+        const res = await inferDepthInWorker(cap.rgb, cap.w, cap.h);
 
-        const { norm } = extractDepthArray(depthRes, cap.w, cap.h);
+        // Resample to crisp 240px max grid (40k vertices -> ultra fast & clean)
+        const gridScale = Math.min(1, 240 / Math.max(cap.w, cap.h));
+        const gw = Math.max(80, Math.round(cap.w * gridScale));
+        const gh = Math.max(80, Math.round(cap.h * gridScale));
 
-        // Determine locked object (if any) or auto-detect main foreground object
-        let lockedBoxNorm = state.lockedDet ? state.lockedDet.boxNorm : null;
-        let autoLabel = state.lockedDet ? state.lockedDet.label : null;
-
-        if (!lockedBoxNorm && detRes.length > 0) {
-          // Remember detections for optional cropping
-          const best = detRes.reduce((a, b) => (a.score > b.score ? a : b));
-          lockedBoxNorm = {
-            xmin: Math.max(0, best.box.xmin / cap.w),
-            ymin: Math.max(0, best.box.ymin / cap.h),
-            xmax: Math.min(1, best.box.xmax / cap.w),
-            ymax: Math.min(1, best.box.ymax / cap.h)
-          };
-          autoLabel = best.label;
-        }
+        const { rgbGrid, depthGrid } = resampleToGrid(cap.w, cap.h, cap.rgb, res.pw, res.ph, res.data, gw, gh);
 
         state.viewMode = 'single';
-        state.singleScanData = {
-          w: cap.w,
-          h: cap.h,
-          rgb: cap.rgb,
-          normDepth: norm,
-          lockedBoxNorm,
-          label: autoLabel
+        state.singleRawData = {
+          gw, gh, rgbGrid, rawNormDepth: depthGrid,
+          boxNorm: state.target?.boxNorm || null,
+          tapNorm: state.target?.tapNorm || null,
+          label: state.target?.label || null
         };
 
-        // Configure viewer UI
         document.getElementById('singleSliders').style.display = 'grid';
-        const cropBtn = document.getElementById('btnViewerCropToggle');
-        if (lockedBoxNorm) {
+        const cropBtn = document.getElementById('btnCropToggle');
+        if (state.target) {
           cropBtn.style.display = 'inline-block';
-          state.cropToLockedObject = Boolean(state.lockedDet);
-          cropBtn.classList.toggle('on', state.cropToLockedObject);
-          cropBtn.textContent = `🎯 ${autoLabel.toUpperCase()}のみ切抜`;
-
-          // Smart background cutoff around object center depth
-          if (state.cropToLockedObject) {
-            const cx = Math.floor(((lockedBoxNorm.xmin + lockedBoxNorm.xmax) / 2) * cap.w);
-            const cy = Math.floor(((lockedBoxNorm.ymin + lockedBoxNorm.ymax) / 2) * cap.h);
-            const centerD = norm[cy * cap.w + cx];
-            const smartCut = Math.max(5, Math.min(70, Math.round(centerD * 58)));
-            document.getElementById('rngBgCut').value = smartCut;
-            document.getElementById('valBgCut').textContent = `${smartCut}%`;
-          }
+          state.cropForeground = true;
+          cropBtn.classList.add('on');
+          cropBtn.textContent = `🎯 ${state.target.label === 'POINT' ? 'タップ物体' : state.target.label.toUpperCase()}切抜`;
         } else {
           cropBtn.style.display = 'none';
-          state.cropToLockedObject = false;
+          state.cropForeground = false;
         }
 
         buildSingle3DModel();
-        camera.position.set(0, 0.12, 1.35);
+        camera.position.set(0, 0.1, 1.25);
         controls.target.set(0, 0, 0);
         controls.update();
         switchTab('viewer');
-        showToast('3Dモデル生成完了！ドラッグで回転できます');
+        showToast('生成完了！スライダーで調整できます');
       } catch (err) {
         console.error(err);
-        showToast('スキャンエラー: ' + err.message, 3500);
+        showToast('スキャンエラー: ' + err.message, 3200);
       } finally {
         state.isScanning = false;
         scanLaser.classList.remove('scanning');
@@ -1473,89 +1602,145 @@
 
     document.getElementById('btnSingleScan').addEventListener('click', () => {
       if (!state.cameraActive || video.videoWidth === 0) {
-        showToast('カメラが無効です。「📁 画像読込」をお試しください');
+        showToast('カメラ未起動。「📁 画像読込」をお試しください');
         return;
       }
       if (state.multiScanActive) toggleMultiScan(false);
       runSingleScanFromSource(video, video.videoWidth, video.videoHeight);
     });
 
-    // File Upload Scan
     document.getElementById('fileInput').addEventListener('change', (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
+      const f = e.target.files?.[0];
+      if (!f) return;
       const img = new Image();
       img.onload = () => {
-        state.lockedDet = null;
-        document.getElementById('btnClearLock').classList.remove('visible');
+        state.target = null;
+        document.getElementById('btnClearTarget').classList.remove('visible');
         runSingleScanFromSource(img, img.naturalWidth, img.naturalHeight);
         URL.revokeObjectURL(img.src);
       };
-      img.src = URL.createObjectURL(file);
+      img.src = URL.createObjectURL(f);
       e.target.value = '';
     });
 
     // ---------------------------------------------------------
-    // Multi-Scan (Gyro 360° Spatial LiDAR Accumulation)
+    // 360° AI + Gyro Spatial Scan (With Depth Alignment & Voxel Deduplication)
     // ---------------------------------------------------------
-    function appendMultiScanSlice(cap, normDepth, quat) {
+    function appendAlignedMultiSlice(gw, gh, rgbGrid, smoothD, quat) {
       modelGroup.visible = false;
+      xrCloudGroup.visible = false;
       multiCloudGroup.visible = true;
 
-      const step = 4;
+      // Convert relative depth to Z meters and align with previous frame if available
       const fovRad = THREE.MathUtils.degToRad(55);
-      const focal = (cap.h / 2) / Math.tan(fovRad / 2);
+      const focal = (gh / 2) / Math.tan(fovRad / 2);
 
+      // Compute raw inv-depth Z
+      const curZ = new Float32Array(gw * gh);
+      for (let i = 0; i < gw * gh; i++) {
+        curZ[i] = 0.8 / (smoothD[i] + 0.25);
+      }
+
+      // Align scale/shift to previous slice using overlapping rotated rays
+      let scaleA = 1.0, shiftB = 0.0;
+      if (state.prevMultiData) {
+        const prev = state.prevMultiData;
+        const relQ = prev.quat.clone().invert().multiply(quat);
+        const samplesPrev = [], samplesCur = [];
+        const ray = new THREE.Vector3();
+
+        for (let gy = 8; gy < gh - 8; gy += 6) {
+          for (let gx = 8; gx < gw - 8; gx += 6) {
+            const idx = gy * gw + gx;
+            if (smoothD[idx] < 0.06) continue;
+            // Project ray into previous camera frame
+            ray.set((gx - gw / 2) / focal, -(gy - gh / 2) / focal, -1).normalize();
+            ray.applyQuaternion(relQ);
+            if (ray.z >= -0.2) continue;
+            const px = Math.round((ray.x / -ray.z) * focal + gw / 2);
+            const py = Math.round((-ray.y / -ray.z) * focal + gh / 2);
+            if (px >= 2 && px < gw - 2 && py >= 2 && py < gh - 2) {
+              const pZ = prev.zGrid[py * gw + px];
+              const cZ = curZ[idx];
+              if (pZ > 0.2 && cZ > 0.2) {
+                samplesPrev.push(pZ);
+                samplesCur.push(cZ);
+              }
+            }
+          }
+        }
+
+        if (samplesCur.length >= 16) {
+          // Robust median ratio alignment (stable against outliers)
+          const ratios = samplesCur.map((c, k) => samplesPrev[k] / c).sort((a, b) => a - b);
+          const medRatio = ratios[Math.floor(ratios.length / 2)];
+          scaleA = Math.max(0.55, Math.min(1.8, medRatio));
+        }
+      }
+
+      const alignedZ = new Float32Array(gw * gh);
       const positions = [];
       const colors = [];
       const v = new THREE.Vector3();
 
-      for (let y = 0; y < cap.h; y += step) {
-        for (let x = 0; x < cap.w; x += step) {
-          const pIdx = y * cap.w + x;
-          const d = normDepth[pIdx];
-          if (d < 0.05) continue;
+      for (let gy = 1; gy < gh - 1; gy++) {
+        for (let gx = 1; gx < gw - 1; gx++) {
+          const idx = gy * gw + gx;
+          const zM = curZ[idx] * scaleA + shiftB;
+          alignedZ[idx] = zM;
 
-          const zMeters = 0.85 / (d + 0.22);
-          v.set(
-            ((x - cap.w / 2) * zMeters) / focal,
-            -((y - cap.h / 2) * zMeters) / focal,
-            -zMeters
-          );
-          // Rotate point into world space using gyro orientation
+          if (smoothD[idx] < 0.06) continue;
+          // Flying-pixel edge filter: skip pixels on sharp depth jumps
+          const d0 = smoothD[idx];
+          if (Math.abs(d0 - smoothD[idx - 1]) > 0.08 || Math.abs(d0 - smoothD[idx + 1]) > 0.08 ||
+              Math.abs(d0 - smoothD[idx - gw]) > 0.08 || Math.abs(d0 - smoothD[idx + gw]) > 0.08) {
+            continue;
+          }
+
+          if ((gx % 2 !== 0) || (gy % 2 !== 0)) continue;
+
+          v.set(((gx - gw / 2) * zM) / focal, -((gy - gh / 2) * zM) / focal, -zM);
           v.applyQuaternion(quat);
-          positions.push(v.x, v.y, v.z);
 
-          const cIdx = pIdx * 4;
-          colors.push(cap.rgb[cIdx] / 255, cap.rgb[cIdx + 1] / 255, cap.rgb[cIdx + 2] / 255);
+          // Spatial voxel deduplication (2cm grid)
+          const vx = Math.round(v.x * 50), vy = Math.round(v.y * 50), vz = Math.round(v.z * 50);
+          const vKey = `${vx},${vy},${vz}`;
+          if (state.multiVoxelSet.has(vKey)) continue;
+          state.multiVoxelSet.add(vKey);
+
+          positions.push(v.x, v.y, v.z);
+          colors.push(rgbGrid[idx * 3] / 255, rgbGrid[idx * 3 + 1] / 255, rgbGrid[idx * 3 + 2] / 255);
         }
       }
 
-      const geo = new THREE.BufferGeometry();
-      geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-      geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-      const mat = new THREE.PointsMaterial({ size: 0.02, vertexColors: true, sizeAttenuation: true });
-      multiCloudGroup.add(new THREE.Points(geo, mat));
+      state.prevMultiData = { quat: quat.clone(), zGrid: alignedZ };
 
-      state.multiPointsCount += positions.length / 3;
-      document.getElementById('telPts').textContent = state.multiPointsCount.toLocaleString();
+      if (positions.length > 0) {
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+        multiCloudGroup.add(new THREE.Points(geo, new THREE.PointsMaterial({
+          size: 0.022, vertexColors: true, sizeAttenuation: true
+        })));
+        state.multiPointsCount += positions.length / 3;
+        document.getElementById('telPts').textContent = state.multiPointsCount.toLocaleString();
+      }
     }
 
-    async function captureMultiScanFrame() {
+    async function captureMultiFrame() {
       if (!state.cameraActive || video.videoWidth === 0 || state.isScanning) return;
       state.isScanning = true;
       try {
         const q = getRelativeWorldQuat();
-        const cap = captureSourceToCanvas(video, video.videoWidth, video.videoHeight, 280);
-        const depthRes = await state.depthEstimator(cap.rawImage);
-        const extracted = extractDepthArray(depthRes, cap.w, cap.h, state.multiRefRange);
-        if (!state.multiRefRange) {
-          state.multiRefRange = { minVal: extracted.minVal, maxVal: extracted.maxVal };
-        }
-        appendMultiScanSlice(cap, extracted.norm, q);
+        const cap = captureToCanvas(video, video.videoWidth, video.videoHeight, 320);
+        const res = await inferDepthInWorker(cap.rgb, cap.w, cap.h);
+        const gw = 128, gh = Math.max(72, Math.round(128 * (cap.h / cap.w)));
+        const { rgbGrid, depthGrid } = resampleToGrid(cap.w, cap.h, cap.rgb, res.pw, res.ph, res.data, gw, gh);
+        const smoothD = jointBilateralSmooth(depthGrid, rgbGrid, gw, gh, 1);
+        appendAlignedMultiSlice(gw, gh, rgbGrid, smoothD, q);
         state.lastMultiQuat = q;
       } catch (err) {
-        console.warn('Multi scan frame err:', err);
+        console.warn('Multi scan err:', err);
       } finally {
         state.isScanning = false;
       }
@@ -1564,55 +1749,239 @@
     async function multiScanCheckLoop() {
       if (state.multiScanActive && !state.isScanning) {
         const curQ = getRelativeWorldQuat();
-        const angleRad = state.lastMultiQuat ? curQ.angleTo(state.lastMultiQuat) : Infinity;
-        // Capture whenever phone rotates >= 11 degrees (or first shot)
-        if (angleRad >= THREE.MathUtils.degToRad(11)) {
-          await captureMultiScanFrame();
+        const angle = state.lastMultiQuat ? curQ.angleTo(state.lastMultiQuat) : Infinity;
+        if (angle >= THREE.MathUtils.degToRad(10)) {
+          await captureMultiFrame();
         }
       }
-      setTimeout(multiScanCheckLoop, 250);
+      setTimeout(multiScanCheckLoop, 220);
     }
 
-    function toggleMultiScan(forceState) {
-      const next = typeof forceState === 'boolean' ? forceState : !state.multiScanActive;
+    function toggleMultiScan(force) {
+      const next = typeof force === 'boolean' ? force : !state.multiScanActive;
       const btn = document.getElementById('btnMultiScan');
       if (next) {
-        if (!state.cameraActive) {
-          showToast('360°スキャンにはカメラが必要です');
-          return;
-        }
+        if (!state.cameraActive) { showToast('カメラが必要です'); return; }
         clearGroup(multiCloudGroup);
-        state.multiRefRange = null;
+        state.multiVoxelSet.clear();
+        state.prevMultiData = null;
         state.lastMultiQuat = null;
         state.multiPointsCount = 0;
         resetGyroYaw();
         state.viewMode = 'multi';
         state.multiScanActive = true;
         btn.classList.add('recording');
-        btn.textContent = '⏹ 完了・3Dを見る';
+        btn.textContent = '⏹ 完了・3Dへ';
         scanLaser.classList.add('scanning');
         document.getElementById('singleSliders').style.display = 'none';
-        document.getElementById('btnViewerCropToggle').style.display = 'none';
-        showToast('スマホをゆっくり回して周囲をスキャン！', 3000);
+        document.getElementById('btnCropToggle').style.display = 'none';
+        showToast('その場でゆっくりスマホを回してください');
       } else {
         state.multiScanActive = false;
         btn.classList.remove('recording');
-        btn.textContent = '🔄 360°空間スキャン';
+        btn.textContent = '🔄 360°スキャン';
         scanLaser.classList.remove('scanning');
         if (state.multiPointsCount > 0) {
-          camera.position.set(0, 0.2, 0.1);
+          camera.position.set(0, 0.15, 0.1);
           controls.target.set(0, 0, -1.2);
           controls.update();
           switchTab('viewer');
-          showToast(`360°点群生成完了 (${state.multiPointsCount.toLocaleString()}点)`);
         }
       }
     }
-
     document.getElementById('btnMultiScan').addEventListener('click', () => toggleMultiScan());
 
     // ---------------------------------------------------------
-    // Viewer Controls & Sliders
+    // REAL WebXR AR Depth + Raw Camera Access (Android ARCore)
+    // ---------------------------------------------------------
+    let xrSession = null;
+    let xrCapturing = true;
+    const xrVoxelSet = new Set();
+    let xrTotalPts = 0;
+
+    async function startWebXRLiDAR() {
+      if (!webxrSupported) {
+        showToast('この端末・ブラウザはWebXR ARに未対応です');
+        return;
+      }
+      try {
+        xrSession = await navigator.xr.requestSession('immersive-ar', {
+          requiredFeatures: ['local', 'depth-sensing'],
+          optionalFeatures: ['camera-access', 'dom-overlay'],
+          depthSensing: {
+            usagePreference: ['cpu-optimized'],
+            dataFormatPreference: ['luminance-alpha', 'float32']
+          },
+          domOverlay: { root: document.getElementById('xrOverlay') }
+        });
+      } catch (err) {
+        showToast('WebXR起動失敗: ' + err.message, 3200);
+        return;
+      }
+
+      bootModal.classList.add('hidden');
+      document.getElementById('xrOverlay').classList.add('active');
+      document.getElementById('topbar').style.display = 'none';
+
+      clearGroup(xrCloudGroup);
+      modelGroup.visible = false;
+      multiCloudGroup.visible = false;
+      xrCloudGroup.visible = true;
+      gridHelper.visible = false;
+      xrVoxelSet.clear();
+      xrTotalPts = 0;
+      xrCapturing = true;
+      state.viewMode = 'xr';
+
+      renderer.xr.enabled = true;
+      renderer.xr.setReferenceSpaceType('local');
+      await renderer.xr.setSession(xrSession);
+
+      const gl = renderer.getContext();
+      let glBinding = null;
+      try { glBinding = new XRWebGLBinding(xrSession, gl); } catch (e) {}
+
+      // Small downsampled FBO for zero-lag camera color readback (128x96)
+      const dw = 128, dh = 96;
+      const srcFbo = gl.createFramebuffer();
+      const dstFbo = gl.createFramebuffer();
+      const dstRb = gl.createRenderbuffer();
+      gl.bindRenderbuffer(gl.RENDERBUFFER, dstRb);
+      gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, dw, dh);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, dstFbo);
+      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, dstRb);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      const camPixels = new Uint8Array(dw * dh * 4);
+
+      const invProj = new THREE.Matrix4();
+      const viewMat = new THREE.Matrix4();
+      const rayVec = new THREE.Vector3();
+      const worldPt = new THREE.Vector3();
+      let lastSampleTime = 0;
+
+      xrSession.addEventListener('end', () => {
+        renderer.setAnimationLoop(null);
+        renderer.xr.enabled = false;
+        gridHelper.visible = true;
+        document.getElementById('xrOverlay').classList.remove('active');
+        document.getElementById('topbar').style.display = 'flex';
+        document.getElementById('singleSliders').style.display = 'none';
+        document.getElementById('btnCropToggle').style.display = 'none';
+        xrSession = null;
+
+        // Center camera on scanned AR points
+        if (xrCloudGroup.children.length > 0) {
+          const box = new THREE.Box3().setFromObject(xrCloudGroup);
+          const center = box.getCenter(new THREE.Vector3());
+          camera.position.copy(center).add(new THREE.Vector3(0, 0.4, 1.4));
+          controls.target.copy(center);
+          controls.update();
+          onViewerResize();
+          switchTab('viewer');
+          showToast(`本物AR点群 ${xrTotalPts.toLocaleString()}点を取得！`);
+        }
+        startViewerRenderLoop();
+      });
+
+      renderer.setAnimationLoop((time, frame) => {
+        if (frame && xrCapturing && time - lastSampleTime > 90) {
+          lastSampleTime = time;
+          const refSpace = renderer.xr.getReferenceSpace();
+          const pose = refSpace ? frame.getViewerPose(refSpace) : null;
+
+          if (pose && pose.views.length > 0) {
+            const view = pose.views[0];
+            const depthInfo = frame.getDepthInformation(view);
+
+            if (depthInfo) {
+              let hasColor = false;
+              if (glBinding && view.camera) {
+                try {
+                  const camTex = glBinding.getCameraImage(view.camera);
+                  if (camTex) {
+                    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, srcFbo);
+                    gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, camTex, 0);
+                    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, dstFbo);
+                    gl.blitFramebuffer(0, 0, view.camera.width, view.camera.height, 0, 0, dw, dh, gl.COLOR_BUFFER_BIT, gl.LINEAR);
+                    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, dstFbo);
+                    gl.readPixels(0, 0, dw, dh, gl.RGBA, gl.UNSIGNED_BYTE, camPixels);
+                    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+                    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+                    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+                    renderer.resetState();
+                    hasColor = true;
+                  }
+                } catch (camErr) {}
+              }
+
+              invProj.fromArray(view.projectionMatrix).invert();
+              viewMat.fromArray(view.transform.matrix);
+
+              const pts = [], cols = [];
+              const colsN = 40, rowsN = 30;
+              for (let r = 0; r < rowsN; r++) {
+                const ny = (r + 0.5) / rowsN;
+                for (let c = 0; c < colsN; c++) {
+                  const nx = (c + 0.5) / colsN;
+                  const distM = depthInfo.getDepthInMeters(nx, ny);
+                  if (!distM || distM < 0.15 || distM > 3.6) continue;
+
+                  // Unproject normalized view coord -> 3D view ray
+                  rayVec.set(2 * nx - 1, 1 - 2 * ny, -1).applyMatrix4(invProj);
+                  const invZ = -rayVec.z;
+                  if (invZ <= 1e-4) continue;
+                  worldPt.set((rayVec.x / invZ) * distM, (rayVec.y / invZ) * distM, -distM).applyMatrix4(viewMat);
+
+                  // 2cm spatial voxel deduplication
+                  const vx = Math.round(worldPt.x * 50), vy = Math.round(worldPt.y * 50), vz = Math.round(worldPt.z * 50);
+                  const key = `${vx},${vy},${vz}`;
+                  if (xrVoxelSet.has(key)) continue;
+                  xrVoxelSet.add(key);
+
+                  pts.push(worldPt.x, worldPt.y, worldPt.z);
+                  if (hasColor) {
+                    const cx = Math.min(dw - 1, Math.floor(nx * dw));
+                    const cy = Math.min(dh - 1, Math.floor((1 - ny) * dh));
+                    const pIdx = (cy * dw + cx) * 4;
+                    cols.push(camPixels[pIdx] / 255, camPixels[pIdx + 1] / 255, camPixels[pIdx + 2] / 255);
+                  } else {
+                    const [hr, hg, hb] = depthToHeatColor(1 - Math.min(1, distM / 3.2));
+                    cols.push(hr, hg, hb);
+                  }
+                }
+              }
+
+              if (pts.length > 0) {
+                const geo = new THREE.BufferGeometry();
+                geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+                geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+                xrCloudGroup.add(new THREE.Points(geo, new THREE.PointsMaterial({
+                  size: 0.018, vertexColors: true, sizeAttenuation: true
+                })));
+                xrTotalPts += pts.length / 3;
+                document.getElementById('xrStatus').textContent = `ARスキャン中: ${xrTotalPts.toLocaleString()} 点`;
+                document.getElementById('telPts').textContent = xrTotalPts.toLocaleString();
+              }
+            }
+          }
+        }
+        renderer.render(scene, camera);
+      });
+    }
+
+    document.getElementById('btnWebXRScan').addEventListener('click', startWebXRLiDAR);
+    document.getElementById('btnStartWebXRDirect').addEventListener('click', startWebXRLiDAR);
+    document.getElementById('btnXrToggleCapture').addEventListener('click', (e) => {
+      xrCapturing = !xrCapturing;
+      e.target.classList.toggle('recording', xrCapturing);
+      e.target.textContent = xrCapturing ? '⏺ スキャン記録中' : '⏸ 一時停止';
+    });
+    document.getElementById('btnXrFinish').addEventListener('click', () => {
+      if (xrSession) xrSession.end();
+    });
+
+    // ---------------------------------------------------------
+    // Viewer UI & Export
     // ---------------------------------------------------------
     document.querySelectorAll('[data-render]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -1623,127 +1992,100 @@
       });
     });
 
-    ['rngDepthScale', 'rngBgCut', 'rngEdgeCut'].forEach(id => {
+    ['rngDepthScale', 'rngSmooth', 'rngBgCut', 'rngThickness'].forEach(id => {
       document.getElementById(id).addEventListener('input', () => {
         document.getElementById('valDepthScale').textContent = document.getElementById('rngDepthScale').value;
+        document.getElementById('valSmooth').textContent = document.getElementById('rngSmooth').value;
         document.getElementById('valBgCut').textContent = document.getElementById('rngBgCut').value + '%';
-        document.getElementById('valEdgeCut').textContent = document.getElementById('rngEdgeCut').value;
+        document.getElementById('valThickness').textContent = document.getElementById('rngThickness').value;
         if (state.viewMode === 'single') buildSingle3DModel();
       });
     });
 
-    document.getElementById('btnViewerCropToggle').addEventListener('click', (e) => {
-      state.cropToLockedObject = !state.cropToLockedObject;
-      e.target.classList.toggle('on', state.cropToLockedObject);
+    document.getElementById('btnCropToggle').addEventListener('click', (e) => {
+      state.cropForeground = !state.cropForeground;
+      e.target.classList.toggle('on', state.cropForeground);
       buildSingle3DModel();
     });
 
     document.getElementById('btnGyroOrbit').addEventListener('click', (e) => {
       state.gyroOrbit = !state.gyroOrbit;
       e.target.classList.toggle('on', state.gyroOrbit);
-      e.target.textContent = state.gyroOrbit ? '📱 ジャイロ覗き見 ON' : '📱 ジャイロ覗き見 OFF';
+      e.target.textContent = state.gyroOrbit ? '📱 ジャイロ ON' : '📱 ジャイロ OFF';
     });
 
-    // ---------------------------------------------------------
-    // Export GLB & PLY
-    // ---------------------------------------------------------
-    function downloadBlob(blob, filename) {
+    function downloadBlob(blob, name) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1500);
     }
 
+    function getActiveExportGroup() {
+      if (state.viewMode === 'xr') return xrCloudGroup;
+      if (state.viewMode === 'multi') return multiCloudGroup;
+      return modelGroup;
+    }
+
     document.getElementById('btnExportGLB').addEventListener('click', async () => {
-      const targetGroup = state.viewMode === 'multi' ? multiCloudGroup : modelGroup;
-      if (targetGroup.children.length === 0) {
-        showToast('先にスキャンを実行してください');
-        return;
-      }
-      showToast('GLBファイルを生成中...');
-      try {
-        const exporter = new GLTFExporter();
-        const glb = await exporter.parseAsync(targetGroup, { binary: true });
-        downloadBlob(new Blob([glb], { type: 'model/gltf-binary' }), `web-lidar-${Date.now()}.glb`);
-        showToast('GLBをダウンロードしました！');
-      } catch (err) {
-        console.error(err);
-        showToast('GLB生成に失敗: ' + err.message);
-      }
+      const grp = getActiveExportGroup();
+      if (grp.children.length === 0) { showToast('先にスキャンしてください'); return; }
+      showToast('GLB書出中...');
+      const exporter = new GLTFExporter();
+      const glb = await exporter.parseAsync(grp, { binary: true });
+      downloadBlob(new Blob([glb], { type: 'model/gltf-binary' }), `web-lidar-${Date.now()}.glb`);
+      showToast('GLBを保存しました！');
     });
 
     document.getElementById('btnExportPLY').addEventListener('click', () => {
-      const targetGroup = state.viewMode === 'multi' ? multiCloudGroup : modelGroup;
-      if (targetGroup.children.length === 0) {
-        showToast('先にスキャンを実行してください');
-        return;
-      }
-
-      // Collect vertices & faces across children
-      const verts = [];
-      const faces = [];
-      let vertOffset = 0;
-
-      for (const child of targetGroup.children) {
-        const pos = child.geometry?.getAttribute('position');
-        const col = child.geometry?.getAttribute('color');
-        const idx = child.geometry?.getIndex();
+      const grp = getActiveExportGroup();
+      if (grp.children.length === 0) { showToast('先にスキャンしてください'); return; }
+      const verts = [], faces = [];
+      let vOff = 0;
+      for (const ch of grp.children) {
+        const pos = ch.geometry?.getAttribute('position');
+        const col = ch.geometry?.getAttribute('color');
+        const idx = ch.geometry?.getIndex();
         if (!pos) continue;
-
         for (let i = 0; i < pos.count; i++) {
           const r = col ? Math.round(col.getX(i) * 255) : 0;
           const g = col ? Math.round(col.getY(i) * 255) : 240;
           const b = col ? Math.round(col.getZ(i) * 255) : 255;
           verts.push(`${pos.getX(i).toFixed(4)} ${pos.getY(i).toFixed(4)} ${pos.getZ(i).toFixed(4)} ${r} ${g} ${b}`);
         }
-        if (idx && child.isMesh) {
+        if (idx && ch.isMesh) {
           for (let i = 0; i < idx.count; i += 3) {
-            faces.push(`3 ${idx.getX(i) + vertOffset} ${idx.getX(i + 1) + vertOffset} ${idx.getX(i + 2) + vertOffset}`);
+            faces.push(`3 ${idx.getX(i) + vOff} ${idx.getX(i + 1) + vOff} ${idx.getX(i + 2) + vOff}`);
           }
         }
-        vertOffset += pos.count;
+        vOff += pos.count;
       }
-
-      const header = [
-        'ply',
-        'format ascii 1.0',
-        `element vertex ${verts.length}`,
-        'property float x',
-        'property float y',
-        'property float z',
-        'property uchar red',
-        'property uchar green',
-        'property uchar blue',
-        ...(faces.length > 0 ? [`element face ${faces.length}`, 'property list uchar int vertex_indices'] : []),
+      const hdr = [
+        'ply', 'format ascii 1.0', `element vertex ${verts.length}`,
+        'property float x', 'property float y', 'property float z',
+        'property uchar red', 'property uchar green', 'property uchar blue',
+        ...(faces.length ? [`element face ${faces.length}`, 'property list uchar int vertex_indices'] : []),
         'end_header'
       ].join('\n');
-
-      const content = header + '\n' + verts.join('\n') + (faces.length > 0 ? '\n' + faces.join('\n') : '');
-      downloadBlob(new Blob([content], { type: 'text/plain' }), `web-lidar-${Date.now()}.ply`);
-      showToast('PLYをダウンロードしました！');
+      downloadBlob(new Blob([hdr + '\n' + verts.join('\n') + (faces.length ? '\n' + faces.join('\n') : '')], { type: 'text/plain' }), `web-lidar-${Date.now()}.ply`);
+      showToast('PLYを保存しました！');
     });
 
-    // ---------------------------------------------------------
-    // Viewer Render Loop
-    // ---------------------------------------------------------
-    function animateViewer() {
-      requestAnimationFrame(animateViewer);
-      if (viewerView.classList.contains('active')) {
-        if (state.gyroOrbit && state.gyroAvailable) {
-          const q = getRelativeWorldQuat();
-          modelGroup.quaternion.slerp(q.clone().invert(), 0.15);
-        } else {
-          modelGroup.quaternion.slerp(new THREE.Quaternion(), 0.15);
+    function startViewerRenderLoop() {
+      renderer.setAnimationLoop(() => {
+        if (viewerView.classList.contains('active') && !renderer.xr.isPresenting) {
+          if (state.gyroOrbit && state.gyroAvailable) {
+            modelGroup.quaternion.slerp(getRelativeWorldQuat().invert(), 0.15);
+          } else {
+            modelGroup.quaternion.slerp(new THREE.Quaternion(), 0.15);
+          }
+          controls.update();
+          renderer.render(scene, camera);
         }
-        controls.update();
-        renderer.render(scene, camera);
-      }
+      });
     }
-    animateViewer();
+    startViewerRenderLoop();
   </script>
 </body>
 </html>
