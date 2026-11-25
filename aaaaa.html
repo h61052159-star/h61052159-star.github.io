@@ -380,7 +380,7 @@
     // ====== 怒り・罵倒・攻撃表現キーワード辞書 ======
     const ANGER_KEYWORDS = [
       // 自傷他害・脅迫・極端な攻撃
-      { word: "死ね", weight: 55 },
+      { word: "死ね", weight 55 },
       { word: "しね", weight: 50 },
       { word: "死んで", weight: 40 },
       { word: "自殺", weight: 48 },
@@ -518,22 +518,157 @@
       { word: "いらいら", weight: 24 },
       { word: "キレ", weight: 28 },
       { word: "知らねえ", weight: 30 },
-      { word: "知らねぇ", weight: 30 },
-      { word: "意味わからん", weight: 28 },
-      { word: "意味がわからない", weight: 24 },
-      { word: "早くしろ", weight: 32 },
-      { word: "とぼけるな", weight: 34 },
-      { word: "言い訳", weight: 22 },
-      { word: "何回", weight: 18 },
-      { word: "何度", weight: 16 },
-      { word: "なんで", weight: 14 },
-      { word: "おい", weight: 16 },
-      { word: "!", weight: 10 },
-      { word: "！", weight: 10 },
-      { word: "?", weight: 5 },
-      { word: "？", weight: 5 }
-    ];
+const ANGER_KEYWORDS = [
+  // ==========================================
+  // 1. 強い怒り・暴力・排除・脅し系 (weight: 35〜55)
+  // ==========================================
+  { word: "死ね", weight: 55 }, { word: "しね", weight: 50 }, { word: "死んで", weight: 40 },
+  { word: "死ねよ", weight: 55 }, { word: "くたばれ", weight: 52 }, { word: "くたばりやがれ", weight: 55 },
+  { word: "自殺", weight: 48 }, { word: "殺す", weight: 55 }, { word: "ころす", weight: 50 },
+  { word: "ぶっ殺す", weight: 55 }, { word: "殺すぞ", weight: 55 }, { word: "殺してやる", weight: 55 },
+  { word: "消えろ", weight: 45 }, { word: "きえろ", weight: 45 }, { word: "消え失せろ", weight: 48 },
+  { word: "失せろ", weight: 45 }, { word: "うせろ", weight: 45 }, { word: "どけ", weight: 32 },
+  { word: "引っ込め", weight: 32 }, { word: "引っ込んでろ", weight: 35 }, { word: "地獄に落ちろ", weight: 48 },
+  { word: "ぶっ飛ばす", weight: 45 }, { word: "ぶっ潰す", weight: 45 }, { word: "叩き潰す", weight: 42 },
+  { word: "殴る", weight: 35 }, { word: "殴るぞ", weight: 42 }, { word: "蹴る", weight: 32 },
+  { word: "潰す", weight: 34 }, { word: "ボコボコ", weight: 36 }, { word: "半殺し", weight: 48 },
+  { word: "表出ろ", weight: 40 }, { word: "表に出ろ", weight: 40 }, { word: "覚悟しろ", weight: 38 },
 
+  // ==========================================
+  // 2. 激昂・喧嘩言葉・汚い罵倒 (weight: 30〜48)
+  // ==========================================
+  { word: "ふざけんな", weight: 42 }, { word: "ふざけるな", weight: 42 }, { word: "ざけんな", weight: 42 },
+  { word: "巫山戯るな", weight: 42 }, { word: "なめんな", weight: 42 }, { word: "なめるな", weight: 42 },
+  { word: "舐めんな", weight: 42 }, { word: "舐めるな", weight: 42 }, { word: "なめてんのか", weight: 44 },
+  { word: "舐めてんのか", weight: 44 }, { word: "いい加減にしろ", weight: 40 }, { word: "いい加減にして", weight: 32 },
+  { word: "くそったれ", weight: 48 }, { word: "クソッタレ", weight: 48 }, { word: "くそ", weight: 35 },
+  { word: "クソ", weight: 35 }, { word: "糞", weight: 35 }, { word: "ちくしょう", weight: 36 },
+  { word: "畜生", weight: 36 }, { word: "こんちくしょう", weight: 40 }, { word: "この野郎", weight: 42 },
+  { word: "野郎", weight: 30 }, { word: "馬鹿野郎", weight: 44 }, { word: "バカヤロウ", weight: 44 },
+  { word: "ばかやろう", weight: 44 }, { word: "アホんだら", weight: 40 }, { word: "ボケナス", weight: 40 },
+  { word: "てめえ", weight: 42 }, { word: "てめぇ", weight: 42 }, { word: "てめー", weight: 42 },
+  { word: "貴様", weight: 40 }, { word: "お前", weight: 20 }, { word: "おまえ", weight: 20 },
+  { word: "黙れ", weight: 38 }, { word: "だまれ", weight: 38 }, { word: "口を閉じろ", weight: 35 },
+  { word: "うるさい", weight: 30 }, { word: "うるせえ", weight: 38 }, { word: "うるせぇ", weight: 38 },
+  { word: "うるせー", weight: 38 }, { word: "うっせえ", weight: 38 }, { word: "うっせぇ", weight: 38 },
+  { word: "知らねえ", weight: 32 }, { word: "知らねぇ", weight: 32 }, { word: "知ったこっちゃない", weight: 30 },
+
+  // ==========================================
+  // 3. 人格否定・侮辱・見下し語 (weight: 26〜45)
+  // ==========================================
+  { word: "無能", weight: 38 }, { word: "能無し", weight: 38 }, { word: "役立たず", weight: 38 },
+  { word: "使えない", weight: 30 }, { word: "使えねえ", weight: 36 }, { word: "ゴミ", weight: 35 },
+  { word: "ごみ", weight: 26 }, { word: "ゴミクズ", weight: 45 }, { word: "粗大ゴミ", weight: 38 },
+  { word: "産業廃棄物", weight: 40 }, { word: "産廃", weight: 35 }, { word: "カス", weight: 38 },
+  { word: "かす", weight: 26 }, { word: "クズ", weight: 40 }, { word: "くず", weight: 32 },
+  { word: "人間のクズ", weight: 48 }, { word: "人間失格", weight: 44 }, { word: "人の皮を被った", weight: 40 },
+  { word: "ザコ", weight: 32 }, { word: "雑魚", weight: 32 }, { word: "底辺", weight: 34 },
+  { word: "負け犬", weight: 34 }, { word: "敗北者", weight: 32 }, { word: "落ちこぼれ", weight: 30 },
+  { word: "出来損ない", weight: 38 }, { word: "不良品", weight: 36 }, { word: "お荷物", weight: 30 },
+  { word: "足手まとい", weight: 32 }, { word: "邪魔", weight: 28 }, { word: "目障り", weight: 34 },
+  { word: "馬鹿", weight: 32 }, { word: "バカ", weight: 32 }, { word: "ばか", weight: 30 },
+  { word: "アホ", weight: 32 }, { word: "あほ", weight: 30 }, { word: "ボケ", weight: 32 },
+  { word: "間抜け", weight: 30 }, { word: "マヌケ", weight: 30 }, { word: "ドジ", weight: 22 },
+  { word: "ノロマ", weight: 28 }, { word: "グズ", weight: 30 }, { word: "たわけ", weight: 32 },
+  { word: "阿呆", weight: 32 }, { word: "低脳", weight: 42 }, { word: "脳みそ", weight: 26 },
+  { word: "単細胞", weight: 30 }, { word: "鳥頭", weight: 30 }, { word: "頭おかしい", weight: 36 },
+  { word: "頭がおかしい", weight: 36 }, { word: "頭沸いてる", weight: 38 }, { word: "脳が腐ってる", weight: 42 },
+  { word: "キモい", weight: 32 }, { word: "キモイ", weight: 32 }, { word: "気持ち悪い", weight: 28 },
+  { word: "うざい", weight: 30 }, { word: "ウザい", weight: 30 }, { word: "ウザイ", weight: 30 },
+  { word: "ブス", weight: 36 }, { word: "ブサイク", weight: 36 }, { word: "デブ", weight: 32 },
+  { word: "ハゲ", weight: 30 }, { word: "チビ", weight: 28 }, { word: "汚物", weight: 40 },
+  { word: "害虫", weight: 40 }, { word: "ゴキブリ", weight: 38 }, { word: "ダニ", weight: 34 },
+  { word: "寄生虫", weight: 38 }, { word: "疫病神", weight: 35 }, { word: "害悪", weight: 36 },
+  { word: "恥知らず", weight: 36 }, { word: "恥を知れ", weight: 38 }, { word: "生き恥", weight: 40 },
+  { word: "厚顔無恥", weight: 34 }, { word: "図々しい", weight: 28 }, { word: "厚かましい", weight: 28 },
+  { word: "卑怯", weight: 28 }, { word: "臆病", weight: 24 }, { word: "ヘタレ", weight: 28 },
+  { word: "腰抜け", weight: 30 }, { word: "惨め", weight: 28 }, { word: "みじめ", weight: 28 },
+  { word: "哀れ", weight: 26 }, { word: "滑稽", weight: 25 }, { word: "情けない", weight: 26 },
+  { word: "浅ましい", weight: 30 }, { word: "吐き気がする", weight: 34 }, { word: "反吐が出る", weight: 38 },
+
+  // ==========================================
+  // 4. ネットスラング・煽り・属性攻撃 (weight: 22〜40)
+  // ==========================================
+  { word: "チー牛", weight: 35 }, { word: "陰キャ", weight: 25 }, { word: "老害", weight: 36 },
+  { word: "弱者", weight: 26 }, { word: "社不", weight: 35 }, { word: "社会不適合", weight: 38 },
+  { word: "ニート", weight: 24 }, { word: "引きこもり", weight: 24 }, { word: "働け", weight: 26 },
+  { word: "クソガキ", weight: 38 }, { word: "ガキ", weight: 26 }, { word: "キッズ", weight: 22 },
+  { word: "情弱", weight: 26 }, { word: "にわか", weight: 22 }, { word: "エアプ", weight: 24 },
+  { word: "オワコン", weight: 26 }, { word: "終わってる", weight: 28 }, { word: "信者", weight: 22 },
+  { word: "顔真っ赤", weight: 28 }, { word: "発狂", weight: 32 }, { word: "効いてる", weight: 24 },
+  { word: "涙目", weight: 24 }, { word: "ブーメラン", weight: 22 }, { word: "嘘つき", weight: 28 },
+  { word: "虚言癖", weight: 32 }, { word: "詐欺師", weight: 34 }, { word: "犯罪者", weight: 32 },
+
+  // ==========================================
+  // 5. 否定構文・見下しフレーズ (weight: 18〜45)
+  // ==========================================
+  { word: "何もできない", weight: 32 }, { word: "何も出来ない", weight: 32 }, { word: "できもしない", weight: 28 },
+  { word: "口だけ", weight: 26 }, { word: "どうせ", weight: 18 }, { word: "価値がない", weight: 36 },
+  { word: "価値ない", weight: 36 }, { word: "存在価値", weight: 35 }, { word: "生きてる価値", weight: 46 },
+  { word: "生まれてこなきゃ", weight: 46 }, { word: "社会の役に立て", weight: 35 }, { word: "役に立て", weight: 24 },
+  { word: "親の顔が見たい", weight: 34 }, { word: "親の顔", weight: 30 }, { word: "親が泣く", weight: 30 },
+  { word: "身の程を知れ", weight: 36 }, { word: "身の程", weight: 28 }, { word: "何様", weight: 34 },
+  { word: "誰に向かって", weight: 32 }, { word: "調子に乗るな", weight: 36 }, { word: "調子乗るな", weight: 36 },
+  { word: "いい気になるな", weight: 34 }, { word: "いい気になんな", weight: 36 }, { word: "図に乗るな", weight: 34 },
+  { word: "勘違い", weight: 20 }, { word: "常識がない", weight: 28 }, { word: "非常識", weight: 26 },
+  { word: "日本語通じ", weight: 32 }, { word: "日本語が通じ", weight: 32 }, { word: "話にならない", weight: 28 },
+  { word: "話にならん", weight: 30 }, { word: "埒が明かない", weight: 24 }, { word: "時間の無駄", weight: 28 },
+  { word: "救いようがない", weight: 34 }, { word: "救えない", weight: 28 }, { word: "論外", weight: 28 },
+  { word: "問題外", weight: 26 }, { word: "期待外れ", weight: 24 }, { word: "お門違い", weight: 26 },
+
+  // ==========================================
+  // 6. 威圧・拒絶・詰問・イライラ (weight: 14〜38)
+  // ==========================================
+  { word: "やめろ", weight: 30 }, { word: "やめろよ", weight: 32 }, { word: "帰れ", weight: 28 },
+  { word: "帰れよ", weight: 30 }, { word: "関わるな", weight: 34 }, { word: "近寄るな", weight: 34 },
+  { word: "触るな", weight: 32 }, { word: "見るな", weight: 28 }, { word: "話しかけるな", weight: 34 },
+  { word: "口を出すな", weight: 30 }, { word: "視界に入るな", weight: 38 }, { word: "顔も見たくない", weight: 36 },
+  { word: "謝れ", weight: 35 }, { word: "土下座しろ", weight: 42 }, { word: "責任取れ", weight: 34 },
+  { word: "弁償しろ", weight: 34 }, { word: "金返せ", weight: 34 }, { word: "許さない", weight: 35 },
+  { word: "許せない", weight: 35 }, { word: "絶対許さない", weight: 40 }, { word: "一生許さない", weight: 42 },
+  { word: "とぼけるな", weight: 34 }, { word: "しらばっくれるな", weight: 36 }, { word: "言い訳するな", weight: 34 },
+  { word: "言い訳すんな", weight: 36 }, { word: "言い訳", weight: 20 }, { word: "嘘つくな", weight: 34 },
+  { word: "逃げるな", weight: 30 }, { word: "逃げんな", weight: 32 }, { word: "早くしろ", weight: 32 },
+  { word: "文句あんのか", weight: 38 }, { word: "文句あるのか", weight: 34 }, { word: "逆ギレ", weight: 28 },
+  { word: "訴える", weight: 30 }, { word: "通報", weight: 26 }, { word: "晒す", weight: 30 },
+  { word: "意味わからん", weight: 28 }, { word: "意味不明", weight: 26 }, { word: "ありえない", weight: 25 },
+  { word: "あり得ない", weight: 25 }, { word: "信じられない", weight: 22 }, { word: "最悪", weight: 28 },
+  { word: "最低", weight: 28 }, { word: "ムカつく", weight: 32 }, { word: "むかつく", weight: 32 },
+  { word: "腹立つ", weight: 30 }, { word: "腹が立つ", weight: 30 }, { word: "頭に来る", weight: 28 },
+  { word: "頭にくる", weight: 28 }, { word: "イライラ", weight: 24 }, { word: "いらいら", weight: 24 },
+  { word: "ブチギレ", weight: 35 }, { word: "キレ", weight: 26 }, { word: "馬鹿にするな", weight: 36 },
+  { word: "バカにすんな", weight: 38 }, { word: "見下すな", weight: 34 }, { word: "冗談じゃない", weight: 26 },
+  { word: "何回", weight: 18 }, { word: "何度", weight: 16 }, { word: "なんで", weight: 14 },
+  { word: "おい", weight: 16 }, { word: "こら", weight: 22 }, { word: "コラ", weight: 24 },
+  { word: "オラ", weight: 26 }, { word: "おら", weight: 20 },
+
+  // ==========================================
+  // 7. 英語系 Fワード・Sワード・強い罵倒 (weight: 28〜55)
+  // ==========================================
+  { word: "fuck", weight: 50 }, { word: "fucking", weight: 52 }, { word: "fucker", weight: 55 },
+  { word: "motherfucker", weight: 55 }, { word: "fuck you", weight: 55 }, { word: "wtf", weight: 32 },
+  { word: "stfu", weight: 45 }, { word: "gtfo", weight: 45 }, { word: "shut the fuck up", weight: 55 },
+  { word: "shit", weight: 38 }, { word: "bullshit", weight: 42 }, { word: "piece of shit", weight: 52 },
+  { word: "bitch", weight: 48 }, { word: "son of a bitch", weight: 55 }, { word: "asshole", weight: 48 },
+  { word: "bastard", weight: 45 }, { word: "dick", weight: 40 }, { word: "dickhead", weight: 46 },
+  { word: "cunt", weight: 55 }, { word: "dumbass", weight: 42 }, { word: "idiot", weight: 36 },
+  { word: "moron", weight: 38 }, { word: "stupid", weight: 30 }, { word: "loser", weight: 34 },
+  { word: "pathetic", weight: 34 }, { word: "trash", weight: 34 }, { word: "garbage", weight: 34 },
+  { word: "scum", weight: 44 }, { word: "douchebag", weight: 42 }, { word: "jerk", weight: 32 },
+  { word: "crap", weight: 28 }, { word: "damn", weight: 28 }, { word: "go to hell", weight: 45 },
+  { word: "shut up", weight: 38 }, { word: "get lost", weight: 38 }, { word: "kill yourself", weight: 55 },
+  { word: "kys", weight: 55 },
+  // カタカナ表記
+  { word: "ファック", weight: 50 }, { word: "ファッキン", weight: 50 }, { word: "シット", weight: 35 },
+  { word: "ビッチ", weight: 45 }, { word: "アスホール", weight: 45 }, { word: "バスタード", weight: 42 },
+  { word: "シャラップ", weight: 36 }, { word: "ルーザー", weight: 32 },
+
+  // ==========================================
+  // 8. 記号・語調の強さ
+  // ==========================================
+  { word: "!", weight: 10 }, { word: "！", weight: 10 },
+  { word: "?", weight: 5 }, { word: "？", weight: 5 }
+];
     // ====== 正規表現による威圧的語尾・荒い口調・構文パターン ======
     const ANGER_PATTERNS = [
       { regex: /^(?:なんだ|何だ)(?:[\s、,！!]|よ|お前|てめ|これ)/g, weight: 22, label: "詰問" },
