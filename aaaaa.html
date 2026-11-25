@@ -82,7 +82,7 @@
     transition: transform 0.08s, background 0.15s, opacity 0.15s;
   }
 
-  button:active { transform: scale(0.95); }
+  button:active:not(:disabled) { transform: scale(0.95); }
 
   .btn-secondary {
     background: #2f2722;
@@ -240,6 +240,11 @@
   .inst-stage { display: none; position: relative; width: 100%; }
   .inst-stage.active { display: block; }
 
+  .svg-wrap {
+    position: relative;
+    width: 100%;
+  }
+
   .inst-stage svg {
     display: block;
     width: 100%;
@@ -351,15 +356,17 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 26px;
+    height: 22px;
   }
 
   .kotoji-body {
-    width: 22px;
-    height: 24px;
+    width: 20px;
+    height: 19px;
     background: linear-gradient(135deg, #fffbeb, #e7d8c3);
     clip-path: polygon(50% 6%, 94% 94%, 68% 94%, 50% 56%, 32% 94%, 6% 94%);
-    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.7));
-    transition: transform 0.2s, opacity 0.2s;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.75));
+    transition: transform 0.18s, opacity 0.18s;
   }
 
   .kotoji-handle.fallen .kotoji-body {
@@ -377,27 +384,44 @@
   .kotoji-handle.selected::after {
     content: '';
     position: absolute;
-    inset: -4px;
+    inset: -2px;
     border-radius: 6px;
     border: 2px solid var(--gold-bright);
-    box-shadow: 0 0 8px rgba(245, 195, 120, 0.7);
+    box-shadow: 0 0 8px rgba(245, 195, 120, 0.75);
     pointer-events: none;
   }
 
   .kotoji-tag {
     position: absolute;
-    top: -13px;
-    font-size: 0.58rem;
+    right: 26px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.6rem;
     font-weight: 800;
     background: rgba(20, 17, 15, 0.9);
-    padding: 0 4px;
+    padding: 1px 4px;
     border-radius: 3px;
     white-space: nowrap;
     pointer-events: none;
   }
 
+  .koto-practice-badge {
+    position: absolute;
+    left: 26px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.62rem;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(20, 17, 15, 0.92);
+    border: 1px solid #44403c;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
   .koto-bar {
-    display: none;
+    display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
@@ -405,7 +429,6 @@
     background: #231b15;
     border-top: 1px solid var(--panel-border);
   }
-  .koto-bar.active { display: flex; }
 
   .koto-bar-btns {
     display: flex;
@@ -416,10 +439,15 @@
     background: #382c23;
     color: var(--text);
     border: 1px solid #59473a;
-    padding: 7px 12px;
-    font-size: 0.76rem;
+    padding: 7px 11px;
+    font-size: 0.75rem;
     font-weight: 700;
     touch-action: none;
+  }
+
+  .koto-move-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
   }
 
   /* ===== Drum Lugs ===== */
@@ -528,7 +556,7 @@
 
   .result-row {
     display: grid;
-    grid-template-columns: 54px 1fr 74px 68px;
+    grid-template-columns: 58px 1fr 74px 68px;
     align-items: center;
     gap: 8px;
     background: #15110f;
@@ -603,72 +631,70 @@
   <div class="stage-box">
     <!-- 1. GUITAR STAGE -->
     <div class="inst-stage active" id="guitarStage">
-      <svg id="guitarSvg" viewBox="0 0 420 520" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="headWood" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#3b261a"/><stop offset="100%" stop-color="#190f0a"/>
-          </linearGradient>
-          <linearGradient id="neckWood" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stop-color="#241710"/><stop offset="50%" stop-color="#332117"/><stop offset="100%" stop-color="#241710"/>
-          </linearGradient>
-          <linearGradient id="bodyWood" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#5c351e"/><stop offset="100%" stop-color="#331c0f"/>
-          </linearGradient>
-        </defs>
-        <path d="M 35 435 Q 210 405 385 435 L 420 520 L 0 520 Z" fill="url(#bodyWood)" stroke="#231209" stroke-width="2"/>
-        <circle cx="210" cy="488" r="66" fill="#0d0805" stroke="#c89250" stroke-width="3"/>
-        <circle cx="210" cy="488" r="72" fill="none" stroke="#8c5b2b" stroke-width="1.5" stroke-dasharray="4 3"/>
-        <path d="M 135 235 L 116 195 L 112 36 Q 112 20 132 18 L 210 24 L 288 18 Q 308 20 308 36 L 304 195 L 285 235 Z" fill="url(#headWood)" stroke="#4a3122" stroke-width="2"/>
-        <polygon points="135,235 285,235 335,470 85,470" fill="url(#neckWood)" stroke="#170f0a" stroke-width="1.5"/>
-        <line x1="126" y1="275" x2="294" y2="275" stroke="#a8a29e" stroke-width="2" opacity="0.7"/>
-        <line x1="118" y1="315" x2="302" y2="315" stroke="#a8a29e" stroke-width="2" opacity="0.7"/>
-        <line x1="109" y1="355" x2="311" y2="355" stroke="#a8a29e" stroke-width="2" opacity="0.7"/>
-        <line x1="100" y1="395" x2="320" y2="395" stroke="#a8a29e" stroke-width="2" opacity="0.7"/>
-        <circle cx="210" cy="335" r="5" fill="#e7e5e4" opacity="0.35"/>
-        <rect x="133" y="229" width="154" height="8" rx="2" fill="#f5efe6" stroke="#b8ab99" stroke-width="1"/>
-        <g fill="#d6d3d1" stroke="#57534e" stroke-width="2">
-          <circle cx="142" cy="55" r="7"/><circle cx="142" cy="120" r="7"/><circle cx="142" cy="185" r="7"/>
-          <circle cx="278" cy="55" r="7"/><circle cx="278" cy="120" r="7"/><circle cx="278" cy="185" r="7"/>
-        </g>
-        <g id="guitarStringsLayer"></g>
-        <g id="guitarFretsLayer"></g>
-        <g id="guitarHitLayer"></g>
-      </svg>
-      <div class="overlay-layer" id="guitarOverlay"></div>
+      <div class="svg-wrap">
+        <svg id="guitarSvg" viewBox="0 0 420 520" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="headWood" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#3b261a"/><stop offset="100%" stop-color="#190f0a"/>
+            </linearGradient>
+            <linearGradient id="neckWood" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#241710"/><stop offset="50%" stop-color="#332117"/><stop offset="100%" stop-color="#241710"/>
+            </linearGradient>
+            <linearGradient id="bodyWood" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#5c351e"/><stop offset="100%" stop-color="#331c0f"/>
+            </linearGradient>
+          </defs>
+          <path d="M 35 435 Q 210 405 385 435 L 420 520 L 0 520 Z" fill="url(#bodyWood)" stroke="#231209" stroke-width="2"/>
+          <circle cx="210" cy="488" r="66" fill="#0d0805" stroke="#c89250" stroke-width="3"/>
+          <circle cx="210" cy="488" r="72" fill="none" stroke="#8c5b2b" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <path d="M 135 235 L 116 195 L 112 36 Q 112 20 132 18 L 210 24 L 288 18 Q 308 20 308 36 L 304 195 L 285 235 Z" fill="url(#headWood)" stroke="#4a3122" stroke-width="2"/>
+          <polygon points="135,235 285,235 335,470 85,470" fill="url(#neckWood)" stroke="#170f0a" stroke-width="1.5"/>
+          <line x1="126" y1="275" x2="294" y2="275" stroke="#a8a29e" stroke-width="2" opacity="0.7"/>
+          <line x1="118" y1="315" x2="302" y2="315" stroke="#a8a29e" stroke-width="2" opacity="0.7"/>
+          <line x1="109" y1="355" x2="311" y2="355" stroke="#a8a29e" stroke-width="2" opacity="0.7"/>
+          <line x1="100" y1="395" x2="320" y2="395" stroke="#a8a29e" stroke-width="2" opacity="0.7"/>
+          <circle cx="210" cy="335" r="5" fill="#e7e5e4" opacity="0.35"/>
+          <rect x="133" y="229" width="154" height="8" rx="2" fill="#f5efe6" stroke="#b8ab99" stroke-width="1"/>
+          <g fill="#d6d3d1" stroke="#57534e" stroke-width="2">
+            <circle cx="142" cy="55" r="7"/><circle cx="142" cy="120" r="7"/><circle cx="142" cy="185" r="7"/>
+            <circle cx="278" cy="55" r="7"/><circle cx="278" cy="120" r="7"/><circle cx="278" cy="185" r="7"/>
+          </g>
+          <g id="guitarStringsLayer"></g>
+          <g id="guitarFretsLayer"></g>
+          <g id="guitarHitLayer"></g>
+        </svg>
+        <div class="overlay-layer" id="guitarOverlay"></div>
+      </div>
     </div>
 
     <!-- 2. KOTO STAGE -->
     <div class="inst-stage" id="kotoStage">
-      <svg id="kotoSvg" viewBox="0 0 460 430" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="kiriWood" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stop-color="#8b5a2b"/>
-            <stop offset="20%" stop-color="#c28e54"/>
-            <stop offset="55%" stop-color="#cf9b61"/>
-            <stop offset="85%" stop-color="#b58048"/>
-            <stop offset="100%" stop-color="#7c4e24"/>
-          </linearGradient>
-        </defs>
-        <!-- Koto Body (Paulownia / 桐) -->
-        <rect x="10" y="14" width="440" height="402" rx="10" fill="url(#kiriWood)" stroke="#4a2c11" stroke-width="2.5"/>
-        <!-- Wood grain subtle lines -->
-        <line x1="45" y1="90" x2="415" y2="90" stroke="#9e6d39" stroke-width="1" opacity="0.35"/>
-        <line x1="45" y1="215" x2="415" y2="215" stroke="#9e6d39" stroke-width="1" opacity="0.35"/>
-        <line x1="45" y1="340" x2="415" y2="340" stroke="#9e6d39" stroke-width="1" opacity="0.35"/>
-        <!-- Decorative Brocade Endings -->
-        <rect x="12" y="16" width="38" height="398" rx="6" fill="#4c1d24" stroke="#d9a05b" stroke-width="1"/>
-        <rect x="410" y="16" width="38" height="398" rx="6" fill="#4c1d24" stroke="#d9a05b" stroke-width="1"/>
-        <!-- Plucking Zone Highlight -->
-        <rect x="336" y="22" width="66" height="386" rx="4" fill="rgba(255,245,220,0.08)" stroke="rgba(255,245,220,0.18)" stroke-dasharray="3 3"/>
-        <text x="369" y="20" text-anchor="middle" font-size="8.5" fill="#fef3c7" opacity="0.75">爪で弾くエリア</text>
-        <!-- Unkaku (Left Bridge) & Ryukaku (Right Bridge) -->
-        <rect x="52" y="22" width="7" height="386" rx="2" fill="#f5efe6" stroke="#78716c" stroke-width="1"/>
-        <rect x="401" y="22" width="8" height="386" rx="2" fill="#f5efe6" stroke="#78716c" stroke-width="1"/>
-
-        <g id="kotoStringsLayer"></g>
-        <g id="kotoHitLayer"></g>
-      </svg>
-      <div class="overlay-layer" id="kotoOverlay"></div>
+      <div class="svg-wrap">
+        <svg id="kotoSvg" viewBox="0 0 460 430" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="kiriWood" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#8b5a2b"/>
+              <stop offset="20%" stop-color="#c28e54"/>
+              <stop offset="55%" stop-color="#cf9b61"/>
+              <stop offset="85%" stop-color="#b58048"/>
+              <stop offset="100%" stop-color="#7c4e24"/>
+            </linearGradient>
+          </defs>
+          <rect x="10" y="14" width="440" height="402" rx="10" fill="url(#kiriWood)" stroke="#4a2c11" stroke-width="2.5"/>
+          <line x1="45" y1="90" x2="415" y2="90" stroke="#9e6d39" stroke-width="1" opacity="0.35"/>
+          <line x1="45" y1="215" x2="415" y2="215" stroke="#9e6d39" stroke-width="1" opacity="0.35"/>
+          <line x1="45" y1="340" x2="415" y2="340" stroke="#9e6d39" stroke-width="1" opacity="0.35"/>
+          <rect x="12" y="16" width="38" height="398" rx="6" fill="#4c1d24" stroke="#d9a05b" stroke-width="1"/>
+          <rect x="410" y="16" width="38" height="398" rx="6" fill="#4c1d24" stroke="#d9a05b" stroke-width="1"/>
+          <rect x="336" y="22" width="66" height="386" rx="4" fill="rgba(255,245,220,0.08)" stroke="rgba(255,245,220,0.18)" stroke-dasharray="3 3"/>
+          <text x="369" y="20" text-anchor="middle" font-size="8.5" fill="#fef3c7" opacity="0.75">爪で弾くエリア</text>
+          <rect x="52" y="22" width="7" height="386" rx="2" fill="#f5efe6" stroke="#78716c" stroke-width="1"/>
+          <rect x="401" y="22" width="8" height="386" rx="2" fill="#f5efe6" stroke="#78716c" stroke-width="1"/>
+          <g id="kotoStringsLayer"></g>
+          <g id="kotoHitLayer"></g>
+        </svg>
+        <div class="overlay-layer" id="kotoOverlay"></div>
+      </div>
       <div class="koto-bar" id="kotoBar">
         <div id="kotoSelLabel" style="font-size:0.78rem; font-weight:700; color:var(--gold-bright);">選択: 二 (G3)</div>
         <div class="koto-bar-btns">
@@ -681,36 +707,32 @@
 
     <!-- 3. DRUM STAGE -->
     <div class="inst-stage" id="drumStage">
-      <svg id="drumSvg" viewBox="0 0 420 420" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <radialGradient id="drumHead" cx="50%" cy="46%" r="54%">
-            <stop offset="0%" stop-color="#f7f4ee"/>
-            <stop offset="70%" stop-color="#e8e1d5"/>
-            <stop offset="100%" stop-color="#cfc5b4"/>
-          </radialGradient>
-          <linearGradient id="chromeRim" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#f5f5f4"/>
-            <stop offset="45%" stop-color="#a8a29e"/>
-            <stop offset="100%" stop-color="#57534e"/>
-          </linearGradient>
-        </defs>
-        <!-- Shell shadow -->
-        <circle cx="210" cy="216" r="148" fill="#090706" opacity="0.65"/>
-        <!-- Metal Lug Casings -->
-        <g id="drumCasings" fill="#d6d3d1" stroke="#44403c" stroke-width="1.5"></g>
-        <!-- Outer Chrome Hoop -->
-        <circle cx="210" cy="210" r="140" fill="url(#chromeRim)" stroke="#292524" stroke-width="2.5"/>
-        <circle cx="210" cy="210" r="131" fill="#1c1917"/>
-        <!-- Coated Drumhead -->
-        <circle id="drumHeadCircle" cx="210" cy="210" r="127" fill="url(#drumHead)" stroke="#a8a29e" stroke-width="1"/>
-        <!-- Center target -->
-        <circle cx="210" cy="210" r="46" fill="rgba(0,0,0,0.03)" stroke="rgba(120,113,108,0.28)" stroke-dasharray="4 4"/>
-        <text x="210" y="213" text-anchor="middle" font-size="11" font-weight="700" fill="#78716c" opacity="0.75">CENTER</text>
-
-        <g id="drumTargetsLayer"></g>
-        <g id="drumRippleLayer"></g>
-      </svg>
-      <div class="overlay-layer" id="drumOverlay"></div>
+      <div class="svg-wrap">
+        <svg id="drumSvg" viewBox="0 0 420 420" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="drumHead" cx="50%" cy="46%" r="54%">
+              <stop offset="0%" stop-color="#f7f4ee"/>
+              <stop offset="70%" stop-color="#e8e1d5"/>
+              <stop offset="100%" stop-color="#cfc5b4"/>
+            </radialGradient>
+            <linearGradient id="chromeRim" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#f5f5f4"/>
+              <stop offset="45%" stop-color="#a8a29e"/>
+              <stop offset="100%" stop-color="#57534e"/>
+            </linearGradient>
+          </defs>
+          <circle cx="210" cy="216" r="148" fill="#090706" opacity="0.65"/>
+          <g id="drumCasings" fill="#d6d3d1" stroke="#44403c" stroke-width="1.5"></g>
+          <circle cx="210" cy="210" r="140" fill="url(#chromeRim)" stroke="#292524" stroke-width="2.5"/>
+          <circle cx="210" cy="210" r="131" fill="#1c1917"/>
+          <circle id="drumHeadCircle" cx="210" cy="210" r="127" fill="url(#drumHead)" stroke="#a8a29e" stroke-width="1"/>
+          <circle cx="210" cy="210" r="46" fill="rgba(0,0,0,0.03)" stroke="rgba(120,113,108,0.28)" stroke-dasharray="4 4"/>
+          <text x="210" y="213" text-anchor="middle" font-size="11" font-weight="700" fill="#78716c" opacity="0.75">CENTER</text>
+          <g id="drumTargetsLayer"></g>
+          <g id="drumRippleLayer"></g>
+        </svg>
+        <div class="overlay-layer" id="drumOverlay"></div>
+      </div>
     </div>
   </div>
 
@@ -738,12 +760,12 @@
   // 1. INSTRUMENT DEFINITIONS
   // =========================================================
   const GUITAR_STRINGS = [
-    { id: 0, label: '6E', full: '6弦 (E2)', targetFreq: 82.406889, gauge: 3.3, color: '#d49a6a', post: [142, 185], nutX: 150, bridgeX: 95,  pegPos: [62, 185],  side: 'left',  compareFret: 5 },
-    { id: 1, label: '5A', full: '5弦 (A2)', targetFreq: 110.000000, gauge: 2.7, color: '#d9a477', post: [142, 120], nutX: 174, bridgeX: 141, pegPos: [62, 120],  side: 'left',  compareFret: 5 },
-    { id: 2, label: '4D', full: '4弦 (D3)', targetFreq: 146.832384, gauge: 2.2, color: '#dfaf86', post: [142, 55],  nutX: 198, bridgeX: 187, pegPos: [62, 55],   side: 'left',  compareFret: 5 },
-    { id: 3, label: '3G', full: '3弦 (G3)', targetFreq: 195.997718, gauge: 1.7, color: '#e5e7eb', post: [278, 55],  nutX: 222, bridgeX: 233, pegPos: [358, 55],  side: 'right', compareFret: 4 },
-    { id: 4, label: '2B', full: '2弦 (B3)', targetFreq: 246.941651, gauge: 1.4, color: '#f3f4f6', post: [278, 120], nutX: 246, bridgeX: 279, pegPos: [358, 120], side: 'right', compareFret: 5 },
-    { id: 5, label: '1E', full: '1弦 (E4)', targetFreq: 329.627557, gauge: 1.1, color: '#ffffff', post: [278, 185], nutX: 270, bridgeX: 325, pegPos: [358, 185], side: 'right', compareFret: 0 }
+    { id: 0, stdLabel: '6E', stdFull: '6弦 (E2)', ebFull: '6弦 (E♭2)', targetFreq: 82.406889,  gauge: 3.3, color: '#d49a6a', post: [142, 185], nutX: 150, bridgeX: 95,  pegPos: [62, 185],  side: 'left',  compareFret: 5 },
+    { id: 1, stdLabel: '5A', stdFull: '5弦 (A2)', ebFull: '5弦 (A♭2)', targetFreq: 110.000000, gauge: 2.7, color: '#d9a477', post: [142, 120], nutX: 174, bridgeX: 141, pegPos: [62, 120],  side: 'left',  compareFret: 5 },
+    { id: 2, stdLabel: '4D', stdFull: '4弦 (D3)', ebFull: '4弦 (D♭3)', targetFreq: 146.832384, gauge: 2.2, color: '#dfaf86', post: [142, 55],  nutX: 198, bridgeX: 187, pegPos: [62, 55],   side: 'left',  compareFret: 5 },
+    { id: 3, stdLabel: '3G', stdFull: '3弦 (G3)', ebFull: '3弦 (G♭3)', targetFreq: 195.997718, gauge: 1.7, color: '#e5e7eb', post: [278, 55],  nutX: 222, bridgeX: 233, pegPos: [358, 55],  side: 'right', compareFret: 4 },
+    { id: 4, stdLabel: '2B', stdFull: '2弦 (B3)', ebFull: '2弦 (B♭3)', targetFreq: 246.941651, gauge: 1.4, color: '#f3f4f6', post: [278, 120], nutX: 246, bridgeX: 279, pegPos: [358, 120], side: 'right', compareFret: 5 },
+    { id: 5, stdLabel: '1E', stdFull: '1弦 (E4)', ebFull: '1弦 (E♭4)', targetFreq: 329.627557, gauge: 1.1, color: '#ffffff', post: [278, 185], nutX: 270, bridgeX: 325, pegPos: [358, 185], side: 'right', compareFret: 0 }
   ];
 
   // Hirajoshi tuning (D base) - 13 strings
@@ -762,25 +784,27 @@
     { id: 11, kanji: '為', note: 'G5',  freq: 783.9909 },
     { id: 12, kanji: '巾', note: 'A5',  freq: 880.0000 }
   ];
-  const KOTO_TARGETS = [1, 2, 3, 5, 6, 8]; // 6 strings to stand & tune (二,三,四,六,七,九)
+  // 二,三,四,六,七,十 -> every target note has an octave/unison anchor among the remaining 7 strings!
+  const KOTO_TARGETS = [1, 2, 3, 5, 6, 9];
 
   const DRUM_TYPES = {
     tom:   { name: 'タム (D3)',       freq: 146.8324 },
     snare: { name: 'スネア (G3)',     freq: 195.9977 },
     floor: { name: 'フロアタム (A2)', freq: 110.0000 }
   };
-  const DRUM_ANGLES = [-90, -30, 30, 90, 150, 210]; // 6 tension lugs clockwise from top
+  const DRUM_ANGLES = [-90, -30, 30, 90, 150, 210];
 
   // =========================================================
   // 2. APP STATE
   // =========================================================
   const state = {
-    instrument: 'guitar', // 'guitar' | 'koto' | 'drum'
+    instrument: 'guitar',
     fineMode: false,
     practicePeek: false,
 
     // Guitar
-    guitarMode: 'easy', // 'easy' | 'fret5' | 'master'
+    guitarMode: 'easy',     // 'easy' | 'fret5' | 'master'
+    guitarHalfStep: false,  // false = Standard E, true = Half-Step Down Eb
     guitarTimbre: 'guitar',
     guitarSel: 0,
     guitarCents: [0,0,0,0,0,0],
@@ -791,7 +815,7 @@
     guitarLastPluck: [0,0,0,0,0,0],
 
     // Koto
-    kotoMode: 'easy', // 'easy' | 'ear'
+    kotoMode: 'easy',
     kotoSel: 1,
     kotoCents: new Array(13).fill(0),
     kotoStanding: new Array(13).fill(true),
@@ -800,13 +824,26 @@
     kotoLastPluck: new Array(13).fill(0),
 
     // Drum
-    drumMode: 'easy', // 'easy' | 'anchor' (張り合わせのみ: 1番基準)
+    drumMode: 'easy',
     drumType: 'tom',
     snareOn: false,
     drumSel: 0,
     drumCents: [0,0,0,0,0,0],
     drumAngles: [0,0,0,0,0,0]
   };
+
+  // Guitar Tuning Labels & Target Frequency Helpers
+  function getGuitarLabel(idx) {
+    const base = GUITAR_STRINGS[idx].stdLabel;
+    return state.guitarHalfStep ? base + '♭' : base;
+  }
+  function getGuitarFull(idx) {
+    return state.guitarHalfStep ? GUITAR_STRINGS[idx].ebFull : GUITAR_STRINGS[idx].stdFull;
+  }
+  function getGuitarTargetFreq(idx) {
+    const f = GUITAR_STRINGS[idx].targetFreq;
+    return state.guitarHalfStep ? f * Math.pow(2, -1 / 12) : f;
+  }
 
   // =========================================================
   // 3. WEB AUDIO ENGINE
@@ -871,7 +908,7 @@
   // --- Guitar Synth ---
   function getGuitarFreq(idx) {
     const s = GUITAR_STRINGS[idx];
-    const open = s.targetFreq * Math.pow(2, state.guitarCents[idx] / 1200);
+    const open = getGuitarTargetFreq(idx) * Math.pow(2, state.guitarCents[idx] / 1200);
     return open * Math.pow(2, (state.guitarFretted[idx] ? s.compareFret : 0) / 12);
   }
 
@@ -951,7 +988,6 @@
 
     if (kotoVoices[idx]) { stopVoice(kotoVoices[idx], 0.02); kotoVoices[idx] = null; }
 
-    // If bridge (Kotoji) is fallen, play muted dull thump!
     if (!state.kotoStanding[idx]) {
       state.kotoVibAmp[idx] = 2.0;
       const osc = audioCtx.createOscillator();
@@ -981,7 +1017,6 @@
       const osc = audioCtx.createOscillator();
       const g = audioCtx.createGain();
       osc.type = 'sine';
-      // Slight subtle tsume stretch settle over first 35ms
       osc.frequency.setValueAtTime(f * m * 1.003, now);
       osc.frequency.exponentialRampToValueAtTime(f * m, now + 0.035);
       g.gain.value = amps[i];
@@ -990,7 +1025,6 @@
       return { osc, mult: m };
     });
 
-    // Tsume ivory plectrum click
     playNoiseBurst(3200, 0.014, 0.16);
 
     const dur = 4.2;
@@ -1021,8 +1055,6 @@
 
     const f = getDrumLugFreq(idx);
     const vGain = audioCtx.createGain();
-
-    // Clear head overtone at lug + subtle Bessel membrane partial (1.59x)
     const pairs = [
       { mult: 1.0, amp: 0.58, decay: 1.5 },
       { mult: 1.59, amp: 0.22, decay: 0.55 },
@@ -1040,7 +1072,6 @@
       return { osc, mult: spec.mult };
     });
 
-    // Stick tap transient
     playNoiseBurst(2600, 0.015, 0.22);
     if (state.snareOn) playNoiseBurst(3400, 0.14, 0.12, 'highpass');
 
@@ -1064,7 +1095,6 @@
     const freqs = [0,1,2,3,4,5].map(i => getDrumLugFreq(i));
     const avgFreq = freqs.reduce((a, b) => a + b, 0) / 6;
 
-    // 1. Deep fundamental punch (0,1 mode)
     const bodyOsc = audioCtx.createOscillator();
     const bodyGain = audioCtx.createGain();
     bodyOsc.type = 'sine';
@@ -1075,7 +1105,6 @@
     bodyOsc.connect(bodyGain); bodyGain.connect(vGain);
     bodyOsc.start(now); bodyOsc.stop(now + 0.95);
 
-    // 2. All 6 lugs' partials blend together -> beats/wobbles if uneven, pure boom if even!
     freqs.forEach(lf => {
       const osc = audioCtx.createOscillator();
       const g = audioCtx.createGain();
@@ -1087,7 +1116,6 @@
       osc.start(now); osc.stop(now + 1.3);
     });
 
-    // Attack + optional snare wires
     playNoiseBurst(1600, 0.025, 0.32);
     if (state.snareOn) playNoiseBurst(2600, 0.28, 0.36, 'highpass');
 
@@ -1142,8 +1170,8 @@
     let freq = 440;
     let modeStyle = 'guitar';
     if (state.instrument === 'guitar') {
-      if (state.guitarMode === 'easy') freq = GUITAR_STRINGS[state.guitarSel].targetFreq;
-      else if (state.guitarMode === 'fret5') freq = GUITAR_STRINGS[0].targetFreq;
+      if (state.guitarMode === 'easy') freq = getGuitarTargetFreq(state.guitarSel);
+      else if (state.guitarMode === 'fret5') freq = getGuitarTargetFreq(0);
       else { freq = 440; modeStyle = 'sine'; }
     } else if (state.instrument === 'koto') {
       freq = state.kotoMode === 'easy' ? KOTO_STRINGS[state.kotoSel].freq : KOTO_STRINGS[0].freq;
@@ -1233,6 +1261,7 @@
     let t = null, iv = null;
     const stop = () => { clearTimeout(t); clearInterval(iv); t = iv = null; };
     btn.addEventListener('pointerdown', (e) => {
+      if (btn.disabled) return;
       e.preventDefault(); e.stopPropagation();
       ensureAudio();
       actionFn();
@@ -1246,7 +1275,7 @@
   // =========================================================
   // 5. BUILD GUITAR UI
   // =========================================================
-  const guitarStringEls = [], guitarPegUnits = [], guitarPegKnobs = [], guitarPegWings = [], guitarBadges = [], guitarFretEls = [];
+  const guitarStringEls = [], guitarPegUnits = [], guitarPegKnobs = [], guitarPegWings = [], guitarPegLabels = [], guitarBadges = [], guitarFretEls = [];
 
   function initGuitarUI() {
     const sLayer = document.getElementById('guitarStringsLayer');
@@ -1323,7 +1352,7 @@
       const wing = document.createElement('div'); wing.className = 'peg-wing';
       const dot = document.createElement('div'); dot.className = 'peg-dot';
       wing.appendChild(dot);
-      const lbl = document.createElement('div'); lbl.className = 'knob-label'; lbl.textContent = s.label;
+      const lbl = document.createElement('div'); lbl.className = 'knob-label'; lbl.textContent = getGuitarLabel(idx);
       const badge = document.createElement('div'); badge.className = 'practice-badge'; badge.style.display = 'none';
       knob.appendChild(wing); knob.appendChild(lbl); knob.appendChild(badge);
 
@@ -1345,7 +1374,7 @@
       }, { passive: false });
 
       unit.appendChild(col); unit.appendChild(knob); overlay.appendChild(unit);
-      guitarPegUnits[idx] = unit; guitarPegKnobs[idx] = knob; guitarPegWings[idx] = wing; guitarBadges[idx] = badge;
+      guitarPegUnits[idx] = unit; guitarPegKnobs[idx] = knob; guitarPegWings[idx] = wing; guitarPegLabels[idx] = lbl; guitarBadges[idx] = badge;
     });
 
     const svgEl = document.getElementById('guitarSvg');
@@ -1364,6 +1393,7 @@
 
   function updateGuitarPegVisual(idx) {
     guitarPegWings[idx].style.transform = `rotate(${state.guitarAngles[idx]}deg)`;
+    guitarPegLabels[idx].textContent = getGuitarLabel(idx);
     const b = guitarBadges[idx];
     if (state.practicePeek) {
       const c = state.guitarCents[idx];
@@ -1400,7 +1430,6 @@
     KOTO_STRINGS.forEach((ks, idx) => {
       const y = kotoY(idx);
 
-      // Kanji string number on left
       const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       txt.setAttribute('x', 30); txt.setAttribute('y', y + 4);
       txt.setAttribute('text-anchor', 'middle'); txt.setAttribute('font-size', '12');
@@ -1408,7 +1437,6 @@
       txt.textContent = ks.kanji;
       sLayer.appendChild(txt);
 
-      // String path
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       path.setAttribute('d', `M 56 ${y} Q 230 ${y} 404 ${y}`);
       path.setAttribute('fill', 'none');
@@ -1417,10 +1445,9 @@
       sLayer.appendChild(path);
       kotoStringEls[idx] = path;
 
-      // Pluck hit area (right side)
       const hit = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      hit.setAttribute('x', 330); hit.setAttribute('y', y - 14);
-      hit.setAttribute('width', 78); hit.setAttribute('height', 28);
+      hit.setAttribute('x', 326); hit.setAttribute('y', y - 14);
+      hit.setAttribute('width', 82); hit.setAttribute('height', 28);
       hit.setAttribute('fill', 'transparent'); hit.style.cursor = 'pointer';
       hit.addEventListener('pointerdown', (e) => { e.preventDefault(); gliss = true; pluckKoto(idx); });
       hit.addEventListener('pointerenter', () => {
@@ -1428,7 +1455,6 @@
       });
       hLayer.appendChild(hit);
 
-      // Kotoji (Movable Bridge) handle
       const isTarget = KOTO_TARGETS.includes(idx);
       const handle = document.createElement('div');
       handle.className = `kotoji-handle ${isTarget ? '' : 'fixed'}`;
@@ -1437,7 +1463,7 @@
 
       const body = document.createElement('div'); body.className = 'kotoji-body';
       const tag = document.createElement('div'); tag.className = 'kotoji-tag';
-      const badge = document.createElement('div'); badge.className = 'practice-badge'; badge.style.display = 'none';
+      const badge = document.createElement('div'); badge.className = 'koto-practice-badge'; badge.style.display = 'none';
       handle.appendChild(body); handle.appendChild(tag); handle.appendChild(badge);
 
       let dragging = false, startX = 0, moved = false;
@@ -1481,7 +1507,6 @@
       kotojiBadges[idx] = badge;
     });
 
-    // Touch glissando on Koto SVG
     const svgEl = document.getElementById('kotoSvg');
     svgEl.addEventListener('touchmove', (e) => {
       if (!gliss || !e.touches.length) return;
@@ -1493,7 +1518,6 @@
       if (idx >= 0 && idx < 13 && performance.now() - state.kotoLastPluck[idx] > 95) pluckKoto(idx);
     }, { passive: true });
 
-    // Koto bottom control bar
     document.getElementById('kotoStandBtn').addEventListener('click', () => {
       const idx = state.kotoSel;
       if (KOTO_TARGETS.includes(idx) && !state.kotoStanding[idx]) {
@@ -1547,7 +1571,6 @@
     const overlay = document.getElementById('drumOverlay');
     casings.innerHTML = targets.innerHTML = overlay.innerHTML = '';
 
-    // Center Hit Zone
     const centerHit = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     centerHit.setAttribute('cx', 210); centerHit.setAttribute('cy', 210); centerHit.setAttribute('r', 56);
     centerHit.setAttribute('fill', 'transparent'); centerHit.style.cursor = 'pointer';
@@ -1558,13 +1581,11 @@
       const rad = (deg * Math.PI) / 180;
       const cos = Math.cos(rad), sin = Math.sin(rad);
 
-      // Lug casing on hoop
       const cx = 210 + 144 * cos, cy = 210 + 144 * sin;
       const casing = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       casing.setAttribute('cx', cx); casing.setAttribute('cy', cy); casing.setAttribute('r', 8);
       casings.appendChild(casing);
 
-      // Edge tap zone inside drumhead
       const tx = 210 + 95 * cos, ty = 210 + 95 * sin;
       const tg = document.createElementNS('http://www.w3.org/2000/svg', 'g');
       tg.style.cursor = 'pointer';
@@ -1582,14 +1603,12 @@
       tg.addEventListener('pointerdown', (e) => { e.preventDefault(); strikeDrumLug(idx); });
       targets.appendChild(tg);
 
-      // Outer Tension Bolt & Step Buttons
       const bx = 210 + 174 * cos, by = 210 + 174 * sin;
       const unit = document.createElement('div');
       unit.className = 'drum-lug-unit';
       unit.style.left = `${(bx / 420) * 100}%`;
       unit.style.top = `${(by / 420) * 100}%`;
-      if (cos < -0.2) unit.style.flexDirection = 'row';
-      else unit.style.flexDirection = 'row-reverse';
+      unit.style.flexDirection = cos < -0.2 ? 'row' : 'row-reverse';
 
       const col = document.createElement('div'); col.className = 'step-col';
       const pBtn = document.createElement('button'); pBtn.className = 'step-btn'; pBtn.textContent = '＋';
@@ -1675,10 +1694,16 @@
         <button class="mode-btn ${state.guitarMode==='master'?'active':''}" data-val="master">A440音叉</button>
       `;
       togglesRow.innerHTML = `
+        <button class="toggle-pill ${state.guitarHalfStep?'active':''}" id="halfStepBtn">チューニング: ${state.guitarHalfStep?'半音下げ(E♭)':'レギュラー(E)'}</button>
         <button class="toggle-pill ${state.fineMode?'active':''}" id="fineBtn">微調整: ${state.fineMode?'ON':'OFF'}</button>
         <button class="toggle-pill ${state.guitarTimbre==='sine'?'active':''}" id="timbreBtn">音色: ${state.guitarTimbre==='guitar'?'アコギ':'ピュア音'}</button>
         <button class="toggle-pill" id="muteBtn">🔇 消音</button>
       `;
+      document.getElementById('halfStepBtn').onclick = () => {
+        state.guitarHalfStep = !state.guitarHalfStep;
+        renderControlsBar();
+        shuffleCurrent();
+      };
       document.getElementById('timbreBtn').onclick = () => {
         state.guitarTimbre = state.guitarTimbre === 'guitar' ? 'sine' : 'guitar';
         renderControlsBar();
@@ -1738,7 +1763,6 @@
       const ks = KOTO_STRINGS[state.kotoSel];
       const isT = KOTO_TARGETS.includes(state.kotoSel);
       const standing = state.kotoStanding[state.kotoSel];
-      document.getElementById('kotoBar').classList.add('active');
       document.getElementById('kotoSelLabel').textContent = isT
         ? `選択: ${ks.kanji} (${ks.note}) ${standing ? '' : '[倒]'}`
         : `${ks.kanji} (${ks.note}) [基準・調律済]`;
@@ -1760,15 +1784,18 @@
     const hint = document.getElementById('footerHint');
 
     if (state.instrument === 'guitar') {
-      const s = GUITAR_STRINGS[state.guitarSel];
+      const full = getGuitarFull(state.guitarSel);
+      const lbl = getGuitarLabel(state.guitarSel);
+      const e2Label = state.guitarHalfStep ? 'E♭2' : 'E2';
       if (state.guitarMode === 'easy') {
-        info.innerHTML = `<strong>選択中: ${s.full}</strong><br>お手本と聴き比べてペグを回そう`;
-        if (!refVoice) btn.textContent = `🔊 ${s.label} のお手本`;
+        info.innerHTML = `<strong>選択中: ${full}</strong><br>お手本と聴き比べてペグを回そう`;
+        if (!refVoice) btn.textContent = `🔊 ${lbl} のお手本`;
       } else if (state.guitarMode === 'fret5') {
-        info.innerHTML = `<strong>5フレット相対法 (選択: ${s.full})</strong><br>6弦を基準に、5F(3弦は4F)でうなりを消そう`;
-        if (!refVoice) btn.textContent = `🔊 6弦基準音 (E2)`;
+        info.innerHTML = `<strong>5フレット相対法 (選択: ${full})</strong><br>6弦を基準に、5F(3弦は4F)でうなりを消そう`;
+        if (!refVoice) btn.textContent = `🔊 6弦基準音 (${e2Label})`;
       } else {
-        info.innerHTML = `<strong>Master (A440音叉)</strong><br>440Hzの音叉を頼りに5弦(A)から合わせよう`;
+        const sub = state.guitarHalfStep ? '440Hz音叉を頼りに半音下げ(E♭)へ合わせよう' : '440Hzの音叉を頼りに5弦(A)から合わせよう';
+        info.innerHTML = `<strong>Master (A440音叉)</strong><br>${sub}`;
         if (!refVoice) btn.textContent = `🔔 音叉 440Hz`;
       }
       hint.innerHTML = `💡 弦をタップ（またはなぞってストローク）で音を鳴らし、ペグを<strong>上下ドラッグ</strong>か<strong>＋/−タップ</strong>で回します。`;
@@ -1778,7 +1805,7 @@
         info.innerHTML = `<strong>選択中: ${ks.kanji}の弦 (${ks.note})</strong><br>赤く倒れた琴柱をタップで立てて左右に動かそう`;
         if (!refVoice) btn.textContent = `🔊 ${ks.kanji}のお手本`;
       } else {
-        info.innerHTML = `<strong>耳調弦モード (平調子)</strong><br>調律済みの弦（七・八・十など）とのオクターブ・同音で合わせよう`;
+        info.innerHTML = `<strong>一弦基準・耳調弦 (平調子)</strong><br>調律済みの弦（一・八・九・斗・為など）とのオクターブで合わせよう`;
         if (!refVoice) btn.textContent = `🔊 一の弦 (D4)`;
       }
       hint.innerHTML = `💡 赤く倒れた<strong>琴柱をタップで立てて</strong>から、左右にドラッグ（または下の◀/▶）で音程を合わせます。右端を縦になぞると全弦弾けます！`;
@@ -1816,7 +1843,7 @@
         if (KOTO_TARGETS.includes(idx)) {
           const sign = Math.random() < 0.5 ? -1 : 1;
           state.kotoCents[idx] = sign * (35 + Math.random() * 105);
-          state.kotoStanding[idx] = false; // Fallen bridges!
+          state.kotoStanding[idx] = false;
         } else {
           state.kotoCents[idx] = 0;
           state.kotoStanding[idx] = true;
@@ -1845,7 +1872,7 @@
 
     let items = [];
     if (state.instrument === 'guitar') {
-      items = GUITAR_STRINGS.map((s, i) => ({ name: s.label, cents: state.guitarCents[i], ok: true }));
+      items = GUITAR_STRINGS.map((_, i) => ({ name: getGuitarLabel(i), cents: state.guitarCents[i], ok: true }));
     } else if (state.instrument === 'koto') {
       items = KOTO_TARGETS.map(i => ({
         name: `${KOTO_STRINGS[i].kanji}(${KOTO_STRINGS[i].note})`,
@@ -1903,7 +1930,6 @@
   // 10. ANIMATION LOOP (Guitar & Koto strings)
   // =========================================================
   function animateAll() {
-    // Guitar
     GUITAR_STRINGS.forEach((s, idx) => {
       const amp = state.guitarVibAmp[idx];
       const midX = (s.nutX + s.bridgeX) / 2;
@@ -1918,7 +1944,6 @@
       }
     });
 
-    // Koto (vibrates between Kotoji and Right Bridge!)
     KOTO_STRINGS.forEach((_, idx) => {
       const amp = state.kotoVibAmp[idx];
       const y = kotoY(idx);
@@ -1927,7 +1952,11 @@
       if (amp > 0.08) {
         state.kotoVibPhase[idx] += 0.85 + idx * 0.1;
         const dy = Math.sin(state.kotoVibPhase[idx]) * amp;
-        kotoStringEls[idx].setAttribute('d', `M 56 ${y} L ${kx} ${y} Q ${midX} ${y + dy} 404 ${y}`);
+        if (!state.kotoStanding[idx]) {
+          kotoStringEls[idx].setAttribute('d', `M 56 ${y} Q 230 ${y + dy} 404 ${y}`);
+        } else {
+          kotoStringEls[idx].setAttribute('d', `M 56 ${y} L ${kx} ${y} Q ${midX} ${y + dy} 404 ${y}`);
+        }
         state.kotoVibAmp[idx] *= 0.96;
       } else if (amp !== 0) {
         state.kotoVibAmp[idx] = 0;
