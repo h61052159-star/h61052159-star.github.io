@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>SpatialRoom 3D v2 — 非AI純幾何・順序AR部屋スキャナー</title>
+<title>SpatialRoom 3D v3 — 非AI純幾何・高精度AR部屋スキャナー</title>
 <style>
   :root {
     --bg: #0b0f17;
@@ -28,7 +28,7 @@
   button {
     font-family: inherit; border: none; outline: none; cursor: pointer;
     color: var(--text); background: rgba(255,255,255,0.09);
-    border-radius: 10px; padding: 10px 12px; font-size: 13px; font-weight: 600;
+    border-radius: 10px; padding: 10px 12px; font-size: 12.5px; font-weight: 600;
     transition: transform 0.08s ease, background 0.15s ease, opacity 0.15s ease;
     display: inline-flex; align-items: center; justify-content: center; gap: 5px;
   }
@@ -38,13 +38,13 @@
   .btn-success { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
   .btn-warn { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; }
   .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; }
-  .btn-sm { padding: 7px 10px; font-size: 12px; border-radius: 8px; }
+  .btn-purple { background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: #fff; }
+  .btn-sm { padding: 7px 10px; font-size: 11.5px; border-radius: 8px; }
   .btn-active { outline: 2px solid var(--accent); background: rgba(6, 182, 212, 0.25); }
 
   .screen { position: fixed; inset: 0; display: none; flex-direction: column; overflow: hidden; }
   .screen.active { display: flex; }
 
-  /* ランチャー画面 */
   #launcher-screen { overflow-y: auto; padding: 16px 16px 40px; gap: 12px; }
   .card {
     background: var(--panel-solid); border: 1px solid var(--border);
@@ -67,16 +67,15 @@
 
   .setting-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
   .setting-item label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
-  .setting-item select, .setting-item input[type="number"] {
+  .setting-item select {
     width: 100%; background: #1e293b; color: var(--text); border: 1px solid var(--border);
     border-radius: 8px; padding: 8px 10px; font-size: 12.5px;
   }
   .toggle-row {
     display: flex; justify-content: space-between; align-items: center;
-    margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06); font-size: 12.5px;
+    margin-top: 9px; padding-top: 9px; border-top: 1px solid rgba(255,255,255,0.06); font-size: 12.5px;
   }
 
-  /* AR & Overlay */
   #ar-canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: none; }
   #fallback-video { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; z-index: 1; }
   #fallback-gl-canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: none; z-index: 2; pointer-events: none; }
@@ -96,17 +95,16 @@
     display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 11.5px;
   }
   .quality-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 5px; }
-  .hud-stats { display: flex; gap: 8px; font-variant-numeric: tabular-nums; font-size: 11px; color: #cbd5e1; }
+  .hud-stats { display: flex; gap: 8px; font-variant-numeric: tabular-nums; font-size: 10.5px; color: #cbd5e1; }
 
-  /* 順序スキャン ステップカード */
   .step-card {
     background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(10px);
     border: 1px solid rgba(56, 189, 248, 0.45); border-radius: 14px;
-    padding: 9px 11px; display: flex; flex-direction: column; gap: 7px;
+    padding: 8px 10px; display: flex; flex-direction: column; gap: 6px;
   }
   .step-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 800; color: #38bdf8; }
-  .step-desc { font-size: 11.5px; color: #e2e8f0; line-height: 1.4; }
-  .step-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .step-desc { font-size: 11px; color: #e2e8f0; line-height: 1.4; }
+  .step-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 
   #reticle-hud {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -133,11 +131,10 @@
   .cad-strip.open { display: flex; }
   .ctrl-dock {
     background: var(--panel); backdrop-filter: blur(10px); border: 1px solid var(--border);
-    border-radius: 16px; padding: 8px; display: flex; flex-direction: column; gap: 7px;
+    border-radius: 16px; padding: 8px; display: flex; flex-direction: column; gap: 6px;
   }
   .ctrl-row { display: flex; gap: 6px; justify-content: space-between; align-items: center; }
 
-  /* 3D ビューワー画面 */
   #viewer-screen { background: #090d16; }
   #viewer-canvas { width: 100%; flex: 1; display: block; touch-action: none; }
   .viewer-top {
@@ -175,10 +172,10 @@
   <div class="card">
     <div class="header-title">
       <span>SpatialRoom 3D</span>
-      <span class="badge">v2 非AI純幾何エンジン</span>
+      <span class="badge">v3 形状高精度・ICP+囲みスキャン</span>
     </div>
     <p style="margin:6px 0 0; font-size:12px; color:var(--muted); line-height:1.5;">
-      色オーバーフロー完全修正・複雑形状の面伸び防止（厳格エッジカット＋強Carving）・<b>順序スキャン（床→天井→壁→家具）</b>対応版。
+      <b>Direct Point-to-TSDF ICP</b>（閉ループズレ吸着）・<b>バイラテラル平滑化</b>・<b>QEFシャープ角抽出</b>・<b>壁外枠ロック</b>・<b>360°テーブル囲みモード</b>・<b>マンハッタン直交補正</b>を搭載。
     </p>
   </div>
 
@@ -194,27 +191,27 @@
   </div>
 
   <div class="card">
-    <div style="font-size:13px; font-weight:700;">スキャン設定</div>
+    <div style="font-size:13px; font-weight:700;">高精度スキャン設定</div>
     <div class="setting-grid">
       <div class="setting-item">
         <label>ボクセル解像度</label>
         <select id="opt-voxel">
-          <option value="0.025">2.5 cm (精密・複雑形状向け)</option>
-          <option value="0.035" selected>3.5 cm (部屋標準・推奨)</option>
-          <option value="0.050">5.0 cm (広域・高速)</option>
+          <option value="0.025">2.5 cm (家具・精密推奨)</option>
+          <option value="0.035" selected>3.5 cm (部屋標準・バランス)</option>
+          <option value="0.050">5.0 cm (広域・軽快)</option>
         </select>
       </div>
       <div class="setting-item">
         <label>スキャン方式</label>
         <select id="opt-workflow">
-          <option value="guided" selected>順序スキャン (床→天井→壁→家具)</option>
-          <option value="free">フリースキャン (いきなり開始)</option>
+          <option value="guided" selected>順序 (床→天井→部屋外枠→囲み/詳細)</option>
+          <option value="free">フリースキャン</option>
         </select>
       </div>
       <div class="setting-item">
-        <label>フリー時 最大深度</label>
+        <label>最大有効深度</label>
         <select id="opt-max-depth">
-          <option value="2.2">2.2 m (複雑形状・突き抜け防止)</option>
+          <option value="2.2">2.2 m (家具・囲み中心)</option>
           <option value="3.5" selected>3.5 m (一般部屋)</option>
           <option value="4.8">4.8 m (広い部屋)</option>
         </select>
@@ -222,23 +219,38 @@
       <div class="setting-item">
         <label>キーフレーム間隔</label>
         <select id="opt-kf-dist">
-          <option value="0.03">3 cm / 4° (高密度)</option>
-          <option value="0.05" selected>5 cm / 6° (バランス)</option>
-          <option value="0.08">8 cm / 9° (軽快)</option>
+          <option value="0.03">3 cm / 4° (超高密度)</option>
+          <option value="0.045" selected>4.5 cm / 5° (推奨)</option>
+          <option value="0.08">8 cm / 9° (高速)</option>
         </select>
       </div>
+    </div>
+
+    <div class="toggle-row">
+      <div>
+        <div style="font-weight:600;">Direct TSDF ICP (自動位置合わせ)</div>
+        <div style="font-size:11px; color:var(--muted);">囲み時や周回時の二重壁・傾きドリフトを自動吸着</div>
+      </div>
+      <input id="opt-icp" type="checkbox" checked style="width:20px; height:20px; accent-color:var(--accent);" />
+    </div>
+    <div class="toggle-row">
+      <div>
+        <div style="font-weight:600;">エッジ保存 バイラテラル平滑＋QEF角抽出</div>
+        <div style="font-size:11px; color:var(--muted);">平らな面のノイズを消し、机や壁の角を鋭く保つ</div>
+      </div>
+      <input id="opt-sharp" type="checkbox" checked style="width:20px; height:20px; accent-color:var(--accent);" />
     </div>
     <div class="toggle-row">
       <div>
         <div style="font-weight:600;">実カメラ色焼き付け (Camera Access)</div>
-        <div style="font-size:11px; color:var(--muted);">実際の壁や家具の色を正しく平均統合</div>
+        <div style="font-size:11px; color:var(--muted);">カメラの実際の色を重み平均で焼き付け</div>
       </div>
       <input id="opt-color" type="checkbox" checked style="width:20px; height:20px; accent-color:var(--accent);" />
     </div>
     <div class="toggle-row">
       <div>
-        <div style="font-weight:600;">強Carving＋急斜面カット（突き抜け防止）</div>
-        <div style="font-size:11px; color:var(--muted);">古い偽の面やカーテン伸びを強力に削り取る</div>
+        <div style="font-weight:600;">強Carving＋急斜面カット</div>
+        <div style="font-size:11px; color:var(--muted);">空間の偽面・突き抜けノイズを自動消去</div>
       </div>
       <input id="opt-carve" type="checkbox" checked style="width:20px; height:20px; accent-color:var(--accent);" />
     </div>
@@ -249,10 +261,10 @@
       📷 AR 3Dスキャンを開始 (WebXR 高精度)
     </button>
     <button id="btn-start-gyro" class="btn-success" style="padding:12px;">
-      🧭 ジャイロ+カメラ 簡易ARスキャン (WebXR非対応用)
+      🧭 ジャイロ+カメラ 簡易ARスキャン
     </button>
     <button id="btn-demo-room" style="padding:11px;">
-      🧊 サンプル部屋データで3Dスタジオを試す
+      🧊 サンプル部屋（テーブル付き）で3Dスタジオを試す
     </button>
   </div>
 </div>
@@ -271,15 +283,15 @@
       </div>
       <div class="hud-stats">
         <span id="stat-kf">KF:0</span>
+        <span id="stat-icp">ICP:--</span>
         <span id="stat-pts">Pts:0</span>
-        <span id="stat-mode">INIT</span>
       </div>
     </div>
 
     <!-- 順序スキャン ガイドカード -->
     <div id="step-card" class="step-card hud-Interactive" style="display:none;">
       <div class="step-head">
-        <span id="step-title">STEP 1/4：床の高さ合わせ</span>
+        <span id="step-title">STEP 1/4</span>
         <span id="step-bounds" style="font-size:10px; color:#94a3b8; font-weight:600;">床:-- 天井:--</span>
       </div>
       <div id="step-desc" class="step-desc"></div>
@@ -309,15 +321,16 @@
 
     <div class="ctrl-dock hud-Interactive">
       <div class="ctrl-row">
-        <button id="btn-scan-toggle" class="btn-primary" style="flex:1.25;">▶ スキャン開始</button>
-        <button id="btn-erase-ray" class="btn-sm btn-warn" title="中央の狙った場所の面を削り直す">🧹 狙い消し</button>
-        <button id="btn-overlay-mode" class="btn-sm">🎨 カメラ色</button>
+        <button id="btn-scan-toggle" class="btn-primary" style="flex:1.2;">▶ スキャン開始</button>
+        <button id="btn-wrap-target" class="btn-purple btn-sm" title="テーブル中央を狙って360°囲みモード">🎯 囲み</button>
+        <button id="btn-erase-ray" class="btn-sm btn-warn" title="狙った場所を消す">🧹 消し</button>
+        <button id="btn-overlay-mode" class="btn-sm">🎨 色</button>
         <button id="btn-cad-toggle" class="btn-sm">📐 CAD</button>
       </div>
       <div class="ctrl-row">
         <button id="btn-ar-cancel" class="btn-sm" style="flex:0.65;">戻る</button>
-        <button id="btn-ar-clear" class="btn-sm btn-danger" style="flex:0.75;">リセット</button>
-        <button id="btn-cam-rot" class="btn-sm" style="flex:0.8;" title="カメラ色がズレる機種用の向き補正">🔄 色向:自動</button>
+        <button id="btn-ar-clear" class="btn-sm btn-danger" style="flex:0.7;">リセット</button>
+        <button id="btn-cam-rot" class="btn-sm" style="flex:0.75;">🔄 自動</button>
         <button id="btn-finish-mesh" class="btn-success" style="flex:1.45;">✅ 完了・3D化</button>
       </div>
     </div>
@@ -343,9 +356,10 @@
   <div class="viewer-dock">
     <div class="scroll-row">
       <button id="btn-view-mode" class="btn-sm btn-active">表示: カラーメッシュ</button>
-      <button id="btn-taubin" class="btn-sm">✨ Taubin平滑化</button>
-      <button id="btn-ransac" class="btn-sm btn-primary">📏 RANSAC平面補正</button>
-      <button id="btn-color-smooth" class="btn-sm">🎨 色ノイズ均し</button>
+      <button id="btn-taubin" class="btn-sm">✨ Taubin平滑</button>
+      <button id="btn-ransac" class="btn-sm btn-primary">📏 RANSAC平坦化</button>
+      <button id="btn-manhattan" class="btn-sm btn-purple">📐 直交(マンハッタン)補正</button>
+      <button id="btn-color-smooth" class="btn-sm">🎨 色均し</button>
       <button id="btn-clean-islands" class="btn-sm">🧹 浮遊片除去</button>
       <button id="btn-mesh-reset" class="btn-sm">↩ 元メッシュ</button>
     </div>
@@ -367,8 +381,7 @@
   let toastTimer = null;
   function showToast(msg, ms = 2600) {
     const el = $('toast');
-    el.textContent = msg;
-    el.style.display = 'block';
+    el.textContent = msg; el.style.display = 'block';
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => { el.style.display = 'none'; }, ms);
   }
@@ -383,14 +396,12 @@
     $('fallback-height-bar').style.display = (name === 'fallback') ? 'flex' : 'none';
   }
 
-  // ==================== 3D 数学ライブラリ ====================
+  // ==================== 3D 数学・汎用線形ソルバー ====================
   const Mat4 = {
-    identity(out = new Float32Array(16)) {
-      out.fill(0); out[0] = out[5] = out[10] = out[15] = 1; return out;
-    },
+    identity(out = new Float32Array(16)) { out.fill(0); out[0]=out[5]=out[10]=out[15]=1; return out; },
     mul(a, b, out = new Float32Array(16)) {
       for (let c = 0; c < 4; c++) {
-        const b0 = b[c*4], b1 = b[c*4+1], b2 = b[c*4+2], b3 = b[c*4+3];
+        const b0=b[c*4], b1=b[c*4+1], b2=b[c*4+2], b3=b[c*4+3];
         out[c*4]   = a[0]*b0 + a[4]*b1 + a[8]*b2  + a[12]*b3;
         out[c*4+1] = a[1]*b0 + a[5]*b1 + a[9]*b2  + a[13]*b3;
         out[c*4+2] = a[2]*b0 + a[6]*b1 + a[10]*b2 + a[14]*b3;
@@ -420,141 +431,134 @@
     },
     perspective(fovyRad, aspect, near, far, out = new Float32Array(16)) {
       const f = 1.0 / Math.tan(fovyRad / 2), nf = 1 / (near - far);
-      out.fill(0);
-      out[0] = f / aspect; out[5] = f; out[10] = (far + near) * nf;
-      out[11] = -1; out[14] = 2 * far * near * nf;
-      return out;
+      out.fill(0); out[0]=f/aspect; out[5]=f; out[10]=(far+near)*nf; out[11]=-1; out[14]=2*far*near*nf; return out;
     },
     lookAt(eye, target, up, out = new Float32Array(16)) {
-      let zx = eye[0]-target[0], zy = eye[1]-target[1], zz = eye[2]-target[2];
-      let len = Math.hypot(zx, zy, zz) || 1;
-      zx /= len; zy /= len; zz /= len;
-      let xx = up[1]*zz - up[2]*zy, xy = up[2]*zx - up[0]*zz, xz = up[0]*zy - up[1]*zx;
-      len = Math.hypot(xx, xy, xz) || 1;
-      xx /= len; xy /= len; xz /= len;
-      const yx = zy*xz - zz*xy, yy = zz*xx - zx*xz, yz = zx*xy - zy*xx;
-      out[0]=xx; out[1]=yx; out[2]=zx; out[3]=0;
-      out[4]=xy; out[5]=yy; out[6]=zy; out[7]=0;
+      let zx=eye[0]-target[0], zy=eye[1]-target[1], zz=eye[2]-target[2];
+      let len = Math.hypot(zx, zy, zz) || 1; zx/=len; zy/=len; zz/=len;
+      let xx=up[1]*zz-up[2]*zy, xy=up[2]*zx-up[0]*zz, xz=up[0]*zy-up[1]*zx;
+      len = Math.hypot(xx, xy, xz) || 1; xx/=len; xy/=len; xz/=len;
+      const yx=zy*xz-zz*xy, yy=zz*xx-zx*xz, yz=zx*xy-zy*xx;
+      out[0]=xx; out[1]=yx; out[2]=zx; out[3]=0; out[4]=xy; out[5]=yy; out[6]=zy; out[7]=0;
       out[8]=xz; out[9]=yz; out[10]=zz; out[11]=0;
-      out[12]=-(xx*eye[0]+xy*eye[1]+xz*eye[2]);
-      out[13]=-(yx*eye[0]+yy*eye[1]+yz*eye[2]);
-      out[14]=-(zx*eye[0]+zy*eye[1]+zz*eye[2]);
-      out[15]=1;
+      out[12]=-(xx*eye[0]+xy*eye[1]+xz*eye[2]); out[13]=-(yx*eye[0]+yy*eye[1]+yz*eye[2]); out[14]=-(zx*eye[0]+zy*eye[1]+zz*eye[2]); out[15]=1;
       return out;
     },
     fromQuatPos(q, p, out = new Float32Array(16)) {
-      const [x,y,z,w] = q;
-      const x2=x+x, y2=y+y, z2=z+z;
-      const xx=x*x2, xy=x*y2, xz=x*z2, yy=y*y2, yz=y*z2, zz=z*z2;
-      const wx=w*x2, wy=w*y2, wz=w*z2;
-      out[0]=1-(yy+zz); out[1]=xy+wz; out[2]=xz-wy; out[3]=0;
-      out[4]=xy-wz; out[5]=1-(xx+zz); out[6]=yz+wx; out[7]=0;
-      out[8]=xz+wy; out[9]=yz-wx; out[10]=1-(xx+yy); out[11]=0;
-      out[12]=p[0]; out[13]=p[1]; out[14]=p[2]; out[15]=1;
+      const [x,y,z,w] = q, x2=x+x, y2=y+y, z2=z+z;
+      const xx=x*x2, xy=x*y2, xz=x*z2, yy=y*y2, yz=y*z2, zz=z*z2, wx=w*x2, wy=w*y2, wz=w*z2;
+      out[0]=1-(yy+zz); out[1]=xy+wz; out[2]=xz-wy; out[3]=0; out[4]=xy-wz; out[5]=1-(xx+zz); out[6]=yz+wx; out[7]=0;
+      out[8]=xz+wy; out[9]=yz-wx; out[10]=1-(xx+yy); out[11]=0; out[12]=p[0]; out[13]=p[1]; out[14]=p[2]; out[15]=1;
+      return out;
+    },
+    fromTwist(wx, wy, wz, vx, vy, vz, out = new Float32Array(16)) {
+      const theta = Math.hypot(wx, wy, wz);
+      if (theta < 1e-9) {
+        out[0]=1; out[1]=wz; out[2]=-wy; out[3]=0;
+        out[4]=-wz; out[5]=1; out[6]=wx; out[7]=0;
+        out[8]=wy; out[9]=-wx; out[10]=1; out[11]=0;
+      } else {
+        const kx=wx/theta, ky=wy/theta, kz=wz/theta, c=Math.cos(theta), s=Math.sin(theta), v=1-c;
+        out[0]=c+kx*kx*v; out[1]=ky*kx*v+kz*s; out[2]=kz*kx*v-ky*s; out[3]=0;
+        out[4]=kx*ky*v-kz*s; out[5]=c+ky*ky*v; out[6]=kz*ky*v+kx*s; out[7]=0;
+        out[8]=kx*kz*v+ky*s; out[9]=ky*kz*v-kx*s; out[10]=c+kz*kz*v; out[11]=0;
+      }
+      out[12]=vx; out[13]=vy; out[14]=vz; out[15]=1;
       return out;
     }
   };
+
+  function solveLinear(A, b, n) {
+    const M = Array.from({ length: n }, (_, r) => {
+      const row = new Float64Array(n + 1);
+      for (let c = 0; c < n; c++) row[c] = A[r*n + c];
+      row[n] = b[r];
+      return row;
+    });
+    for (let col = 0; col < n; col++) {
+      let piv = col, maxV = Math.abs(M[col][col]);
+      for (let r = col + 1; r < n; r++) {
+        const av = Math.abs(M[r][col]);
+        if (av > maxV) { maxV = av; piv = r; }
+      }
+      if (maxV < 1e-12) return null;
+      if (piv !== col) { const tmp = M[col]; M[col] = M[piv]; M[piv] = tmp; }
+      const invD = 1.0 / M[col][col];
+      for (let j = col; j <= n; j++) M[col][j] *= invD;
+      for (let r = 0; r < n; r++) {
+        if (r === col) continue;
+        const f = M[r][col];
+        if (f !== 0) for (let j = col; j <= n; j++) M[r][j] -= f * M[col][j];
+      }
+    }
+    const x = new Float64Array(n);
+    for (let i = 0; i < n; i++) x[i] = M[i][n];
+    return x;
+  }
 
   function quatAngleDeg(q1, q2) {
     const dot = Math.min(1, Math.abs(q1[0]*q2[0] + q1[1]*q2[1] + q1[2]*q2[2] + q1[3]*q2[3]));
     return (2 * Math.acos(dot)) * 180 / Math.PI;
   }
 
-  // ==================== ジャイロセンサー管理 ====================
-  const GyroState = {
-    available: false, alpha: 0, beta: 0, gamma: 0,
-    quat: [0, 0, 0, 1], prevQuat: [0, 0, 0, 1], lastTime: 0, angularSpeedDeg: 0
-  };
-
+  // ==================== ジャイロセンサー ====================
+  const GyroState = { available: false, alpha: 0, beta: 0, gamma: 0, quat: [0,0,0,1], prevQuat: [0,0,0,1], lastTime: 0 };
   function computeGyroQuat(alphaDeg, betaDeg, gammaDeg, orientDeg) {
-    const a = alphaDeg * Math.PI / 180, b = betaDeg * Math.PI / 180;
-    const g = gammaDeg * Math.PI / 180, o = orientDeg * Math.PI / 180;
-    const c1 = Math.cos(b/2), c2 = Math.cos(a/2), c3 = Math.cos(-g/2);
-    const s1 = Math.sin(b/2), s2 = Math.sin(a/2), s3 = Math.sin(-g/2);
-    const qx = s1*c2*c3 + c1*s2*s3, qy = c1*s2*c3 - s1*c2*s3;
-    const qz = c1*c2*s3 - s1*s2*c3, qw = c1*c2*c3 + s1*s2*s3;
-    const sq = Math.SQRT1_2;
-    const r1x = qx*sq - qw*sq, r1y = qy*sq + qz*sq, r1z = qz*sq - qy*sq, r1w = qw*sq + qx*sq;
-    const sz = Math.sin(-o/2), cz = Math.cos(-o/2);
-    return [
-      r1x*cz + r1y*sz, r1y*cz - r1x*sz,
-      r1w*sz + r1z*cz, r1w*cz - r1z*sz
-    ];
+    const a=alphaDeg*Math.PI/180, b=betaDeg*Math.PI/180, g=gammaDeg*Math.PI/180, o=orientDeg*Math.PI/180;
+    const c1=Math.cos(b/2), c2=Math.cos(a/2), c3=Math.cos(-g/2), s1=Math.sin(b/2), s2=Math.sin(a/2), s3=Math.sin(-g/2);
+    const qx=s1*c2*c3+c1*s2*s3, qy=c1*s2*c3-s1*c2*s3, qz=c1*c2*s3-s1*s2*c3, qw=c1*c2*c3+s1*s2*s3;
+    const sq=Math.SQRT1_2, r1x=qx*sq-qw*sq, r1y=qy*sq+qz*sq, r1z=qz*sq-qy*sq, r1w=qw*sq+qx*sq;
+    const sz=Math.sin(-o/2), cz=Math.cos(-o/2);
+    return [r1x*cz+r1y*sz, r1y*cz-r1x*sz, r1w*sz+r1z*cz, r1w*cz-r1z*sz];
   }
-
   function handleDeviceOrientation(e) {
     if (e.alpha == null || e.beta == null || e.gamma == null) return;
-    GyroState.available = true;
-    GyroState.alpha = e.alpha; GyroState.beta = e.beta; GyroState.gamma = e.gamma;
-    const orient = (screen.orientation && typeof screen.orientation.angle === 'number')
-      ? screen.orientation.angle : (window.orientation || 0);
-    const nq = computeGyroQuat(e.alpha, e.beta, e.gamma, orient);
-    const now = performance.now();
-    if (GyroState.lastTime > 0) {
-      const dt = Math.max(0.005, (now - GyroState.lastTime) / 1000);
-      GyroState.angularSpeedDeg = quatAngleDeg(GyroState.prevQuat, nq) / dt;
-    }
+    GyroState.available = true; GyroState.alpha=e.alpha; GyroState.beta=e.beta; GyroState.gamma=e.gamma;
+    const orient = (screen.orientation && typeof screen.orientation.angle === 'number') ? screen.orientation.angle : (window.orientation || 0);
     GyroState.prevQuat = GyroState.quat;
-    GyroState.quat = nq;
-    GyroState.lastTime = now;
-
+    GyroState.quat = computeGyroQuat(e.alpha, e.beta, e.gamma, orient);
+    GyroState.lastTime = performance.now();
     const pill = $('diag-gyro');
-    if (pill && pill.textContent !== '動作中') {
-      pill.textContent = '動作中'; pill.className = 'status-pill pill-ok';
-    }
+    if (pill && pill.textContent !== '動作中') { pill.textContent = '動作中'; pill.className = 'status-pill pill-ok'; }
     const valEl = $('diag-gyro-val');
     if (valEl) valEl.textContent = `P:${e.beta.toFixed(0)}° R:${e.gamma.toFixed(0)}° Y:${e.alpha.toFixed(0)}°`;
   }
-
   async function initGyroListener() {
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-      try {
-        const res = await DeviceOrientationEvent.requestPermission();
-        if (res === 'granted') window.addEventListener('deviceorientation', handleDeviceOrientation, true);
-      } catch (_) {}
+      try { if ((await DeviceOrientationEvent.requestPermission()) === 'granted') window.addEventListener('deviceorientation', handleDeviceOrientation, true); } catch (_) {}
     } else if ('DeviceOrientationEvent' in window) {
       window.addEventListener('deviceorientation', handleDeviceOrientation, true);
     }
   }
 
-  // ==================== チャンク化 3D TSDF ボクセルエンジン (色オーバーフロー完全対策版) ====================
-  const CS = 16;
-  const CSIZE3 = CS * CS * CS;
-  const CHUNK_OFFSET = 1024;
-  const VOXEL_OFFSET = 8192;
-
-  function chunkKey(cx, cy, cz) {
-    return (cx + CHUNK_OFFSET) * 4194304 + (cy + CHUNK_OFFSET) * 2048 + (cz + CHUNK_OFFSET);
-  }
-  function voxelKey(vx, vy, vz) {
-    return (vx + VOXEL_OFFSET) * 268435456 + (vy + VOXEL_OFFSET) * 16384 + (vz + VOXEL_OFFSET);
-  }
+  // ==================== チャンク化 3D TSDF エンジン (ICP + QEF + 部屋外枠 + 囲み対応) ====================
+  const CS = 16, CSIZE3 = CS * CS * CS, CHUNK_OFFSET = 1024, VOXEL_OFFSET = 8192;
+  function chunkKey(cx, cy, cz) { return (cx + CHUNK_OFFSET) * 4194304 + (cy + CHUNK_OFFSET) * 2048 + (cz + CHUNK_OFFSET); }
+  function voxelKey(vx, vy, vz) { return (vx + VOXEL_OFFSET) * 268435456 + (vy + VOXEL_OFFSET) * 16384 + (vz + VOXEL_OFFSET); }
 
   class TSDFVolume {
     constructor(voxelSize = 0.035) {
       this.voxelSize = voxelSize;
-      this.trunc = voxelSize * 1.8; // タイトな切断帯で薄い板や隙間を守る
-      this.maxWeight = 18.0;        // 過剰な固着を防ぎ再観測で修正しやすくする
+      this.trunc = voxelSize * 1.8;
+      this.maxWeight = 18.0;
       this.maxColorWeight = 14.0;
-      this.maxChunks = 800;
+      this.maxChunks = 850;
       this.chunks = new Map();
       this.cadPlanes = [];
       this.cadPending = [];
-      // 順序スキャン用キャリブレーション境界 (WebXR生座標Y基準)
       this.floorY = null;
       this.ceilingY = null;
+      // 部屋外枠ロック（星形2Dポリゴンマスク）
+      this.shellCenter = null; // [cx, cz]
+      this.shellRadii = null;  // Float32Array(36) 10°ごとの最大壁距離
     }
 
     reset(voxelSize) {
-      if (voxelSize) {
-        this.voxelSize = voxelSize;
-        this.trunc = voxelSize * 1.8;
-      }
+      if (voxelSize) { this.voxelSize = voxelSize; this.trunc = voxelSize * 1.8; }
       this.chunks.clear();
-      this.cadPlanes = [];
-      this.cadPending = [];
-      this.floorY = null;
-      this.ceilingY = null;
+      this.cadPlanes = []; this.cadPending = [];
+      this.floorY = null; this.ceilingY = null;
+      this.shellCenter = null; this.shellRadii = null;
     }
 
     getOrCreateChunk(cx, cy, cz) {
@@ -566,132 +570,188 @@
         cx, cy, cz,
         tsdf: new Float32Array(CSIZE3).fill(1.0),
         weight: new Float32Array(CSIZE3),
-        cw: new Float32Array(CSIZE3), // 色専用の重み配列 (Carving汚染とオーバーフロー根絶)
-        r: new Uint8Array(CSIZE3),
-        g: new Uint8Array(CSIZE3),
-        b: new Uint8Array(CSIZE3)
+        cw: new Float32Array(CSIZE3),
+        r: new Uint8Array(CSIZE3), g: new Uint8Array(CSIZE3), b: new Uint8Array(CSIZE3)
       };
       this.chunks.set(k, ch);
       return ch;
     }
 
-    getVoxel(vx, vy, vz) {
+    getVoxelVal(vx, vy, vz) {
       const cx = Math.floor(vx / CS), cy = Math.floor(vy / CS), cz = Math.floor(vz / CS);
       const ch = this.chunks.get(chunkKey(cx, cy, cz));
       if (!ch) return null;
-      const lx = vx - cx * CS, ly = vy - cy * CS, lz = vz - cz * CS;
-      const idx = (lx * CS + ly) * CS + lz;
-      return { ch, idx, tsdf: ch.tsdf[idx], weight: ch.weight[idx] };
+      const idx = ((vx - cx*CS)*CS + (vy - cy*CS))*CS + (vz - cz*CS);
+      return { tsdf: ch.tsdf[idx], weight: ch.weight[idx], ch, idx };
+    }
+
+    // ワールド座標(x,y,z)のTSDF値(m)と空間勾配(無次元法線方向)をトリリニア補間取得（ICP用）
+    sampleTSDFAndGrad(x, y, z) {
+      const vs = this.voxelSize;
+      const gx = x / vs - 0.5, gy = y / vs - 0.5, gz = z / vs - 0.5;
+      const ix = Math.floor(gx), iy = Math.floor(gy), iz = Math.floor(gz);
+      const v000 = this.getVoxelVal(ix, iy, iz);
+      if (!v000 || v000.weight < 1.2) return null;
+      const v100 = this.getVoxelVal(ix+1, iy, iz), v010 = this.getVoxelVal(ix, iy+1, iz), v110 = this.getVoxelVal(ix+1, iy+1, iz);
+      const v001 = this.getVoxelVal(ix, iy, iz+1), v101 = this.getVoxelVal(ix+1, iy, iz+1), v011 = this.getVoxelVal(ix, iy+1, iz+1), v111 = this.getVoxelVal(ix+1, iy+1, iz+1);
+      if (!v100 || !v010 || !v110 || !v001 || !v101 || !v011 || !v111) return null;
+      if (v100.weight<1 || v010.weight<1 || v001.weight<1) return null;
+
+      const fx = gx - ix, fy = gy - iy, fz = gz - iz;
+      const lerp = (a, b, t) => a + t * (b - a);
+      const c00 = lerp(v000.tsdf, v100.tsdf, fx), c10 = lerp(v010.tsdf, v110.tsdf, fx);
+      const c01 = lerp(v001.tsdf, v101.tsdf, fx), c11 = lerp(v011.tsdf, v111.tsdf, fx);
+      const val = lerp(lerp(c00, c10, fy), lerp(c01, c11, fy), fz) * this.trunc;
+
+      const vxM = this.getVoxelVal(ix-1, iy, iz), vyM = this.getVoxelVal(ix, iy-1, iz), vzM = this.getVoxelVal(ix, iy, iz-1);
+      const scaleG = this.trunc / (2 * vs);
+      const dx = (vxM && vxM.weight > 0.5) ? (v100.tsdf - vxM.tsdf) * scaleG : (v100.tsdf - v000.tsdf) * (this.trunc / vs);
+      const dy = (vyM && vyM.weight > 0.5) ? (v010.tsdf - vyM.tsdf) * scaleG : (v010.tsdf - v000.tsdf) * (this.trunc / vs);
+      const dz = (vzM && vzM.weight > 0.5) ? (v001.tsdf - vzM.tsdf) * scaleG : (v001.tsdf - v000.tsdf) * (this.trunc / vs);
+      return { val, gx: dx, gy: dy, gz: dz };
     }
 
     updateVoxel(vx, vy, vz, sdfVal, wNew, cr, cg, cb, hasColor) {
       const cx = Math.floor(vx / CS), cy = Math.floor(vy / CS), cz = Math.floor(vz / CS);
       const ch = this.getOrCreateChunk(cx, cy, cz);
       if (!ch) return;
-      const lx = vx - cx * CS, ly = vy - cy * CS, lz = vz - cz * CS;
-      const idx = (lx * CS + ly) * CS + lz;
-
-      // 修正点1: 必ず (wOld + wNew) の実総和で割ってから上限キャップする！
-      const wOld = ch.weight[idx];
-      const wTotal = wOld + wNew;
+      const idx = ((vx - cx*CS)*CS + (vy - cy*CS))*CS + (vz - cz*CS);
+      const wOld = ch.weight[idx], wTotal = wOld + wNew;
       const val = Math.max(-1.0, Math.min(1.0, sdfVal / this.trunc));
-      ch.tsdf[idx] = Math.max(-1.0, Math.min(1.0, (ch.tsdf[idx] * wOld + val * wNew) / wTotal));
+      ch.tsdf[idx] = Math.max(-1.0, Math.min(1.0, (ch.tsdf[idx]*wOld + val*wNew) / wTotal));
       ch.weight[idx] = Math.min(this.maxWeight, wTotal);
 
-      // 修正点2: 色専用重み cwOld で正しく移動平均し、0..255 に厳密クランプ！
       if (hasColor && Math.abs(sdfVal) < this.trunc * 0.8) {
         const cwOld = ch.cw[idx];
         if (cwOld <= 0) {
-          ch.r[idx] = cr; ch.g[idx] = cg; ch.b[idx] = cb;
+          ch.r[idx]=cr; ch.g[idx]=cg; ch.b[idx]=cb;
           ch.cw[idx] = Math.min(this.maxColorWeight, wNew);
         } else {
           const cwTotal = cwOld + wNew;
-          ch.r[idx] = Math.max(0, Math.min(255, Math.round((ch.r[idx] * cwOld + cr * wNew) / cwTotal)));
-          ch.g[idx] = Math.max(0, Math.min(255, Math.round((ch.g[idx] * cwOld + cg * wNew) / cwTotal)));
-          ch.b[idx] = Math.max(0, Math.min(255, Math.round((ch.b[idx] * cwOld + cb * wNew) / cwTotal)));
+          ch.r[idx] = Math.max(0, Math.min(255, Math.round((ch.r[idx]*cwOld + cr*wNew) / cwTotal)));
+          ch.g[idx] = Math.max(0, Math.min(255, Math.round((ch.g[idx]*cwOld + cg*wNew) / cwTotal)));
+          ch.b[idx] = Math.max(0, Math.min(255, Math.round((ch.b[idx]*cwOld + cb*wNew) / cwTotal)));
           ch.cw[idx] = Math.min(this.maxColorWeight, cwTotal);
         }
       }
     }
 
-    // 強Free-space Carving: 元の面が誤って残るのを防ぎ空気(+1)へ戻す
     carveVoxelIfExists(vx, vy, vz, wCarve) {
       const cx = Math.floor(vx / CS), cy = Math.floor(vy / CS), cz = Math.floor(vz / CS);
       const ch = this.chunks.get(chunkKey(cx, cy, cz));
       if (!ch) return;
-      const lx = vx - cx * CS, ly = vy - cy * CS, lz = vz - cz * CS;
-      const idx = (lx * CS + ly) * CS + lz;
+      const idx = ((vx - cx*CS)*CS + (vy - cy*CS))*CS + (vz - cz*CS);
       const wOld = ch.weight[idx];
-      if (wOld <= 0) return;
-      if (ch.tsdf[idx] >= 0.96) return;
+      if (wOld <= 0 || ch.tsdf[idx] >= 0.96) return;
       const wTotal = wOld + wCarve;
-      ch.tsdf[idx] = Math.min(1.0, (ch.tsdf[idx] * wOld + 1.0 * wCarve) / wTotal);
+      ch.tsdf[idx] = Math.min(1.0, (ch.tsdf[idx]*wOld + wCarve) / wTotal);
       ch.weight[idx] = Math.min(this.maxWeight, wTotal);
     }
 
-    // 狙ったレイ円錐内の既存ボクセルを消去（🧹 狙い消しツール用）
-    eraseAlongRay(camPos, rayDir, maxDist = 3.2, coneRadiusPerMeter = 0.085) {
+    // 現在の壁表面ボクセル（高さ0.4m〜1.8m）から360°部屋外枠マスクを構築
+    buildShellMaskFromWalls(centerX, centerZ) {
       const vs = this.voxelSize;
-      let erasedCount = 0;
-      for (const ch of this.chunks.values()) {
-        const bx = ch.cx * CS * vs, by = ch.cy * CS * vs, bz = ch.cz * CS * vs;
-        const cMidX = bx + CS * vs * 0.5 - camPos[0];
-        const cMidY = by + CS * vs * 0.5 - camPos[1];
-        const cMidZ = bz + CS * vs * 0.5 - camPos[2];
-        const projC = cMidX*rayDir[0] + cMidY*rayDir[1] + cMidZ*rayDir[2];
-        if (projC < -0.6 || projC > maxDist + 0.6) continue;
+      const yMin = (this.floorY !== null ? this.floorY : -1.5) + 0.35;
+      const yMax = (this.floorY !== null ? this.floorY : -1.5) + 1.85;
+      const sectors = new Float32Array(36);
+      const counts = new Int32Array(36);
 
-        for (let lx = 0; lx < CS; lx++) {
-          for (let ly = 0; ly < CS; ly++) {
-            const base = (lx * CS + ly) * CS;
-            for (let lz = 0; lz < CS; lz++) {
-              const idx = base + lz;
-              if (ch.weight[idx] <= 0) continue;
-              const dx = bx + (lx + 0.5)*vs - camPos[0];
-              const dy = by + (ly + 0.5)*vs - camPos[1];
-              const dz = bz + (lz + 0.5)*vs - camPos[2];
-              const t = dx*rayDir[0] + dy*rayDir[1] + dz*rayDir[2];
-              if (t < 0.15 || t > maxDist) continue;
-              const perpSq = (dx*dx + dy*dy + dz*dz) - t*t;
-              const rad = Math.max(0.08, t * coneRadiusPerMeter);
-              if (perpSq <= rad * rad) {
-                ch.weight[idx] = 0;
-                ch.cw[idx] = 0;
-                ch.tsdf[idx] = 1.0;
-                erasedCount++;
-              }
+      for (const ch of this.chunks.values()) {
+        const bx = ch.cx*CS*vs, by = ch.cy*CS*vs, bz = ch.cz*CS*vs;
+        for (let lx = 0; lx < CS; lx++) for (let ly = 0; ly < CS; ly++) {
+          const wy = by + (ly + 0.5)*vs;
+          if (wy < yMin || wy > yMax) continue;
+          const base = (lx*CS + ly)*CS;
+          for (let lz = 0; lz < CS; lz++) {
+            const idx = base + lz;
+            if (ch.weight[idx] < 1.5 || Math.abs(ch.tsdf[idx]) > 0.35) continue;
+            const wx = bx + (lx + 0.5)*vs - centerX;
+            const wz = bz + (lz + 0.5)*vs - centerZ;
+            const r = Math.hypot(wx, wz);
+            if (r < 0.6) continue;
+            const ang = (Math.atan2(wz, wx) + Math.PI) / (2 * Math.PI); // 0..1
+            const s = Math.min(35, Math.floor(ang * 36));
+            if (r > sectors[s]) sectors[s] = r;
+            counts[s]++;
+          }
+        }
+      }
+      let validSectors = 0;
+      for (let i = 0; i < 36; i++) if (counts[i] > 0) validSectors++;
+      if (validSectors < 12) return false;
+
+      // 穴の空いた角度セクターを隣接最大値で補間し、外側に+0.20mのマージンを付与
+      const filled = new Float32Array(36);
+      for (let i = 0; i < 36; i++) {
+        if (sectors[i] > 0) filled[i] = sectors[i] + 0.20;
+        else {
+          let best = 3.5;
+          for (let d = 1; d <= 18; d++) {
+            const r1 = sectors[(i + d) % 36], r2 = sectors[(i - d + 36) % 36];
+            if (r1 > 0 || r2 > 0) { best = Math.max(r1, r2) + 0.35; break; }
+          }
+          filled[i] = best;
+        }
+      }
+      this.shellCenter = [centerX, centerZ];
+      this.shellRadii = filled;
+      return true;
+    }
+
+    isInsideShell(x, z) {
+      if (!this.shellRadii || !this.shellCenter) return true;
+      const dx = x - this.shellCenter[0], dz = z - this.shellCenter[1];
+      const ang = (Math.atan2(dz, dx) + Math.PI) / (2 * Math.PI);
+      const s = Math.min(35, Math.floor(ang * 36));
+      return Math.hypot(dx, dz) <= this.shellRadii[s];
+    }
+
+    eraseAlongRay(camPos, rayDir, maxDist = 3.0, coneRadPerM = 0.09) {
+      const vs = this.voxelSize;
+      let erased = 0;
+      for (const ch of this.chunks.values()) {
+        const bx = ch.cx*CS*vs, by = ch.cy*CS*vs, bz = ch.cz*CS*vs;
+        const dxC = bx + CS*vs*0.5 - camPos[0], dyC = by + CS*vs*0.5 - camPos[1], dzC = bz + CS*vs*0.5 - camPos[2];
+        const proj = dxC*rayDir[0] + dyC*rayDir[1] + dzC*rayDir[2];
+        if (proj < -0.6 || proj > maxDist + 0.6) continue;
+        for (let lx = 0; lx < CS; lx++) for (let ly = 0; ly < CS; ly++) {
+          const base = (lx*CS + ly)*CS;
+          for (let lz = 0; lz < CS; lz++) {
+            const idx = base + lz;
+            if (ch.weight[idx] <= 0) continue;
+            const dx = bx + (lx+0.5)*vs - camPos[0], dy = by + (ly+0.5)*vs - camPos[1], dz = bz + (lz+0.5)*vs - camPos[2];
+            const t = dx*rayDir[0] + dy*rayDir[1] + dz*rayDir[2];
+            if (t < 0.15 || t > maxDist) continue;
+            const rad = Math.max(0.08, t * coneRadPerM);
+            if ((dx*dx + dy*dy + dz*dz - t*t) <= rad*rad) {
+              ch.weight[idx] = 0; ch.cw[idx] = 0; ch.tsdf[idx] = 1.0; erased++;
             }
           }
         }
       }
-      return erasedCount;
+      return erased;
     }
 
-    buildPreviewPoints(mode /* 'rgb'|'cyan'|'weight' */) {
-      const pos = [], col = [];
-      const vs = this.voxelSize, half = vs * 0.5;
+    buildPreviewPoints(mode) {
+      const pos = [], col = [], vs = this.voxelSize, half = vs * 0.5;
       for (const ch of this.chunks.values()) {
-        const bx = ch.cx * CS, by = ch.cy * CS, bz = ch.cz * CS;
-        for (let lx = 0; lx < CS; lx++) {
-          for (let ly = 0; ly < CS; ly++) {
-            const base = (lx * CS + ly) * CS;
-            for (let lz = 0; lz < CS; lz++) {
-              const idx = base + lz;
-              const w = ch.weight[idx];
-              if (w <= 0) continue;
-              const t = ch.tsdf[idx];
-              if (t < -0.35 || t > 0.35) continue;
-              if (pos.length >= 140000 * 3) break;
-              pos.push((bx + lx) * vs + half, (by + ly) * vs + half, (bz + lz) * vs + half);
-              if (mode === 'rgb' && ch.cw[idx] > 0) {
-                col.push(ch.r[idx] / 255, ch.g[idx] / 255, ch.b[idx] / 255);
-              } else if (mode === 'weight') {
-                const q = Math.min(1.0, w / 5.0);
-                col.push(q < 0.5 ? 1.0 : 2.0 * (1.0 - q), q < 0.5 ? 2.0 * q : 1.0, 0.15);
-              } else {
-                const shade = 0.68 + 0.32 * Math.sin(((by + ly) * vs) * 4.0);
-                col.push(0.1 * shade, 0.85 * shade, 1.0 * shade);
-              }
+        const bx = ch.cx*CS, by = ch.cy*CS, bz = ch.cz*CS;
+        for (let lx = 0; lx < CS; lx++) for (let ly = 0; ly < CS; ly++) {
+          const base = (lx*CS + ly)*CS;
+          for (let lz = 0; lz < CS; lz++) {
+            const idx = base + lz, w = ch.weight[idx];
+            if (w <= 0) continue;
+            const t = ch.tsdf[idx];
+            if (t < -0.35 || t > 0.35) continue;
+            if (pos.length >= 145000 * 3) break;
+            pos.push((bx+lx)*vs + half, (by+ly)*vs + half, (bz+lz)*vs + half);
+            if (mode === 'rgb' && ch.cw[idx] > 0) col.push(ch.r[idx]/255, ch.g[idx]/255, ch.b[idx]/255);
+            else if (mode === 'weight') {
+              const q = Math.min(1.0, w / 5.0);
+              col.push(q < 0.5 ? 1.0 : 2.0*(1-q), q < 0.5 ? 2.0*q : 1.0, 0.15);
+            } else {
+              const s = 0.68 + 0.32 * Math.sin(((by+ly)*vs) * 4.0);
+              col.push(0.1*s, 0.85*s, 1.0*s);
             }
           }
         }
@@ -699,8 +759,8 @@
       return { positions: new Float32Array(pos), colors: new Float32Array(col), count: pos.length / 3 };
     }
 
-    // Naive Surface Nets メッシュ抽出（floorY で基準高さ合わせを適用）
-    extractSurfaceNetsMesh() {
+    // QEF シャープ角抽出 + 0.5ボクセル整合 Surface Nets
+    extractSurfaceNetsMesh(useQEF = true) {
       const vs = this.voxelSize;
       const yShift = (this.floorY !== null) ? this.floorY : 0;
       const corners = [[0,0,0],[1,0,0],[0,1,0],[1,1,0],[0,0,1],[1,0,1],[0,1,1],[1,1,1]];
@@ -713,203 +773,193 @@
 
       const readCorner = (ch, lx, ly, lz, vx, vy, vz, ci) => {
         if (lx < CS && ly < CS && lz < CS) {
-          const idx = (lx * CS + ly) * CS + lz;
-          cTsdf[ci] = ch.tsdf[idx]; cWeight[ci] = ch.weight[idx]; cCW[ci] = ch.cw[idx];
-          cR[ci] = ch.r[idx]; cG[ci] = ch.g[idx]; cB[ci] = ch.b[idx];
-          return true;
+          const idx = (lx*CS + ly)*CS + lz;
+          cTsdf[ci]=ch.tsdf[idx]; cWeight[ci]=ch.weight[idx]; cCW[ci]=ch.cw[idx];
+          cR[ci]=ch.r[idx]; cG[ci]=ch.g[idx]; cB[ci]=ch.b[idx]; return true;
         }
-        const ncx = Math.floor(vx / CS), ncy = Math.floor(vy / CS), ncz = Math.floor(vz / CS);
+        const ncx = Math.floor(vx/CS), ncy = Math.floor(vy/CS), ncz = Math.floor(vz/CS);
         const nch = this.chunks.get(chunkKey(ncx, ncy, ncz));
         if (!nch) return false;
-        const nlx = vx - ncx * CS, nly = vy - ncy * CS, nlz = vz - ncz * CS;
-        const idx = (nlx * CS + nly) * CS + nlz;
-        cTsdf[ci] = nch.tsdf[idx]; cWeight[ci] = nch.weight[idx]; cCW[ci] = nch.cw[idx];
-        cR[ci] = nch.r[idx]; cG[ci] = nch.g[idx]; cB[ci] = nch.b[idx];
-        return true;
+        const idx = ((vx-ncx*CS)*CS + (vy-ncy*CS))*CS + (vz-ncz*CS);
+        cTsdf[ci]=nch.tsdf[idx]; cWeight[ci]=nch.weight[idx]; cCW[ci]=nch.cw[idx];
+        cR[ci]=nch.r[idx]; cG[ci]=nch.g[idx]; cB[ci]=nch.b[idx]; return true;
+      };
+
+      const cellGrad = (vx, vy, vz) => {
+        const xp = this.getVoxelVal(vx+1,vy,vz), xm = this.getVoxelVal(vx-1,vy,vz);
+        const yp = this.getVoxelVal(vx,vy+1,vz), ym = this.getVoxelVal(vx,vy-1,vz);
+        const zp = this.getVoxelVal(vx,vy,vz+1), zm = this.getVoxelVal(vx,vy,vz-1);
+        if (!xp || !xm || !yp || !ym || !zp || !zm ||
+            xp.weight<=0 || xm.weight<=0 || yp.weight<=0 || ym.weight<=0 || zp.weight<=0 || zm.weight<=0) return null;
+        const gx = xp.tsdf - xm.tsdf, gy = yp.tsdf - ym.tsdf, gz = zp.tsdf - zm.tsdf;
+        const len = Math.hypot(gx, gy, gz);
+        return len > 1e-4 ? [gx/len, gy/len, gz/len] : null;
       };
 
       for (const ch of this.chunks.values()) {
-        const bx = ch.cx * CS, by = ch.cy * CS, bz = ch.cz * CS;
-        for (let lx = 0; lx < CS; lx++) {
-          for (let ly = 0; ly < CS; ly++) {
-            for (let lz = 0; lz < CS; lz++) {
-              const vx = bx + lx, vy = by + ly, vz = bz + lz;
-              let allValid = true, hasPos = false, hasNeg = false;
-              for (let c = 0; c < 8; c++) {
-                const dx = corners[c][0], dy = corners[c][1], dz = corners[c][2];
-                if (!readCorner(ch, lx+dx, ly+dy, lz+dz, vx+dx, vy+dy, vz+dz, c) || cWeight[c] <= 0) {
-                  allValid = false; break;
-                }
-                if (cTsdf[c] >= 0) hasPos = true; else hasNeg = true;
-              }
-              if (!allValid || !hasPos || !hasNeg) continue;
+        const bx = ch.cx*CS, by = ch.cy*CS, bz = ch.cz*CS;
+        for (let lx = 0; lx < CS; lx++) for (let ly = 0; ly < CS; ly++) for (let lz = 0; lz < CS; lz++) {
+          const vx = bx + lx, vy = by + ly, vz = bz + lz;
+          let allValid = true, hasPos = false, hasNeg = false;
+          for (let c = 0; c < 8; c++) {
+            const dx=corners[c][0], dy=corners[c][1], dz=corners[c][2];
+            if (!readCorner(ch, lx+dx, ly+dy, lz+dz, vx+dx, vy+dy, vz+dz, c) || cWeight[c] <= 0) { allValid = false; break; }
+            if (cTsdf[c] >= 0) hasPos = true; else hasNeg = true;
+          }
+          if (!allValid || !hasPos || !hasNeg) continue;
 
-              let sx = 0, sy = 0, sz = 0, cnt = 0;
-              let sr = 0, sg = 0, sb = 0, sw = 0;
-              for (let e = 0; e < 12; e++) {
-                const a = edges[e][0], b = edges[e][1];
-                const va = cTsdf[a], vb = cTsdf[b];
-                if ((va < 0) !== (vb < 0)) {
-                  const t = va / (va - vb);
-                  const ca = corners[a], cb = corners[b];
-                  sx += ca[0] + t * (cb[0] - ca[0]);
-                  sy += ca[1] + t * (cb[1] - ca[1]);
-                  sz += ca[2] + t * (cb[2] - ca[2]);
-                  cnt++;
-                }
+          let sx = 0, sy = 0, sz = 0, cnt = 0;
+          const edgeSamples = [];
+          for (let e = 0; e < 12; e++) {
+            const a = edges[e][0], b = edges[e][1], va = cTsdf[a], vb = cTsdf[b];
+            if ((va < 0) !== (vb < 0)) {
+              const t = va / (va - vb), ca = corners[a], cb = corners[b];
+              const px = ca[0] + t*(cb[0]-ca[0]), py = ca[1] + t*(cb[1]-ca[1]), pz = ca[2] + t*(cb[2]-ca[2]);
+              sx += px; sy += py; sz += pz; cnt++;
+              if (useQEF) {
+                const g = cellGrad(vx + Math.round(px), vy + Math.round(py), vz + Math.round(pz));
+                if (g) edgeSamples.push([px, py, pz, g[0], g[1], g[2]]);
               }
-              for (let c = 0; c < 8; c++) {
-                if (cCW[c] > 0) {
-                  const w = cCW[c];
-                  sr += cR[c] * w; sg += cG[c] * w; sb += cB[c] * w; sw += w;
-                }
-              }
-              const invCnt = 1.0 / cnt;
-              const vIdx = verts.length / 3;
-              verts.push((vx + sx * invCnt) * vs, (vy + sy * invCnt) * vs - yShift, (vz + sz * invCnt) * vs);
-              if (sw > 0) {
-                cols.push(sr / (sw * 255), sg / (sw * 255), sb / (sw * 255));
-              } else {
-                cols.push(0.76, 0.80, 0.85);
-              }
-              cellToVert.set(voxelKey(vx, vy, vz), vIdx);
             }
           }
+          let fx = sx / cnt, fy = sy / cnt, fz = sz / cnt;
+
+          // 3x3 QEF でシャープな角へ頂点を最適移動（アンカー正則化 lambda=0.10）
+          if (useQEF && edgeSamples.length >= 2) {
+            const lam = 0.10;
+            const A = [lam,0,0, 0,lam,0, 0,0,lam];
+            const B = [fx*lam, fy*lam, fz*lam];
+            for (const s of edgeSamples) {
+              const [px,py,pz, nx,ny,nz] = s;
+              const d = nx*px + ny*py + nz*pz;
+              A[0]+=nx*nx; A[1]+=nx*ny; A[2]+=nx*nz;
+              A[3]+=ny*nx; A[4]+=ny*ny; A[5]+=ny*nz;
+              A[6]+=nz*nx; A[7]+=nz*ny; A[8]+=nz*nz;
+              B[0]+=nx*d;  B[1]+=ny*d;  B[2]+=nz*d;
+            }
+            const q = solveLinear(A, B, 3);
+            if (q && Math.abs(q[0]-fx)<0.6 && Math.abs(q[1]-fy)<0.6 && Math.abs(q[2]-fz)<0.6) {
+              fx = Math.max(-0.08, Math.min(1.08, q[0]));
+              fy = Math.max(-0.08, Math.min(1.08, q[1]));
+              fz = Math.max(-0.08, Math.min(1.08, q[2]));
+            }
+          }
+
+          let sr = 0, sg = 0, sb = 0, sw = 0;
+          for (let c = 0; c < 8; c++) {
+            if (cCW[c] > 0) { const w = cCW[c]; sr += cR[c]*w; sg += cG[c]*w; sb += cB[c]*w; sw += w; }
+          }
+          const vIdx = verts.length / 3;
+          // 重要: +0.5 ボクセル中心整合
+          verts.push((vx + 0.5 + fx) * vs, (vy + 0.5 + fy) * vs - yShift, (vz + 0.5 + fz) * vs);
+          if (sw > 0) cols.push(sr / (sw*255), sg / (sw*255), sb / (sw*255));
+          else cols.push(0.76, 0.80, 0.85);
+          cellToVert.set(voxelKey(vx, vy, vz), vIdx);
         }
       }
 
       const tris = [];
       for (const ch of this.chunks.values()) {
-        const bx = ch.cx * CS, by = ch.cy * CS, bz = ch.cz * CS;
-        for (let lx = 0; lx < CS; lx++) {
-          for (let ly = 0; ly < CS; ly++) {
-            for (let lz = 0; lz < CS; lz++) {
-              const vx = bx + lx, vy = by + ly, vz = bz + lz;
-              const idx0 = (lx * CS + ly) * CS + lz;
-              if (ch.weight[idx0] <= 0) continue;
-              const v0 = ch.tsdf[idx0];
+        const bx = ch.cx*CS, by = ch.cy*CS, bz = ch.cz*CS;
+        for (let lx = 0; lx < CS; lx++) for (let ly = 0; ly < CS; ly++) for (let lz = 0; lz < CS; lz++) {
+          const vx = bx+lx, vy = by+ly, vz = bz+lz, idx0 = (lx*CS+ly)*CS+lz;
+          if (ch.weight[idx0] <= 0) continue;
+          const v0 = ch.tsdf[idx0];
 
-              const nxX = this.getVoxel(vx + 1, vy, vz);
-              if (nxX && nxX.weight > 0 && ((v0 < 0) !== (nxX.tsdf < 0))) {
-                const c0 = cellToVert.get(voxelKey(vx, vy-1, vz-1));
-                const c1 = cellToVert.get(voxelKey(vx, vy,   vz-1));
-                const c2 = cellToVert.get(voxelKey(vx, vy,   vz));
-                const c3 = cellToVert.get(voxelKey(vx, vy-1, vz));
-                if (c0 !== undefined && c1 !== undefined && c2 !== undefined && c3 !== undefined) {
-                  if (v0 < 0) tris.push(c0, c1, c2, c0, c2, c3);
-                  else        tris.push(c0, c2, c1, c0, c3, c2);
-                }
-              }
-              const nxY = this.getVoxel(vx, vy + 1, vz);
-              if (nxY && nxY.weight > 0 && ((v0 < 0) !== (nxY.tsdf < 0))) {
-                const c0 = cellToVert.get(voxelKey(vx-1, vy, vz-1));
-                const c1 = cellToVert.get(voxelKey(vx-1, vy, vz));
-                const c2 = cellToVert.get(voxelKey(vx,   vy, vz));
-                const c3 = cellToVert.get(voxelKey(vx,   vy, vz-1));
-                if (c0 !== undefined && c1 !== undefined && c2 !== undefined && c3 !== undefined) {
-                  if (v0 < 0) tris.push(c0, c1, c2, c0, c2, c3);
-                  else        tris.push(c0, c2, c1, c0, c3, c2);
-                }
-              }
-              const nxZ = this.getVoxel(vx, vy, vz + 1);
-              if (nxZ && nxZ.weight > 0 && ((v0 < 0) !== (nxZ.tsdf < 0))) {
-                const c0 = cellToVert.get(voxelKey(vx-1, vy-1, vz));
-                const c1 = cellToVert.get(voxelKey(vx,   vy-1, vz));
-                const c2 = cellToVert.get(voxelKey(vx,   vy,   vz));
-                const c3 = cellToVert.get(voxelKey(vx-1, vy,   vz));
-                if (c0 !== undefined && c1 !== undefined && c2 !== undefined && c3 !== undefined) {
-                  if (v0 < 0) tris.push(c0, c1, c2, c0, c2, c3);
-                  else        tris.push(c0, c2, c1, c0, c3, c2);
-                }
-              }
+          const nxX = this.getVoxelVal(vx + 1, vy, vz);
+          if (nxX && nxX.weight > 0 && ((v0 < 0) !== (nxX.tsdf < 0))) {
+            const c0=cellToVert.get(voxelKey(vx,vy-1,vz-1)), c1=cellToVert.get(voxelKey(vx,vy,vz-1));
+            const c2=cellToVert.get(voxelKey(vx,vy,vz)),     c3=cellToVert.get(voxelKey(vx,vy-1,vz));
+            if (c0!==undefined && c1!==undefined && c2!==undefined && c3!==undefined) {
+              if (v0 < 0) tris.push(c0,c1,c2, c0,c2,c3); else tris.push(c0,c2,c1, c0,c3,c2);
+            }
+          }
+          const nxY = this.getVoxelVal(vx, vy + 1, vz);
+          if (nxY && nxY.weight > 0 && ((v0 < 0) !== (nxY.tsdf < 0))) {
+            const c0=cellToVert.get(voxelKey(vx-1,vy,vz-1)), c1=cellToVert.get(voxelKey(vx-1,vy,vz));
+            const c2=cellToVert.get(voxelKey(vx,vy,vz)),     c3=cellToVert.get(voxelKey(vx,vy,vz-1));
+            if (c0!==undefined && c1!==undefined && c2!==undefined && c3!==undefined) {
+              if (v0 < 0) tris.push(c0,c1,c2, c0,c2,c3); else tris.push(c0,c2,c1, c0,c3,c2);
+            }
+          }
+          const nxZ = this.getVoxelVal(vx, vy, vz + 1);
+          if (nxZ && nxZ.weight > 0 && ((v0 < 0) !== (nxZ.tsdf < 0))) {
+            const c0=cellToVert.get(voxelKey(vx-1,vy-1,vz)), c1=cellToVert.get(voxelKey(vx,vy-1,vz));
+            const c2=cellToVert.get(voxelKey(vx,vy,vz)),     c3=cellToVert.get(voxelKey(vx-1,vy,vz));
+            if (c0!==undefined && c1!==undefined && c2!==undefined && c3!==undefined) {
+              if (v0 < 0) tris.push(c0,c1,c2, c0,c2,c3); else tris.push(c0,c2,c1, c0,c3,c2);
             }
           }
         }
       }
-
       const mesh = { positions: new Float32Array(verts), colors: new Float32Array(cols), indices: new Uint32Array(tris), normals: null };
       computeMeshNormals(mesh);
       return mesh;
     }
   }
 
-  // ==================== 非AI 幾何学メッシュ処理 ====================
+  // ==================== メッシュ幾何学ポストプロセス ====================
   function computeMeshNormals(mesh) {
-    const pos = mesh.positions, idx = mesh.indices;
-    const nVerts = pos.length / 3;
+    const pos = mesh.positions, idx = mesh.indices, nVerts = pos.length / 3;
     const norms = new Float32Array(pos.length);
     for (let i = 0; i < idx.length; i += 3) {
-      const a = idx[i]*3, b = idx[i+1]*3, c = idx[i+2]*3;
-      const e1x = pos[b]-pos[a], e1y = pos[b+1]-pos[a+1], e1z = pos[b+2]-pos[a+2];
-      const e2x = pos[c]-pos[a], e2y = pos[c+1]-pos[a+1], e2z = pos[c+2]-pos[a+2];
-      const nx = e1y*e2z - e1z*e2y, ny = e1z*e2x - e1x*e2z, nz = e1x*e2y - e1y*e2x;
+      const a=idx[i]*3, b=idx[i+1]*3, c=idx[i+2]*3;
+      const e1x=pos[b]-pos[a], e1y=pos[b+1]-pos[a+1], e1z=pos[b+2]-pos[a+2];
+      const e2x=pos[c]-pos[a], e2y=pos[c+1]-pos[a+1], e2z=pos[c+2]-pos[a+2];
+      const nx=e1y*e2z-e1z*e2y, ny=e1z*e2x-e1x*e2z, nz=e1x*e2y-e1y*e2x;
       norms[a]+=nx; norms[a+1]+=ny; norms[a+2]+=nz;
       norms[b]+=nx; norms[b+1]+=ny; norms[b+2]+=nz;
       norms[c]+=nx; norms[c+1]+=ny; norms[c+2]+=nz;
     }
     for (let i = 0; i < nVerts; i++) {
-      const o = i * 3, len = Math.hypot(norms[o], norms[o+1], norms[o+2]) || 1;
-      norms[o] /= len; norms[o+1] /= len; norms[o+2] /= len;
+      const o=i*3, len = Math.hypot(norms[o], norms[o+1], norms[o+2]) || 1;
+      norms[o]/=len; norms[o+1]/=len; norms[o+2]/=len;
     }
     mesh.normals = norms;
   }
 
   function buildAdjacency(nVerts, indices) {
-    const adj = Array.from({ length: nVerts }, () => new Set());
-    const edgeCount = new Map();
+    const adj = Array.from({ length: nVerts }, () => new Set()), edgeCount = new Map();
     const addEdge = (u, v) => {
       adj[u].add(v); adj[v].add(u);
-      const a = Math.min(u, v), b = Math.max(u, v);
-      const key = a * 1000000 + b;
+      const a=Math.min(u,v), b=Math.max(u,v), key=a*1000000+b;
       edgeCount.set(key, (edgeCount.get(key) || 0) + 1);
     };
-    for (let i = 0; i < indices.length; i += 3) {
-      addEdge(indices[i], indices[i+1]); addEdge(indices[i+1], indices[i+2]); addEdge(indices[i+2], indices[i]);
-    }
+    for (let i = 0; i < indices.length; i += 3) { addEdge(indices[i],indices[i+1]); addEdge(indices[i+1],indices[i+2]); addEdge(indices[i+2],indices[i]); }
     const isBoundary = new Uint8Array(nVerts);
-    for (const [key, cnt] of edgeCount.entries()) {
-      if (cnt === 1) { isBoundary[Math.floor(key/1000000)] = 1; isBoundary[key%1000000] = 1; }
-    }
+    for (const [key, cnt] of edgeCount.entries()) if (cnt === 1) { isBoundary[Math.floor(key/1000000)]=1; isBoundary[key%1000000]=1; }
     return { adj: adj.map(s => Array.from(s)), isBoundary };
   }
 
   function applyTaubinSmoothing(mesh, iters = 6, lambda = 0.5, mu = -0.53) {
-    const pos = new Float32Array(mesh.positions);
-    const nVerts = pos.length / 3;
+    const pos = new Float32Array(mesh.positions), nVerts = pos.length / 3;
     if (nVerts === 0) return;
-    const { adj, isBoundary } = buildAdjacency(nVerts, mesh.indices);
-    const next = new Float32Array(pos.length);
-    for (let it = 0; it < iters; it++) {
-      for (const factor of [lambda, mu]) {
-        for (let i = 0; i < nVerts; i++) {
-          const nb = adj[i], o = i * 3;
-          if (nb.length === 0) { next[o]=pos[o]; next[o+1]=pos[o+1]; next[o+2]=pos[o+2]; continue; }
-          let sx = 0, sy = 0, sz = 0;
-          for (let j = 0; j < nb.length; j++) { const no = nb[j]*3; sx+=pos[no]; sy+=pos[no+1]; sz+=pos[no+2]; }
-          const inv = 1 / nb.length, f = isBoundary[i] ? factor * 0.25 : factor;
-          next[o]=pos[o]+f*(sx*inv-pos[o]); next[o+1]=pos[o+1]+f*(sy*inv-pos[o+1]); next[o+2]=pos[o+2]+f*(sz*inv-pos[o+2]);
-        }
-        pos.set(next);
+    const { adj, isBoundary } = buildAdjacency(nVerts, mesh.indices), next = new Float32Array(pos.length);
+    for (let it = 0; it < iters; it++) for (const factor of [lambda, mu]) {
+      for (let i = 0; i < nVerts; i++) {
+        const nb = adj[i], o = i*3;
+        if (nb.length === 0) { next[o]=pos[o]; next[o+1]=pos[o+1]; next[o+2]=pos[o+2]; continue; }
+        let sx=0, sy=0, sz=0;
+        for (let j = 0; j < nb.length; j++) { const no=nb[j]*3; sx+=pos[no]; sy+=pos[no+1]; sz+=pos[no+2]; }
+        const inv = 1/nb.length, f = isBoundary[i] ? factor*0.25 : factor;
+        next[o]=pos[o]+f*(sx*inv-pos[o]); next[o+1]=pos[o+1]+f*(sy*inv-pos[o+1]); next[o+2]=pos[o+2]+f*(sz*inv-pos[o+2]);
       }
+      pos.set(next);
     }
-    mesh.positions = pos;
-    computeMeshNormals(mesh);
+    mesh.positions = pos; computeMeshNormals(mesh);
   }
 
-  // 頂点カラーのごま塩ノイズを隣接頂点で穏やかに平均化
   function applyColorSmoothing(mesh, iters = 2) {
-    const col = new Float32Array(mesh.colors);
-    const nVerts = col.length / 3;
+    const col = new Float32Array(mesh.colors), nVerts = col.length / 3;
     if (nVerts === 0) return;
-    const { adj } = buildAdjacency(nVerts, mesh.indices);
-    const next = new Float32Array(col.length);
+    const { adj } = buildAdjacency(nVerts, mesh.indices), next = new Float32Array(col.length);
     for (let it = 0; it < iters; it++) {
       for (let i = 0; i < nVerts; i++) {
-        const nb = adj[i], o = i * 3;
+        const nb = adj[i], o = i*3;
         if (nb.length === 0) { next[o]=col[o]; next[o+1]=col[o+1]; next[o+2]=col[o+2]; continue; }
-        let sr = col[o], sg = col[o+1], sb = col[o+2];
-        for (let j = 0; j < nb.length; j++) { const no = nb[j]*3; sr+=col[no]; sg+=col[no+1]; sb+=col[no+2]; }
-        const inv = 1 / (nb.length + 1);
+        let sr=col[o], sg=col[o+1], sb=col[o+2];
+        for (let j = 0; j < nb.length; j++) { const no=nb[j]*3; sr+=col[no]; sg+=col[no+1]; sb+=col[no+2]; }
+        const inv = 1/(nb.length+1);
         next[o]=sr*inv; next[o+1]=sg*inv; next[o+2]=sb*inv;
       }
       col.set(next);
@@ -920,57 +970,49 @@
   function smallestEigenvector3x3(c00, c01, c02, c11, c12, c22) {
     const a = [[c00,c01,c02],[c01,c11,c12],[c02,c12,c22]], v = [[1,0,0],[0,1,0],[0,0,1]];
     for (let it = 0; it < 28; it++) {
-      let p = 0, q = 1, maxV = Math.abs(a[0][1]);
-      if (Math.abs(a[0][2]) > maxV) { p = 0; q = 2; maxV = Math.abs(a[0][2]); }
-      if (Math.abs(a[1][2]) > maxV) { p = 1; q = 2; maxV = Math.abs(a[1][2]); }
+      let p=0, q=1, maxV=Math.abs(a[0][1]);
+      if (Math.abs(a[0][2]) > maxV) { p=0; q=2; maxV=Math.abs(a[0][2]); }
+      if (Math.abs(a[1][2]) > maxV) { p=1; q=2; maxV=Math.abs(a[1][2]); }
       if (maxV < 1e-12) break;
-      const app = a[p][p], aqq = a[q][q], apq = a[p][q];
-      const tau = (aqq - app) / (2 * apq);
-      const t = tau >= 0 ? 1 / (tau + Math.sqrt(1 + tau*tau)) : -1 / (-tau + Math.sqrt(1 + tau*tau));
-      const c = 1 / Math.sqrt(1 + t*t), s = t * c;
-      a[p][p] = app - t * apq; a[q][q] = aqq + t * apq; a[p][q] = a[q][p] = 0;
+      const app=a[p][p], aqq=a[q][q], apq=a[p][q], tau=(aqq-app)/(2*apq);
+      const t = tau >= 0 ? 1/(tau+Math.sqrt(1+tau*tau)) : -1/(-tau+Math.sqrt(1+tau*tau));
+      const c = 1/Math.sqrt(1+t*t), s = t*c;
+      a[p][p]=app-t*apq; a[q][q]=aqq+t*apq; a[p][q]=a[q][p]=0;
       for (let r = 0; r < 3; r++) if (r !== p && r !== q) {
-        const arp = a[r][p], arq = a[r][q];
-        a[r][p] = a[p][r] = c * arp - s * arq; a[r][q] = a[q][r] = s * arp + c * arq;
+        const arp=a[r][p], arq=a[r][q]; a[r][p]=a[p][r]=c*arp-s*arq; a[r][q]=a[q][r]=s*arp+c*arq;
       }
       for (let r = 0; r < 3; r++) {
-        const vrp = v[r][p], vrq = v[r][q];
-        v[r][p] = c * vrp - s * vrq; v[r][q] = s * vrp + c * vrq;
+        const vrp=v[r][p], vrq=v[r][q]; v[r][p]=c*vrp-s*vrq; v[r][q]=s*vrp+c*vrq;
       }
     }
-    let minIdx = 0;
-    if (a[1][1] < a[minIdx][minIdx]) minIdx = 1;
-    if (a[2][2] < a[minIdx][minIdx]) minIdx = 2;
+    let minIdx = 0; if (a[1][1] < a[minIdx][minIdx]) minIdx=1; if (a[2][2] < a[minIdx][minIdx]) minIdx=2;
     const len = Math.hypot(v[0][minIdx], v[1][minIdx], v[2][minIdx]) || 1;
     return [v[0][minIdx]/len, v[1][minIdx]/len, v[2][minIdx]/len];
   }
 
-  function applyRansacPlaneSnap(mesh, distThresh = 0.04, cosThresh = 0.87, maxPlanes = 10, alpha = 0.88) {
-    const pos = mesh.positions, norms = mesh.normals;
-    const nVerts = pos.length / 3;
+  // RANSAC平坦化 (manhattan=true で床水平・壁垂直・壁同士90°直交矯正を適用！)
+  function applyRansacPlaneSnap(mesh, distThresh = 0.04, cosThresh = 0.87, maxPlanes = 12, alpha = 0.88, manhattan = false) {
+    const pos = mesh.positions, norms = mesh.normals, nVerts = pos.length / 3;
     const minInliers = Math.max(40, Math.floor(nVerts * 0.02));
     if (nVerts < minInliers) return 0;
     const assigned = new Uint8Array(nVerts);
-    let planesFound = 0;
+    let planesFound = 0, primaryWallAzimuth = null;
 
     for (let pIter = 0; pIter < maxPlanes; pIter++) {
       const avail = [];
       for (let i = 0; i < nVerts; i++) if (!assigned[i]) avail.push(i);
       if (avail.length < minInliers) break;
-
-      const sampleCount = Math.min(avail.length, 1400);
-      const evalIdx = new Int32Array(sampleCount);
-      for (let s = 0; s < sampleCount; s++) evalIdx[s] = avail[Math.floor((s * avail.length) / sampleCount)];
+      const sampleCount = Math.min(avail.length, 1400), evalIdx = new Int32Array(sampleCount);
+      for (let s = 0; s < sampleCount; s++) evalIdx[s] = avail[Math.floor((s*avail.length)/sampleCount)];
 
       let bestCount = 0, bestSeed = -1;
       for (let r = 0; r < 70; r++) {
-        const seed = avail[Math.floor(Math.random() * avail.length)];
-        const so = seed * 3;
+        const seed = avail[Math.floor(Math.random()*avail.length)], so = seed*3;
         const p0x=pos[so], p0y=pos[so+1], p0z=pos[so+2], n0x=norms[so], n0y=norms[so+1], n0z=norms[so+2];
         if (Math.hypot(n0x, n0y, n0z) < 0.5) continue;
         let cnt = 0;
         for (let s = 0; s < sampleCount; s++) {
-          const vo = evalIdx[s] * 3;
+          const vo = evalIdx[s]*3;
           if (Math.abs((pos[vo]-p0x)*n0x + (pos[vo+1]-p0y)*n0y + (pos[vo+2]-p0z)*n0z) < distThresh &&
               (norms[vo]*n0x + norms[vo+1]*n0y + norms[vo+2]*n0z) > cosThresh) cnt++;
         }
@@ -978,36 +1020,59 @@
       }
       if (bestSeed < 0 || bestCount < (minInliers * sampleCount / avail.length)) break;
 
-      const so = bestSeed * 3;
-      const p0x=pos[so], p0y=pos[so+1], p0z=pos[so+2], n0x=norms[so], n0y=norms[so+1], n0z=norms[so+2];
-      let inliers = [], mx = 0, my = 0, mz = 0;
+      const so = bestSeed*3, p0x=pos[so], p0y=pos[so+1], p0z=pos[so+2], n0x=norms[so], n0y=norms[so+1], n0z=norms[so+2];
+      let inliers = [], mx=0, my=0, mz=0;
       for (const i of avail) {
-        const vo = i * 3;
+        const vo = i*3;
         if (Math.abs((pos[vo]-p0x)*n0x + (pos[vo+1]-p0y)*n0y + (pos[vo+2]-p0z)*n0z) < distThresh &&
             (norms[vo]*n0x + norms[vo+1]*n0y + norms[vo+2]*n0z) > cosThresh) {
-          inliers.push(i); mx += pos[vo]; my += pos[vo+1]; mz += pos[vo+2];
+          inliers.push(i); mx+=pos[vo]; my+=pos[vo+1]; mz+=pos[vo+2];
         }
       }
       if (inliers.length < minInliers) break;
-      mx /= inliers.length; my /= inliers.length; mz /= inliers.length;
+      mx/=inliers.length; my/=inliers.length; mz/=inliers.length;
 
       let c00=0, c01=0, c02=0, c11=0, c12=0, c22=0;
       for (const i of inliers) {
-        const vo = i * 3, dx = pos[vo]-mx, dy = pos[vo+1]-my, dz = pos[vo+2]-mz;
+        const vo = i*3, dx=pos[vo]-mx, dy=pos[vo+1]-my, dz=pos[vo+2]-mz;
         c00+=dx*dx; c01+=dx*dy; c02+=dx*dz; c11+=dy*dy; c12+=dy*dz; c22+=dz*dz;
       }
       let [nx, ny, nz] = smallestEigenvector3x3(c00, c01, c02, c11, c12, c22);
       if (nx*n0x + ny*n0y + nz*n0z < 0) { nx=-nx; ny=-ny; nz=-nz; }
 
+      // マンハッタン構造化：水平・垂直・90°スナップ
+      if (manhattan) {
+        if (Math.abs(ny) > 0.975) { // 12度以内 → 完全水平 (床・天井・天板)
+          nx = 0; ny = ny >= 0 ? 1 : -1; nz = 0;
+        } else if (Math.abs(ny) < 0.21) { // 12度以内 → 完全垂直壁
+          const hLen = Math.hypot(nx, nz) || 1;
+          nx /= hLen; ny = 0; nz /= hLen;
+          let az = Math.atan2(nz, nx);
+          if (primaryWallAzimuth === null) {
+            primaryWallAzimuth = az;
+          } else {
+            const diff = az - primaryWallAzimuth;
+            const k90 = Math.round(diff / (Math.PI / 2));
+            const snapAz = primaryWallAzimuth + k90 * (Math.PI / 2);
+            let delta = az - snapAz;
+            while (delta > Math.PI) delta -= 2*Math.PI;
+            while (delta < -Math.PI) delta += 2*Math.PI;
+            if (Math.abs(delta) < 0.18) { // 約10°以内なら90°整列
+              nx = Math.cos(snapAz); nz = Math.sin(snapAz);
+            }
+          }
+        }
+      }
+
       inliers = [];
       for (const i of avail) {
-        const vo = i * 3;
-        if (Math.abs((pos[vo]-mx)*nx + (pos[vo+1]-my)*ny + (pos[vo+2]-mz)*nz) < distThresh &&
-            (norms[vo]*nx + norms[vo+1]*ny + norms[vo+2]*nz) > cosThresh) inliers.push(i);
+        const vo = i*3;
+        if (Math.abs((pos[vo]-mx)*nx + (pos[vo+1]-my)*ny + (pos[vo+2]-mz)*nz) < distThresh * (manhattan ? 1.25 : 1.0) &&
+            (norms[vo]*nx + norms[vo+1]*ny + norms[vo+2]*nz) > (manhattan ? 0.80 : cosThresh)) inliers.push(i);
       }
       if (inliers.length < minInliers) { for (const i of inliers) assigned[i] = 1; continue; }
       for (const i of inliers) {
-        const vo = i * 3, proj = (pos[vo]-mx)*nx + (pos[vo+1]-my)*ny + (pos[vo+2]-mz)*nz;
+        const vo = i*3, proj = (pos[vo]-mx)*nx + (pos[vo+1]-my)*ny + (pos[vo+2]-mz)*nz;
         pos[vo] -= alpha*proj*nx; pos[vo+1] -= alpha*proj*ny; pos[vo+2] -= alpha*proj*nz;
         assigned[i] = 1;
       }
@@ -1024,279 +1089,232 @@
     const comp = new Int32Array(nVerts).fill(-1), compSizes = [], queue = new Int32Array(nVerts);
     for (let i = 0; i < nVerts; i++) {
       if (comp[i] !== -1) continue;
-      const cid = compSizes.length;
-      let head = 0, tail = 0;
+      const cid = compSizes.length; let head = 0, tail = 0;
       queue[tail++] = i; comp[i] = cid;
-      while (head < tail) {
-        const u = queue[head++];
-        for (const v of adj[u]) if (comp[v] === -1) { comp[v] = cid; queue[tail++] = v; }
-      }
+      while (head < tail) { const u = queue[head++]; for (const v of adj[u]) if (comp[v]===-1) { comp[v]=cid; queue[tail++]=v; } }
       compSizes.push(tail);
     }
-    let maxSize = 0;
-    for (const s of compSizes) if (s > maxSize) maxSize = s;
-    const thresh = Math.min(minVerts, Math.floor(maxSize * 0.5));
-    const keepComp = new Uint8Array(compSizes.length);
+    let maxSize = 0; for (const s of compSizes) if (s > maxSize) maxSize = s;
+    const thresh = Math.min(minVerts, Math.floor(maxSize * 0.5)), keepComp = new Uint8Array(compSizes.length);
     let removed = 0;
-    for (let c = 0; c < compSizes.length; c++) {
-      if (compSizes[c] >= thresh) keepComp[c] = 1; else removed++;
-    }
+    for (let c = 0; c < compSizes.length; c++) if (compSizes[c] >= thresh) keepComp[c] = 1; else removed++;
     if (removed === 0) return 0;
     const remap = new Int32Array(nVerts).fill(-1), newPos = [], newCol = [];
-    for (let i = 0; i < nVerts; i++) {
-      if (keepComp[comp[i]]) {
-        remap[i] = newPos.length / 3;
-        const o = i * 3;
-        newPos.push(mesh.positions[o], mesh.positions[o+1], mesh.positions[o+2]);
-        newCol.push(mesh.colors[o], mesh.colors[o+1], mesh.colors[o+2]);
-      }
+    for (let i = 0; i < nVerts; i++) if (keepComp[comp[i]]) {
+      remap[i] = newPos.length / 3; const o = i*3;
+      newPos.push(mesh.positions[o], mesh.positions[o+1], mesh.positions[o+2]);
+      newCol.push(mesh.colors[o], mesh.colors[o+1], mesh.colors[o+2]);
     }
     const newIdx = [];
     for (let i = 0; i < mesh.indices.length; i += 3) {
-      const a = remap[mesh.indices[i]], b = remap[mesh.indices[i+1]], c = remap[mesh.indices[i+2]];
+      const a=remap[mesh.indices[i]], b=remap[mesh.indices[i+1]], c=remap[mesh.indices[i+2]];
       if (a >= 0 && b >= 0 && c >= 0) newIdx.push(a, b, c);
     }
-    mesh.positions = new Float32Array(newPos);
-    mesh.colors = new Float32Array(newCol);
-    mesh.indices = new Uint32Array(newIdx);
-    computeMeshNormals(mesh);
-    return removed;
+    mesh.positions = new Float32Array(newPos); mesh.colors = new Float32Array(newCol); mesh.indices = new Uint32Array(newIdx);
+    computeMeshNormals(mesh); return removed;
   }
 
   function buildCombinedMesh(tsdfMesh, cadPlanes, yShift) {
     if (!cadPlanes || cadPlanes.length === 0) return tsdfMesh;
-    const pos = Array.from(tsdfMesh.positions);
-    const col = Array.from(tsdfMesh.colors);
-    const idx = Array.from(tsdfMesh.indices);
+    const pos = Array.from(tsdfMesh.positions), col = Array.from(tsdfMesh.colors), idx = Array.from(tsdfMesh.indices);
     for (const pl of cadPlanes) {
       if (pl.pts.length < 3) continue;
-      const baseV = pos.length / 3;
-      const [cr, cg, cb] = pl.color || [0.18, 0.78, 0.72];
-      for (const p of pl.pts) {
-        pos.push(p[0], p[1] - yShift, p[2]);
-        col.push(cr, cg, cb);
-      }
-      for (let i = 1; i < pl.pts.length - 1; i++) idx.push(baseV, baseV + i, baseV + i + 1);
+      const baseV = pos.length / 3, [cr, cg, cb] = pl.color || [0.18, 0.78, 0.72];
+      for (const p of pl.pts) { pos.push(p[0], p[1]-yShift, p[2]); col.push(cr, cg, cb); }
+      for (let i = 1; i < pl.pts.length - 1; i++) idx.push(baseV, baseV+i, baseV+i+1);
     }
     const out = { positions: new Float32Array(pos), colors: new Float32Array(col), indices: new Uint32Array(idx), normals: null };
-    computeMeshNormals(out);
-    return out;
+    computeMeshNormals(out); return out;
   }
 
   // ==================== 3D エクスポート (GLB / PLY / OBJ) ====================
   function downloadBlob(blob, filename) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a);
+    const url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 4000);
   }
-
   function exportGLB(mesh) {
-    const nVerts = mesh.positions.length / 3, nIdx = mesh.indices.length;
-    if (nVerts === 0 || nIdx === 0) { showToast('出力するメッシュがありません'); return; }
-    let min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
-    for (let i = 0; i < mesh.positions.length; i += 3) {
-      for (let k = 0; k < 3; k++) {
-        const v = mesh.positions[i+k];
-        if (v < min[k]) min[k] = v; if (v > max[k]) max[k] = v;
-      }
+    const nVerts = mesh.positions.length/3, nIdx = mesh.indices.length;
+    if (!nVerts || !nIdx) { showToast('出力データがありません'); return; }
+    let min=[Infinity,Infinity,Infinity], max=[-Infinity,-Infinity,-Infinity];
+    for (let i = 0; i < mesh.positions.length; i += 3) for (let k = 0; k < 3; k++) {
+      const v = mesh.positions[i+k]; if (v<min[k]) min[k]=v; if (v>max[k]) max[k]=v;
     }
-    const posBytes = nVerts * 12, normBytes = nVerts * 12, colBytes = nVerts * 4;
-    const useU16 = nVerts < 65536;
-    const idxRawBytes = nIdx * (useU16 ? 2 : 4), idxPaddedBytes = (idxRawBytes + 3) & ~3;
-    const binSize = posBytes + normBytes + colBytes + idxPaddedBytes;
+    const posBytes=nVerts*12, normBytes=nVerts*12, colBytes=nVerts*4, useU16=nVerts<65536;
+    const idxRawBytes=nIdx*(useU16?2:4), idxPad=(idxRawBytes+3)&~3, binSize=posBytes+normBytes+colBytes+idxPad;
     const binBuf = new ArrayBuffer(binSize);
-    new Float32Array(binBuf, 0, nVerts * 3).set(mesh.positions);
-    new Float32Array(binBuf, posBytes, nVerts * 3).set(mesh.normals);
-    const colU8 = new Uint8Array(binBuf, posBytes + normBytes, colBytes);
+    new Float32Array(binBuf,0,nVerts*3).set(mesh.positions); new Float32Array(binBuf,posBytes,nVerts*3).set(mesh.normals);
+    const colU8 = new Uint8Array(binBuf, posBytes+normBytes, colBytes);
     for (let i = 0; i < nVerts; i++) {
-      colU8[i*4]   = Math.max(0, Math.min(255, Math.round(mesh.colors[i*3] * 255)));
-      colU8[i*4+1] = Math.max(0, Math.min(255, Math.round(mesh.colors[i*3+1] * 255)));
-      colU8[i*4+2] = Math.max(0, Math.min(255, Math.round(mesh.colors[i*3+2] * 255)));
-      colU8[i*4+3] = 255;
+      colU8[i*4]=Math.max(0,Math.min(255,Math.round(mesh.colors[i*3]*255)));
+      colU8[i*4+1]=Math.max(0,Math.min(255,Math.round(mesh.colors[i*3+1]*255)));
+      colU8[i*4+2]=Math.max(0,Math.min(255,Math.round(mesh.colors[i*3+2]*255))); colU8[i*4+3]=255;
     }
-    const idxOff = posBytes + normBytes + colBytes;
-    if (useU16) { const u16 = new Uint16Array(binBuf, idxOff, nIdx); for (let i = 0; i < nIdx; i++) u16[i] = mesh.indices[i]; }
-    else { new Uint32Array(binBuf, idxOff, nIdx).set(mesh.indices); }
-
+    const idxOff = posBytes+normBytes+colBytes;
+    if (useU16) { const u16=new Uint16Array(binBuf,idxOff,nIdx); for (let i=0;i<nIdx;i++) u16[i]=mesh.indices[i]; }
+    else new Uint32Array(binBuf,idxOff,nIdx).set(mesh.indices);
     const gltf = {
-      asset: { version: "2.0", generator: "SpatialRoom3D-v2" },
-      scene: 0, scenes: [{ nodes: [0] }], nodes: [{ mesh: 0, name: "ScannedRoom" }],
-      materials: [{ pbrMetallicRoughness: { baseColorFactor: [1,1,1,1], metallicFactor: 0.04, roughnessFactor: 0.88 }, doubleSided: true }],
-      meshes: [{ primitives: [{ attributes: { POSITION: 0, NORMAL: 1, COLOR_0: 2 }, indices: 3, material: 0 }] }],
-      buffers: [{ byteLength: binSize }],
-      bufferViews: [
-        { buffer: 0, byteOffset: 0, byteLength: posBytes, target: 34962 },
-        { buffer: 0, byteOffset: posBytes, byteLength: normBytes, target: 34962 },
-        { buffer: 0, byteOffset: posBytes + normBytes, byteLength: colBytes, target: 34962 },
-        { buffer: 0, byteOffset: idxOff, byteLength: idxRawBytes, target: 34963 }
+      asset:{version:"2.0",generator:"SpatialRoom3D-v3"}, scene:0, scenes:[{nodes:[0]}], nodes:[{mesh:0,name:"ScannedRoom"}],
+      materials:[{pbrMetallicRoughness:{baseColorFactor:[1,1,1,1],metallicFactor:0.04,roughnessFactor:0.88},doubleSided:true}],
+      meshes:[{primitives:[{attributes:{POSITION:0,NORMAL:1,COLOR_0:2},indices:3,material:0}]}],
+      buffers:[{byteLength:binSize}],
+      bufferViews:[
+        {buffer:0,byteOffset:0,byteLength:posBytes,target:34962},{buffer:0,byteOffset:posBytes,byteLength:normBytes,target:34962},
+        {buffer:0,byteOffset:posBytes+normBytes,byteLength:colBytes,target:34962},{buffer:0,byteOffset:idxOff,byteLength:idxRawBytes,target:34963}
       ],
-      accessors: [
-        { bufferView: 0, componentType: 5126, count: nVerts, type: "VEC3", min, max },
-        { bufferView: 1, componentType: 5126, count: nVerts, type: "VEC3" },
-        { bufferView: 2, componentType: 5121, normalized: true, count: nVerts, type: "VEC4" },
-        { bufferView: 3, componentType: useU16 ? 5123 : 5125, count: nIdx, type: "SCALAR" }
+      accessors:[
+        {bufferView:0,componentType:5126,count:nVerts,type:"VEC3",min,max},{bufferView:1,componentType:5126,count:nVerts,type:"VEC3"},
+        {bufferView:2,componentType:5121,normalized:true,count:nVerts,type:"VEC4"},{bufferView:3,componentType:useU16?5123:5125,count:nIdx,type:"SCALAR"}
       ]
     };
-    const jsonRaw = new TextEncoder().encode(JSON.stringify(gltf));
-    const jsonPad = (jsonRaw.length + 3) & ~3;
-    const totalLen = 12 + 8 + jsonPad + 8 + binSize;
-    const out = new ArrayBuffer(totalLen), dv = new DataView(out), u8 = new Uint8Array(out);
-    dv.setUint32(0, 0x46546C67, true); dv.setUint32(4, 2, true); dv.setUint32(8, totalLen, true);
-    dv.setUint32(12, jsonPad, true); dv.setUint32(16, 0x4E4F534A, true);
-    u8.set(jsonRaw, 20); for (let i = jsonRaw.length; i < jsonPad; i++) u8[20 + i] = 0x20;
-    const binStart = 20 + jsonPad;
-    dv.setUint32(binStart, binSize, true); dv.setUint32(binStart + 4, 0x004E4942, true);
-    u8.set(new Uint8Array(binBuf), binStart + 8);
-    downloadBlob(new Blob([out], { type: 'model/gltf-binary' }), `room_scan_${Date.now()}.glb`);
-    showToast('GLBファイルを保存しました');
+    const jRaw=new TextEncoder().encode(JSON.stringify(gltf)), jPad=(jRaw.length+3)&~3, tot=12+8+jPad+8+binSize;
+    const out=new ArrayBuffer(tot), dv=new DataView(out), u8=new Uint8Array(out);
+    dv.setUint32(0,0x46546C67,true); dv.setUint32(4,2,true); dv.setUint32(8,tot,true);
+    dv.setUint32(12,jPad,true); dv.setUint32(16,0x4E4F534A,true); u8.set(jRaw,20);
+    for (let i=jRaw.length;i<jPad;i++) u8[20+i]=0x20;
+    const bs=20+jPad; dv.setUint32(bs,binSize,true); dv.setUint32(bs+4,0x004E4942,true); u8.set(new Uint8Array(binBuf),bs+8);
+    downloadBlob(new Blob([out],{type:'model/gltf-binary'}), `room_scan_${Date.now()}.glb`); showToast('GLBファイルを保存しました');
   }
-
   function exportPLY(mesh) {
-    const nVerts = mesh.positions.length / 3, nTris = mesh.indices.length / 3;
-    if (nVerts === 0) { showToast('データがありません'); return; }
-    const header = [
-      'ply', 'format binary_little_endian 1.0', `element vertex ${nVerts}`,
-      'property float x', 'property float y', 'property float z',
-      'property float nx', 'property float ny', 'property float nz',
-      'property uchar red', 'property uchar green', 'property uchar blue',
-      `element face ${nTris}`, 'property list uchar int vertex_indices', 'end_header\n'
-    ].join('\n');
-    const hdrBytes = new TextEncoder().encode(header);
-    const buf = new ArrayBuffer(hdrBytes.length + nVerts * 27 + nTris * 13);
-    const u8 = new Uint8Array(buf), dv = new DataView(buf);
-    u8.set(hdrBytes, 0);
-    let off = hdrBytes.length;
-    for (let i = 0; i < nVerts; i++) {
-      const o = i * 3;
-      dv.setFloat32(off, mesh.positions[o], true); dv.setFloat32(off+4, mesh.positions[o+1], true); dv.setFloat32(off+8, mesh.positions[o+2], true);
-      dv.setFloat32(off+12, mesh.normals[o], true); dv.setFloat32(off+16, mesh.normals[o+1], true); dv.setFloat32(off+20, mesh.normals[o+2], true);
-      u8[off+24] = Math.max(0, Math.min(255, Math.round(mesh.colors[o]*255)));
-      u8[off+25] = Math.max(0, Math.min(255, Math.round(mesh.colors[o+1]*255)));
-      u8[off+26] = Math.max(0, Math.min(255, Math.round(mesh.colors[o+2]*255)));
-      off += 27;
-    }
-    for (let i = 0; i < nTris; i++) {
-      const o = i * 3; u8[off] = 3;
-      dv.setInt32(off+1, mesh.indices[o], true); dv.setInt32(off+5, mesh.indices[o+1], true); dv.setInt32(off+9, mesh.indices[o+2], true);
-      off += 13;
-    }
-    downloadBlob(new Blob([buf], { type: 'application/octet-stream' }), `room_scan_${Date.now()}.ply`);
-    showToast('PLYファイルを保存しました');
+    const nV=mesh.positions.length/3, nT=mesh.indices.length/3; if (!nV) return;
+    const h=new TextEncoder().encode(['ply','format binary_little_endian 1.0',`element vertex ${nV}`,'property float x','property float y','property float z','property float nx','property float ny','property float nz','property uchar red','property uchar green','property uchar blue',`element face ${nT}`,'property list uchar int vertex_indices','end_header\n'].join('\n'));
+    const buf=new ArrayBuffer(h.length+nV*27+nT*13), u8=new Uint8Array(buf), dv=new DataView(buf); u8.set(h,0); let off=h.length;
+    for (let i=0;i<nV;i++){const o=i*3;dv.setFloat32(off,mesh.positions[o],true);dv.setFloat32(off+4,mesh.positions[o+1],true);dv.setFloat32(off+8,mesh.positions[o+2],true);dv.setFloat32(off+12,mesh.normals[o],true);dv.setFloat32(off+16,mesh.normals[o+1],true);dv.setFloat32(off+20,mesh.normals[o+2],true);u8[off+24]=Math.max(0,Math.min(255,Math.round(mesh.colors[o]*255)));u8[off+25]=Math.max(0,Math.min(255,Math.round(mesh.colors[o+1]*255)));u8[off+26]=Math.max(0,Math.min(255,Math.round(mesh.colors[o+2]*255)));off+=27;}
+    for (let i=0;i<nT;i++){const o=i*3;u8[off]=3;dv.setInt32(off+1,mesh.indices[o],true);dv.setInt32(off+5,mesh.indices[o+1],true);dv.setInt32(off+9,mesh.indices[o+2],true);off+=13;}
+    downloadBlob(new Blob([buf],{type:'application/octet-stream'}), `room_scan_${Date.now()}.ply`); showToast('PLY保存完了');
   }
-
   function exportOBJ(mesh) {
-    const nVerts = mesh.positions.length / 3;
-    if (nVerts === 0) { showToast('データがありません'); return; }
-    const lines = ['# SpatialRoom 3D v2'];
-    for (let i = 0; i < nVerts; i++) {
-      const o = i * 3;
-      lines.push(`v ${mesh.positions[o].toFixed(4)} ${mesh.positions[o+1].toFixed(4)} ${mesh.positions[o+2].toFixed(4)} ${mesh.colors[o].toFixed(3)} ${mesh.colors[o+1].toFixed(3)} ${mesh.colors[o+2].toFixed(3)}`);
-    }
-    for (let i = 0; i < nVerts; i++) {
-      const o = i * 3;
-      lines.push(`vn ${mesh.normals[o].toFixed(4)} ${mesh.normals[o+1].toFixed(4)} ${mesh.normals[o+2].toFixed(4)}`);
-    }
-    for (let i = 0; i < mesh.indices.length; i += 3) {
-      const a = mesh.indices[i]+1, b = mesh.indices[i+1]+1, c = mesh.indices[i+2]+1;
-      lines.push(`f ${a}//${a} ${b}//${b} ${c}//${c}`);
-    }
-    downloadBlob(new Blob([lines.join('\n')], { type: 'text/plain' }), `room_scan_${Date.now()}.obj`);
-    showToast('OBJファイルを保存しました');
+    const nV=mesh.positions.length/3; if (!nV) return; const L=['# SpatialRoom 3D v3'];
+    for (let i=0;i<nV;i++){const o=i*3;L.push(`v ${mesh.positions[o].toFixed(4)} ${mesh.positions[o+1].toFixed(4)} ${mesh.positions[o+2].toFixed(4)} ${mesh.colors[o].toFixed(3)} ${mesh.colors[o+1].toFixed(3)} ${mesh.colors[o+2].toFixed(3)}`);}
+    for (let i=0;i<nV;i++){const o=i*3;L.push(`vn ${mesh.normals[o].toFixed(4)} ${mesh.normals[o+1].toFixed(4)} ${mesh.normals[o+2].toFixed(4)}`);}
+    for (let i=0;i<mesh.indices.length;i+=3){const a=mesh.indices[i]+1,b=mesh.indices[i+1]+1,c=mesh.indices[i+2]+1;L.push(`f ${a}//${a} ${b}//${b} ${c}//${c}`);}
+    downloadBlob(new Blob([L.join('\n')],{type:'text/plain'}), `room_scan_${Date.now()}.obj`); showToast('OBJ保存完了');
   }
 
   function compileProgram(gl, vsSrc, fsSrc) {
-    const load = (type, src) => {
-      const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
-      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.error(gl.getShaderInfoLog(s)); return null; }
-      return s;
-    };
-    const p = gl.createProgram();
-    gl.attachShader(p, load(gl.VERTEX_SHADER, vsSrc));
-    gl.attachShader(p, load(gl.FRAGMENT_SHADER, fsSrc));
-    gl.linkProgram(p);
-    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) { console.error(gl.getProgramInfoLog(p)); return null; }
-    return p;
+    const load=(t,s)=>{const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS))console.error(gl.getShaderInfoLog(sh));return sh;};
+    const p=gl.createProgram(); gl.attachShader(p,load(gl.VERTEX_SHADER,vsSrc)); gl.attachShader(p,load(gl.FRAGMENT_SHADER,fsSrc)); gl.linkProgram(p); return p;
   }
 
-  // ==================== グローバル状態 & 順序スキャン状態機械 ====================
+  // ==================== アプリ状態 & ターゲット囲み / 順序ステップ管理 ====================
   const volume = new TSDFVolume(0.035);
   let activeMesh = null, originalMesh = null;
-  let overlayColorMode = 'rgb'; // デフォルトで正しいカメラ色が確認できるよう 'rgb' に！
-  let camColorRotMode = 0;      // 0:自動アスペクト整合, 1:90度時計, 2:90度反時計
-  let scanningActive = false;
-  let eraseRayRequest = false;
-  let lastHitPoseMatrix = null, lastHitDist = null;
-  let lastDevPosY = null, liveCeilingEstY = null;
+  let overlayColorMode = 'rgb', camColorRotMode = 0;
+  let scanningActive = false, eraseRayRequest = false;
+  let lastHitPoseMatrix = null, lastHitDist = null, lastDevPosY = null, lastDevXZ = [0, 0], liveCeilingEstY = null;
 
-  // 順序スキャン段階: 'FLOOR_CAL' | 'CEILING_CAL' | 'SHELL_SCAN' | 'DETAIL_SCAN' | 'FREE'
-  let scanPhase = 'FREE';
+  // 囲みスキャン（テーブル・オブジェクト精密周回）状態
+  const WrapTarget = {
+    active: false,
+    center: [0, 0, 0],
+    radius: 1.35,
+    sectors: new Uint8Array(12), // 360°を12セクターで進捗管理
+    coveredCount: 0
+  };
+
+  let scanPhase = 'FREE'; // 'FLOOR_CAL'|'CEILING_CAL'|'SHELL_SCAN'|'DETAIL_SCAN'|'FREE'
+
+  function toggleWrapMode(forceOff = false) {
+    if (WrapTarget.active || forceOff) {
+      WrapTarget.active = false;
+      $('btn-wrap-target').classList.remove('btn-active');
+      $('btn-wrap-target').textContent = '🎯 囲み';
+      updateStepUI();
+      if (!forceOff) showToast('ターゲット囲みモードを解除しました');
+      return;
+    }
+    if (!lastHitPoseMatrix) {
+      showToast('テーブル（囲みたい物）の中央に照準を合わせてから押してください');
+      return;
+    }
+    WrapTarget.active = true;
+    WrapTarget.center = [lastHitPoseMatrix[12], lastHitPoseMatrix[13], lastHitPoseMatrix[14]];
+    WrapTarget.sectors.fill(0);
+    WrapTarget.coveredCount = 0;
+    $('btn-wrap-target').classList.add('btn-active');
+    $('btn-wrap-target').textContent = '🎯 囲み中';
+    if (scanPhase === 'SHELL_SCAN') setPhase('DETAIL_SCAN');
+    else updateStepUI();
+    showToast(`テーブル囲み開始！(半径 ${WrapTarget.radius.toFixed(1)}m 内を360°周回してください)`);
+  }
 
   function updateStepUI() {
     const card = $('step-card');
-    if (scanPhase === 'FREE') { card.style.display = 'none'; return; }
+    if (scanPhase === 'FREE' && !WrapTarget.active) { card.style.display = 'none'; return; }
     card.style.display = 'flex';
 
     const fTxt = volume.floorY !== null ? `${volume.floorY.toFixed(2)}m` : '--';
-    const cTxt = (volume.floorY !== null && volume.ceilingY !== null)
-      ? `${(volume.ceilingY - volume.floorY).toFixed(2)}m` : '--';
-    $('step-bounds').textContent = `床Y:${fTxt} 天井高:${cTxt}`;
+    const cTxt = (volume.floorY !== null && volume.ceilingY !== null) ? `${(volume.ceilingY - volume.floorY).toFixed(2)}m` : '--';
+    const shellTxt = volume.shellRadii ? '外枠:ロック' : '外枠:未';
+    $('step-bounds').textContent = `床:${fTxt} 天井:${cTxt} ${shellTxt}`;
 
     const actions = $('step-actions');
     actions.innerHTML = '';
     const mkBtn = (label, cls, fn) => {
       const b = document.createElement('button');
-      b.className = `btn-sm ${cls}`; b.textContent = label;
-      b.addEventListener('click', fn);
-      actions.appendChild(b);
-      return b;
+      b.className = `btn-sm ${cls}`; b.textContent = label; b.addEventListener('click', fn);
+      actions.appendChild(b); return b;
     };
+
+    if (WrapTarget.active) {
+      $('step-title').textContent = `🎯 ターゲット360°囲み中 (${WrapTarget.coveredCount}/12 方向完了)`;
+      $('step-desc').textContent = `半径 ${WrapTarget.radius.toFixed(1)}m 以内だけをICP位置合わせ付きで精密スキャン中（背景の壁を遮断）。`;
+      mkBtn('半径切替', 'btn-primary', () => {
+        const radii = [0.9, 1.35, 1.9];
+        WrapTarget.radius = radii[(radii.indexOf(WrapTarget.radius) + 1) % radii.length];
+        updateStepUI();
+        showToast(`囲み半径を ${WrapTarget.radius.toFixed(2)} m に変更`);
+      });
+      mkBtn('囲み終了', 'btn-success', () => toggleWrapMode(true));
+      return;
+    }
 
     if (scanPhase === 'FLOOR_CAL') {
       $('step-title').textContent = 'STEP 1/4：床の高さ合わせ';
-      $('step-desc').textContent = 'スマホを床に平置きして押す（最高精度）か、床にレティクルを合わせて決定してください。';
-      mkBtn('📱 床にスマホを置いて確定', 'btn-primary', () => {
-        if (lastDevPosY === null) { showToast('姿勢待機中です'); return; }
+      $('step-desc').textContent = 'スマホを床に平置きして押す（最高精度）か、床に照準を合わせて決定してください。';
+      mkBtn('📱 床に置いて確定', 'btn-primary', () => {
+        if (lastDevPosY === null) return;
         volume.floorY = lastDevPosY - 0.012;
-        showToast(`床を基準高さ (Y=${volume.floorY.toFixed(2)}m) にロックしました`);
-        setPhase('CEILING_CAL');
+        showToast(`床 Y=${volume.floorY.toFixed(2)}m を確定`); setPhase('CEILING_CAL');
       });
-      mkBtn('🎯 レティクルで床確定', 'btn-success', () => {
-        if (!lastHitPoseMatrix) { showToast('床を映して中央の距離が表示されてから押してください'); return; }
+      mkBtn('🎯 照準で床確定', 'btn-success', () => {
+        if (!lastHitPoseMatrix) { showToast('床を映して距離を表示させてください'); return; }
         volume.floorY = lastHitPoseMatrix[13];
-        showToast(`床をレティクル位置 (Y=${volume.floorY.toFixed(2)}m) にロックしました`);
-        setPhase('CEILING_CAL');
+        showToast(`床 Y=${volume.floorY.toFixed(2)}m を確定`); setPhase('CEILING_CAL');
       });
       mkBtn('スキップ', '', () => setPhase('CEILING_CAL'));
     } else if (scanPhase === 'CEILING_CAL') {
       $('step-title').textContent = 'STEP 2/4：天井の高さ合わせ';
-      $('step-desc').textContent = 'カメラを真上（天井）に向けて高さを計測してください（天井上のノイズを遮断します）。';
-      const ceilBtn = mkBtn('⬆️ 天井確定 (計測中...)', 'btn-primary', () => {
-        if (liveCeilingEstY === null) { showToast('真上の天井に少し近づくか、標準2.4mを選んでください'); return; }
+      $('step-desc').textContent = 'カメラを真上（天井）に向けて高さを確定してください。';
+      const cb = mkBtn('⬆️ 天井確定 (計測中...)', 'btn-primary', () => {
+        if (liveCeilingEstY === null) { showToast('真上の天井を狙うか、標準2.4mを押してください'); return; }
         volume.ceilingY = liveCeilingEstY;
-        const h = volume.floorY !== null ? (volume.ceilingY - volume.floorY).toFixed(2) : '?';
-        showToast(`天井高をロックしました (高さ約 ${h} m)`);
-        setPhase('SHELL_SCAN');
+        showToast('天井高をロックしました'); setPhase('SHELL_SCAN');
       });
-      ceilBtn.id = 'btn-ceil-capture';
-      mkBtn('標準 2.40m で設定', 'btn-success', () => {
-        const baseY = volume.floorY !== null ? volume.floorY : (lastDevPosY !== null ? lastDevPosY - 1.35 : -1.35);
-        volume.floorY = baseY;
-        volume.ceilingY = baseY + 2.40;
-        showToast('床〜天井高を標準 2.40m に設定しました');
-        setPhase('SHELL_SCAN');
+      cb.id = 'btn-ceil-capture';
+      mkBtn('標準 2.40m', 'btn-success', () => {
+        const by = volume.floorY !== null ? volume.floorY : (lastDevPosY !== null ? lastDevPosY - 1.35 : -1.35);
+        volume.floorY = by; volume.ceilingY = by + 2.40;
+        showToast('床〜天井 2.40m を設定'); setPhase('SHELL_SCAN');
       });
       mkBtn('スキップ', '', () => setPhase('SHELL_SCAN'));
     } else if (scanPhase === 'SHELL_SCAN') {
-      $('step-title').textContent = 'STEP 3/4：壁・部屋外周スキャン';
-      $('step-desc').textContent = '部屋をゆっくり1周見回して床と壁を取り込んでください（中央空間を掃除します）。';
-      mkBtn('次へ：家具・複雑形状スキャン →', 'btn-success', () => setPhase('DETAIL_SCAN'));
+      $('step-title').textContent = 'STEP 3/4：動いて部屋の大枠（壁）を作る';
+      $('step-desc').textContent = '壁を見ながら1周歩き、壁が取れたら「壁の外枠をロック」すると外部への飛び抜けを防げます。';
+      mkBtn(volume.shellRadii ? '🔓 外枠ロック解除' : '🧱 壁の外枠をロック', 'btn-warn', () => {
+        if (volume.shellRadii) {
+          volume.shellRadii = null; updateStepUI(); showToast('壁の外枠マスクを解除');
+        } else {
+          const ok = volume.buildShellMaskFromWalls(lastDevXZ[0], lastDevXZ[1]);
+          if (ok) { updateStepUI(); showToast('部屋の外枠をロック！外側ノイズを遮断します'); }
+          else showToast('もう少し部屋の周囲の壁をスキャンしてから押してください');
+        }
+      });
+      mkBtn('次へ：家具・囲み →', 'btn-success', () => setPhase('DETAIL_SCAN'));
     } else if (scanPhase === 'DETAIL_SCAN') {
-      $('step-title').textContent = 'STEP 4/4：複雑形状・精密スキャン';
-      $('step-desc').textContent = '机・棚・椅子に近づき(2.2m以内)、横移動しながら撮ると面が伸びず綺麗に抜けます。';
-      mkBtn('← 壁スキャンに戻る', '', () => setPhase('SHELL_SCAN'));
+      $('step-title').textContent = 'STEP 4/4：家具・テーブル精密スキャン';
+      $('step-desc').textContent = 'テーブルがある場合は中央を狙って下の「🎯 囲み」を押すと360°ズレなく綺麗に撮れます。';
+      mkBtn('← 外枠スキャンへ', '', () => setPhase('SHELL_SCAN'));
     }
   }
 
@@ -1304,12 +1322,10 @@
     scanPhase = phase;
     if (phase === 'SHELL_SCAN' || phase === 'DETAIL_SCAN') {
       scanningActive = true;
-      $('btn-scan-toggle').textContent = '⏸ 一時停止';
-      $('btn-scan-toggle').className = 'btn-warn';
+      $('btn-scan-toggle').textContent = '⏸ 一時停止'; $('btn-scan-toggle').className = 'btn-warn';
     } else if (phase === 'FLOOR_CAL' || phase === 'CEILING_CAL') {
       scanningActive = false;
-      $('btn-scan-toggle').textContent = '▶ スキャン開始';
-      $('btn-scan-toggle').className = 'btn-primary';
+      $('btn-scan-toggle').textContent = '▶ スキャン開始'; $('btn-scan-toggle').className = 'btn-primary';
     }
     updateStepUI();
   }
@@ -1321,91 +1337,59 @@
     ptProg: null, ptPosBuf: null, ptColBuf: null, ptCount: 0,
     solidProg: null, lineBuf: null, cadLineBuf: null, cadPtsBuf: null,
     camDownProg: null, camFbo: null, camTexDst: null, camQuadBuf: null,
-    camW: 160, camH: 90, camPixels: null, lastCamSig: '',
+    camW: 160, camH: 90, camPixels: null,
     lastKfPos: null, lastKfQuat: null, lastPoseTime: 0, prevPoseQuat: null, kfCount: 0,
+    driftMat: Mat4.identity(), invDriftMat: Mat4.identity(),
     cachedDepthRays: null, cachedProjSig: '',
 
     initGL(canvas) {
       const gl = canvas.getContext('webgl2', { alpha: true, antialias: true, xrCompatible: true });
       if (!gl) return null;
-
       this.ptProg = compileProgram(gl,
         `#version 300 es
-         layout(location=0) in vec3 aPos;
-         layout(location=1) in vec3 aCol;
-         uniform mat4 uProj, uView;
-         uniform float uPtSize;
-         out vec3 vCol;
-         void main() {
-           vec4 vp = uView * vec4(aPos, 1.0);
-           gl_Position = uProj * vp;
-           gl_PointSize = clamp(uPtSize / max(0.35, -vp.z), 2.5, 10.0);
-           vCol = aCol;
-         }`,
+         layout(location=0) in vec3 aPos; layout(location=1) in vec3 aCol;
+         uniform mat4 uProj, uView; uniform float uPtSize; out vec3 vCol;
+         void main() { vec4 vp=uView*vec4(aPos,1.0); gl_Position=uProj*vp; gl_PointSize=clamp(uPtSize/max(0.35,-vp.z),2.5,10.0); vCol=aCol; }`,
         `#version 300 es
-         precision mediump float;
-         in vec3 vCol;
-         out vec4 outCol;
-         void main() {
-           vec2 d = gl_PointCoord - 0.5;
-           if (dot(d, d) > 0.25) discard;
-           outCol = vec4(vCol, 0.85);
-         }`
+         precision mediump float; in vec3 vCol; out vec4 outCol;
+         void main() { vec2 d=gl_PointCoord-0.5; if(dot(d,d)>0.25) discard; outCol=vec4(vCol,0.85); }`
       );
-
       this.solidProg = compileProgram(gl,
         `#version 300 es
-         layout(location=0) in vec3 aPos;
-         uniform mat4 uMVP;
-         uniform float uPtSize;
-         void main() { gl_Position = uMVP * vec4(aPos, 1.0); gl_PointSize = uPtSize; }`,
+         layout(location=0) in vec3 aPos; uniform mat4 uMVP; uniform float uPtSize;
+         void main() { gl_Position=uMVP*vec4(aPos,1.0); gl_PointSize=uPtSize; }`,
         `#version 300 es
-         precision mediump float;
-         uniform vec4 uColor;
-         out vec4 outCol;
-         void main() { outCol = uColor; }`
+         precision mediump float; uniform vec4 uColor; out vec4 outCol;
+         void main() { outCol=uColor; }`
       );
-
-      // アスペクト比クロップ＆回転補正対応カメラ読取シェーダー
       this.camDownProg = compileProgram(gl,
         `#version 300 es
-         layout(location=0) in vec2 aPos;
-         uniform vec2 uScale;
-         uniform int uRotMode;
-         out vec2 vUV;
+         layout(location=0) in vec2 aPos; uniform vec2 uScale; uniform int uRotMode; out vec2 vUV;
          void main() {
            gl_Position = vec4(aPos, 0.0, 1.0);
-           float u = aPos.x * 0.5 + 0.5;
-           float v = 0.5 - aPos.y * 0.5; // Bottom-LeftテクスチャからTop-Left配列へ反転
-           u = (u - 0.5) * uScale.x + 0.5;
-           v = (v - 0.5) * uScale.y + 0.5;
-           if (uRotMode == 1) { vUV = vec2(v, 1.0 - u); }
-           else if (uRotMode == 2) { vUV = vec2(1.0 - v, u); }
-           else { vUV = vec2(u, v); }
+           float u = (aPos.x * 0.5 + 0.5 - 0.5) * uScale.x + 0.5;
+           float v = (0.5 - aPos.y * 0.5 - 0.5) * uScale.y + 0.5;
+           if (uRotMode == 1) vUV = vec2(v, 1.0 - u);
+           else if (uRotMode == 2) vUV = vec2(1.0 - v, u);
+           else vUV = vec2(u, v);
          }`,
         `#version 300 es
-         precision mediump float;
-         uniform sampler2D uCamTex;
-         in vec2 vUV;
-         out vec4 outCol;
-         void main() { outCol = texture(uCamTex, vUV); }`
+         precision mediump float; uniform sampler2D uCamTex; in vec2 vUV; out vec4 outCol;
+         void main() { outCol=texture(uCamTex, vUV); }`
       );
-
-      this.ptPosBuf = gl.createBuffer(); this.ptColBuf = gl.createBuffer();
-      this.lineBuf = gl.createBuffer(); this.cadLineBuf = gl.createBuffer(); this.cadPtsBuf = gl.createBuffer();
-      this.camQuadBuf = gl.createBuffer();
+      this.ptPosBuf=gl.createBuffer(); this.ptColBuf=gl.createBuffer();
+      this.lineBuf=gl.createBuffer(); this.cadLineBuf=gl.createBuffer(); this.cadPtsBuf=gl.createBuffer();
+      this.camQuadBuf=gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, this.camQuadBuf);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
       this.setupCamFBO(gl, 160, 90);
-      this.gl = gl;
-      return gl;
+      this.gl = gl; return gl;
     },
 
     setupCamFBO(gl, w, h) {
       if (this.camFbo) gl.deleteFramebuffer(this.camFbo);
       if (this.camTexDst) gl.deleteTexture(this.camTexDst);
-      this.camW = w; this.camH = h;
-      this.camPixels = new Uint8Array(w * h * 4);
+      this.camW = w; this.camH = h; this.camPixels = new Uint8Array(w*h*4);
       this.camTexDst = gl.createTexture();
       gl.bindTexture(gl.TEXTURE_2D, this.camTexDst);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
@@ -1416,8 +1400,7 @@
       this.camFbo = gl.createFramebuffer();
       gl.bindFramebuffer(gl.FRAMEBUFFER, this.camFbo);
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.camTexDst, 0);
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      gl.bindTexture(gl.TEXTURE_2D, null);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.bindTexture(gl.TEXTURE_2D, null);
     },
 
     async startSession(resumeExisting = false) {
@@ -1425,68 +1408,43 @@
       if (!resumeExisting) {
         volume.reset(parseFloat($('opt-voxel').value));
         this.kfCount = 0; this.ptCount = 0;
-        const wf = $('opt-workflow').value;
-        setPhase(wf === 'guided' ? 'FLOOR_CAL' : 'FREE');
+        Mat4.identity(this.driftMat); Mat4.identity(this.invDriftMat);
+        WrapTarget.active = false;
+        setPhase($('opt-workflow').value === 'guided' ? 'FLOOR_CAL' : 'FREE');
       } else {
         setPhase($('opt-workflow').value === 'guided' ? 'DETAIL_SCAN' : 'FREE');
       }
-
       this.lastKfPos = null; this.lastKfQuat = null; this.lastPoseTime = 0; this.prevPoseQuat = null;
-      const wantColor = $('opt-color').checked;
-      const overlayEl = $('xr-overlay');
+      const wantColor = $('opt-color').checked, overlayEl = $('xr-overlay');
       const depthCfg = {
-        usagePreference: ['cpu-optimized'],
-        dataFormatPreference: ['luminance-alpha', 'float32', 'unsigned-short'],
-        depthTypeRequest: ['raw', 'smooth'],
-        matchDepthView: true
+        usagePreference:['cpu-optimized'], dataFormatPreference:['luminance-alpha','float32','unsigned-short'],
+        depthTypeRequest:['raw','smooth'], matchDepthView:true
       };
-      const depthCfgLegacy = { usagePreference: ['cpu-optimized'], dataFormatPreference: ['luminance-alpha', 'float32'] };
-
+      const depthCfgLegacy = { usagePreference:['cpu-optimized'], dataFormatPreference:['luminance-alpha','float32'] };
       const attempts = [];
-      if (wantColor) {
-        attempts.push({
-          requiredFeatures: ['local-floor'],
-          optionalFeatures: ['depth-sensing', 'hit-test', 'camera-access', 'dom-overlay'],
-          depthSensing: depthCfg, domOverlay: { root: overlayEl }
-        });
-      }
-      attempts.push({
-        requiredFeatures: ['local-floor'],
-        optionalFeatures: wantColor ? ['depth-sensing', 'hit-test', 'camera-access', 'dom-overlay'] : ['depth-sensing', 'hit-test', 'dom-overlay'],
-        depthSensing: depthCfgLegacy, domOverlay: { root: overlayEl }
-      });
-      attempts.push({
-        requiredFeatures: ['local'], optionalFeatures: ['depth-sensing', 'hit-test', 'dom-overlay'],
-        depthSensing: depthCfgLegacy, domOverlay: { root: overlayEl }
-      });
+      if (wantColor) attempts.push({ requiredFeatures:['local-floor'], optionalFeatures:['depth-sensing','hit-test','camera-access','dom-overlay'], depthSensing:depthCfg, domOverlay:{root:overlayEl} });
+      attempts.push({ requiredFeatures:['local-floor'], optionalFeatures:wantColor?['depth-sensing','hit-test','camera-access','dom-overlay']:['depth-sensing','hit-test','dom-overlay'], depthSensing:depthCfgLegacy, domOverlay:{root:overlayEl} });
+      attempts.push({ requiredFeatures:['local'], optionalFeatures:['depth-sensing','hit-test','dom-overlay'], depthSensing:depthCfgLegacy, domOverlay:{root:overlayEl} });
 
       let session = null;
-      for (const opt of attempts) {
-        try { session = await navigator.xr.requestSession('immersive-ar', opt); break; } catch (_) {}
-      }
+      for (const opt of attempts) { try { session = await navigator.xr.requestSession('immersive-ar', opt); break; } catch (_) {} }
       if (!session) { showToast('WebXR ARセッションを開始できませんでした', 3200); return; }
 
       this.session = session;
       session.addEventListener('end', () => this.onSessionEnded());
-      const gl = this.initGL($('ar-canvas'));
-      if (!gl) { session.end(); return; }
+      const gl = this.initGL($('ar-canvas')); if (!gl) { session.end(); return; }
 
       this.hasDepth = Boolean(session.depthUsage);
       this.hasCameraAccess = wantColor && Boolean(window.XRWebGLBinding);
-      if (this.hasCameraAccess) {
-        try { this.glBinding = new XRWebGLBinding(session, gl); } catch (_) { this.glBinding = null; this.hasCameraAccess = false; }
-      } else { this.glBinding = null; }
+      if (this.hasCameraAccess) { try { this.glBinding = new XRWebGLBinding(session, gl); } catch (_) { this.glBinding = null; this.hasCameraAccess = false; } }
+      else this.glBinding = null;
 
       session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
-      try { this.refSpace = await session.requestReferenceSpace('local-floor'); }
-      catch (_) { this.refSpace = await session.requestReferenceSpace('local'); }
+      try { this.refSpace = await session.requestReferenceSpace('local-floor'); } catch (_) { this.refSpace = await session.requestReferenceSpace('local'); }
       this.viewerSpace = await session.requestReferenceSpace('viewer');
       this.hitTestSource = null;
-      if (session.requestHitTestSource) {
-        try { this.hitTestSource = await session.requestHitTestSource({ space: this.viewerSpace }); } catch (_) {}
-      }
+      if (session.requestHitTestSource) { try { this.hitTestSource = await session.requestHitTestSource({ space: this.viewerSpace }); } catch (_) {} }
 
-      $('stat-mode').textContent = (this.hasDepth ? (session.depthType || 'depth').toUpperCase() : 'HIT-ONLY') + (this.hasCameraAccess ? '+RGB' : '');
       showScreen('ar');
       this.refreshPreviewPoints();
       session.requestAnimationFrame((t, f) => this.onFrame(t, f));
@@ -1499,13 +1457,10 @@
 
     refreshPreviewPoints() {
       if (!this.gl) return;
-      const gl = this.gl;
-      const data = volume.buildPreviewPoints(overlayColorMode);
+      const gl = this.gl, data = volume.buildPreviewPoints(overlayColorMode);
       this.ptCount = data.count;
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.ptPosBuf);
-      gl.bufferData(gl.ARRAY_BUFFER, data.positions, gl.DYNAMIC_DRAW);
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.ptColBuf);
-      gl.bufferData(gl.ARRAY_BUFFER, data.colors, gl.DYNAMIC_DRAW);
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.ptPosBuf); gl.bufferData(gl.ARRAY_BUFFER, data.positions, gl.DYNAMIC_DRAW);
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.ptColBuf); gl.bufferData(gl.ARRAY_BUFFER, data.colors, gl.DYNAMIC_DRAW);
       $('stat-kf').textContent = `KF:${this.kfCount}`;
       $('stat-pts').textContent = `Pts:${(this.ptCount / 1000).toFixed(1)}k`;
     },
@@ -1517,28 +1472,17 @@
         const camTex = this.glBinding.getCameraImage(view.camera);
         if (!camTex) return null;
         if (this.camW !== gw || this.camH !== gh) this.setupCamFBO(gl, gw, gh);
-
-        // カメラとビューポートのアスペクト整合クロップ計算
         let sx = 1.0, sy = 1.0;
         const cw = view.camera.width || gw, ch = view.camera.height || gh;
-        const vpAsp = viewport.width / Math.max(1, viewport.height);
-        const camAsp = cw / Math.max(1, ch);
+        const vpAsp = viewport.width / Math.max(1, viewport.height), camAsp = cw / Math.max(1, ch);
         if ((vpAsp >= 1) === (camAsp >= 1)) {
           if (camAsp > vpAsp * 1.04) sx = vpAsp / camAsp;
           else if (vpAsp > camAsp * 1.04) sy = camAsp / vpAsp;
         }
-
-        gl.disable(gl.SCISSOR_TEST);
-        gl.disable(gl.DEPTH_TEST);
-        gl.disable(gl.BLEND);
-        gl.colorMask(true, true, true, true);
-        gl.pixelStorei(gl.PACK_ALIGNMENT, 4);
-
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.camFbo);
-        gl.viewport(0, 0, gw, gh);
-        gl.useProgram(this.camDownProg);
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, camTex);
+        gl.disable(gl.SCISSOR_TEST); gl.disable(gl.DEPTH_TEST); gl.disable(gl.BLEND);
+        gl.colorMask(true, true, true, true); gl.pixelStorei(gl.PACK_ALIGNMENT, 4);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.camFbo); gl.viewport(0, 0, gw, gh);
+        gl.useProgram(this.camDownProg); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, camTex);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -1546,64 +1490,163 @@
         gl.uniform2f(gl.getUniformLocation(this.camDownProg, 'uScale'), sx, sy);
         gl.uniform1i(gl.getUniformLocation(this.camDownProg, 'uRotMode'), camColorRotMode);
         gl.bindBuffer(gl.ARRAY_BUFFER, this.camQuadBuf);
-        gl.enableVertexAttribArray(0);
-        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-        if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
-          gl.bindFramebuffer(gl.FRAMEBUFFER, null); return null;
-        }
+        if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) { gl.bindFramebuffer(gl.FRAMEBUFFER, null); return null; }
         gl.readPixels(0, 0, gw, gh, gl.RGBA, gl.UNSIGNED_BYTE, this.camPixels);
-        gl.bindTexture(gl.TEXTURE_2D, null);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-        const mid = ((gh >> 1) * gw + (gw >> 1)) * 4;
-        const q1 = ((gh >> 2) * gw + (gw >> 2)) * 4;
-        if ((this.camPixels[mid]+this.camPixels[mid+1]+this.camPixels[mid+2] +
-             this.camPixels[q1]+this.camPixels[q1+1]+this.camPixels[q1+2]) < 6) return null;
+        gl.bindTexture(gl.TEXTURE_2D, null); gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        const mid = ((gh>>1)*gw+(gw>>1))*4, q1 = ((gh>>2)*gw+(gw>>2))*4;
+        if ((this.camPixels[mid]+this.camPixels[mid+1]+this.camPixels[mid+2]+this.camPixels[q1]+this.camPixels[q1+1]+this.camPixels[q1+2]) < 6) return null;
         return this.camPixels;
-      } catch (e) {
-        console.warn('Camera readback error:', e);
-        this.hasCameraAccess = false;
-        return null;
-      }
+      } catch (_) { this.hasCameraAccess = false; return null; }
     },
 
     buildRayGrid(projMatrix, gw, gh) {
       const sig = `${gw}x${gh}_${projMatrix[0].toFixed(3)}_${projMatrix[5].toFixed(3)}`;
       if (this.cachedDepthRays && this.cachedProjSig === sig) return this.cachedDepthRays;
-      const invP = Mat4.invert(projMatrix);
-      if (!invP) return null;
+      const invP = Mat4.invert(projMatrix); if (!invP) return null;
       const rays = new Float32Array(gw * gh * 2);
       for (let gy = 0; gy < gh; gy++) {
         const yNdc = 1.0 - 2.0 * ((gy + 0.5) / gh);
         for (let gx = 0; gx < gw; gx++) {
           const xNdc = 2.0 * ((gx + 0.5) / gw) - 1.0;
-          const qx = invP[0]*xNdc + invP[4]*yNdc + invP[12];
-          const qy = invP[1]*xNdc + invP[5]*yNdc + invP[13];
-          const qz = invP[2]*xNdc + invP[6]*yNdc + invP[14];
-          const qw = invP[3]*xNdc + invP[7]*yNdc + invP[15];
-          const s = -1.0 / (qz / qw);
-          const o = (gy * gw + gx) * 2;
-          rays[o] = (qx / qw) * s; rays[o+1] = (qy / qw) * s;
+          const qx=invP[0]*xNdc+invP[4]*yNdc+invP[12], qy=invP[1]*xNdc+invP[5]*yNdc+invP[13];
+          const qz=invP[2]*xNdc+invP[6]*yNdc+invP[14], qw=invP[3]*xNdc+invP[7]*yNdc+invP[15];
+          const s = -1.0 / (qz / qw), o = (gy*gw + gx)*2;
+          rays[o] = (qx/qw)*s; rays[o+1] = (qy/qw)*s;
         }
       }
-      this.cachedDepthRays = rays; this.cachedProjSig = sig;
-      return rays;
+      this.cachedDepthRays = rays; this.cachedProjSig = sig; return rays;
     },
 
-    // 天井高さのリアルタイム推定 (STEP 2 用)
+    // Depth エッジ保存バイラテラル平滑化
+    applyBilateralDepth(depthGrid, gw, gh, edgeFrac) {
+      const out = new Float32Array(depthGrid.length);
+      const offs = [[-1,-1],[0,-1],[1,-1],[-1,0],[0,0],[1,0],[-1,1],[0,1],[1,1]];
+      for (let gy = 1; gy < gh - 1; gy++) {
+        for (let gx = 1; gx < gw - 1; gx++) {
+          const idx = gy * gw + gx, d0 = depthGrid[idx];
+          if (d0 <= 0.1) { out[idx] = d0; continue; }
+          const sigmaD = Math.max(0.015, d0 * edgeFrac * 0.6);
+          const inv2s = 0.5 / (sigmaD * sigmaD);
+          let sum = 0, wSum = 0;
+          for (let k = 0; k < 9; k++) {
+            const dn = depthGrid[(gy + offs[k][1])*gw + (gx + offs[k][0])];
+            if (dn <= 0.1) continue;
+            const diff = dn - d0;
+            if (Math.abs(diff) > d0 * edgeFrac) continue;
+            const wSp = (k === 4) ? 1.0 : ((k & 1) ? 0.65 : 0.45);
+            const w = wSp * Math.exp(-diff * diff * inv2s);
+            sum += dn * w; wSum += w;
+          }
+          out[idx] = wSum > 0 ? (sum / wSum) : d0;
+        }
+      }
+      return out;
+    },
+
+    // Direct Point-to-TSDF 6DoF ICP（ドリフト自動吸着）
+    runDirectTSDFICP(depthGrid, rays, gw, gh, c2wRaw) {
+      if (this.kfCount < 3 || volume.chunks.size < 2) {
+        $('stat-icp').textContent = 'ICP:準備';
+        return Mat4.mul(this.driftMat, c2wRaw);
+      }
+
+      let T = Mat4.mul(this.driftMat, c2wRaw);
+      const ptsCam = [];
+      const stride = Math.max(3, Math.floor(Math.min(gw, gh) / 14));
+      for (let gy = 3; gy < gh - 3; gy += stride) {
+        for (let gx = 3; gx < gw - 3; gx += stride) {
+          const idx = gy * gw + gx, d = depthGrid[idx];
+          if (d < 0.28 || d > 3.2) continue;
+          if (Math.abs(d - depthGrid[idx-1]) > d*0.04 || Math.abs(d - depthGrid[idx+1]) > d*0.04) continue;
+          const rx = rays[idx*2], ry = rays[idx*2+1];
+          ptsCam.push([rx*d, ry*d, -d]);
+        }
+      }
+      if (ptsCam.length < 35) return T;
+
+      const evalResidual = (mat) => {
+        let sumAbs = 0, cnt = 0;
+        for (const pc of ptsCam) {
+          const wx = mat[0]*pc[0] + mat[4]*pc[1] + mat[8]*pc[2]  + mat[12];
+          const wy = mat[1]*pc[0] + mat[5]*pc[1] + mat[9]*pc[2]  + mat[13];
+          const wz = mat[2]*pc[0] + mat[6]*pc[1] + mat[10]*pc[2] + mat[14];
+          const sg = volume.sampleTSDFAndGrad(wx, wy, wz);
+          if (sg && Math.abs(sg.val) < volume.trunc * 0.9) { sumAbs += Math.abs(sg.val); cnt++; }
+        }
+        return { mean: cnt > 0 ? sumAbs / cnt : 99, cnt };
+      };
+
+      const initRes = evalResidual(T);
+      if (initRes.cnt < 30) { $('stat-icp').textContent = 'ICP:新規域'; return T; }
+
+      let Tcur = new Float32Array(T);
+      for (let it = 0; it < 4; it++) {
+        const A = new Float64Array(36), b = new Float64Array(6);
+        let inliers = 0;
+        // 対角ダンピング (レベンバーグ・マーカート風で発散防止)
+        for (let k = 0; k < 6; k++) A[k*6 + k] = 0.08;
+
+        for (const pc of ptsCam) {
+          const px = Tcur[0]*pc[0] + Tcur[4]*pc[1] + Tcur[8]*pc[2]  + Tcur[12];
+          const py = Tcur[1]*pc[0] + Tcur[5]*pc[1] + Tcur[9]*pc[2]  + Tcur[13];
+          const pz = Tcur[2]*pc[0] + Tcur[6]*pc[1] + Tcur[10]*pc[2] + Tcur[14];
+          const sg = volume.sampleTSDFAndGrad(px, py, pz);
+          if (!sg || Math.abs(sg.val) >= volume.trunc * 0.9) continue;
+          const gLen = Math.hypot(sg.gx, sg.gy, sg.gz);
+          if (gLen < 0.15) continue;
+
+          // ヤコビアン J = [g^T * (-[p]x), g^T] -> 3D剛体変換の微小ツイスト [wx, wy, wz, vx, vy, vz]
+          const gx = sg.gx, gy = sg.gy, gz = sg.gz, r = sg.val;
+          const j0 = pz*gy - py*gz;
+          const j1 = px*gz - pz*gx;
+          const j2 = py*gx - px*gy;
+          const J = [j0, j1, j2, gx, gy, gz];
+          // Huber ロバスト重み
+          const huber = Math.abs(r) < 0.025 ? 1.0 : (0.025 / Math.abs(r));
+          for (let u = 0; u < 6; u++) {
+            b[u] -= huber * J[u] * r;
+            for (let v = 0; v < 6; v++) A[u*6 + v] += huber * J[u] * J[v];
+          }
+          inliers++;
+        }
+        if (inliers < 30) break;
+        const delta = solveLinear(A, b, 6);
+        if (!delta) break;
+        const rotStep = Math.hypot(delta[0], delta[1], delta[2]);
+        const transStep = Math.hypot(delta[3], delta[4], delta[5]);
+        if (rotStep > 0.06 || transStep > 0.07) break;
+        if (rotStep < 1e-4 && transStep < 1e-4) break;
+        const dM = Mat4.fromTwist(delta[0], delta[1], delta[2], delta[3], delta[4], delta[5]);
+        Tcur = Mat4.mul(dM, Tcur);
+      }
+
+      const finRes = evalResidual(Tcur);
+      if (finRes.cnt >= 30 && finRes.mean < initRes.mean * 0.995) {
+        const invRaw = Mat4.invert(c2wRaw);
+        if (invRaw) {
+          const newDrift = Mat4.mul(Tcur, invRaw);
+          // 過大なドリフト跳躍を防ぐガード（並進累積 < 0.35m）
+          if (Math.hypot(newDrift[12], newDrift[13], newDrift[14]) < 0.35) {
+            this.driftMat = newDrift;
+            this.invDriftMat = Mat4.invert(newDrift) || Mat4.identity();
+            $('stat-icp').textContent = `ICP:${(finRes.mean*100).toFixed(1)}cm`;
+            return Tcur;
+          }
+        }
+      }
+      $('stat-icp').textContent = `ICP:${(initRes.mean*100).toFixed(1)}cm`;
+      return T;
+    },
+
     estimateCeilingHeight(frame, view) {
       if (!this.hasDepth || !frame.getDepthInformation) return null;
-      const dInfo = frame.getDepthInformation(view);
-      if (!dInfo) return null;
+      const dInfo = frame.getDepthInformation(view); if (!dInfo) return null;
       const d = dInfo.getDepthInMeters(0.5, 0.5);
       if (d < 0.6 || d > 4.0) return null;
-      const c2w = view.transform.matrix;
-      // カメラ中心視線 (-Z列) のY成分が十分上向き (> 0.8) なら天井までのワールドYを計算
-      const upY = -c2w[9];
-      if (upY < 0.80) return null;
-      return c2w[13] + upY * d;
+      const c2w = view.transform.matrix, upY = -c2w[9];
+      return (upY >= 0.80) ? (c2w[13] + upY * d) : null;
     },
 
     integrateDepthFrame(frame, view, viewport) {
@@ -1611,13 +1654,10 @@
       if (!depthInfo) return false;
 
       const dw = depthInfo.width, dh = depthInfo.height;
-      const fmt = this.session.depthDataFormat;
-      const rawArr = (fmt === 'float32')
-        ? new Float32Array(depthInfo.data, 0, dw * dh)
-        : new Uint16Array(depthInfo.data, 0, dw * dh);
-
-      const scaleToMeters = depthInfo.rawValueToMeters;
-      const uvMat = depthInfo.normDepthBufferFromNormView.matrix;
+      const rawArr = (this.session.depthDataFormat === 'float32')
+        ? new Float32Array(depthInfo.data, 0, dw*dh)
+        : new Uint16Array(depthInfo.data, 0, dw*dh);
+      const scaleToMeters = depthInfo.rawValueToMeters, uvMat = depthInfo.normDepthBufferFromNormView.matrix;
 
       const isPortrait = viewport.height > viewport.width;
       const gw = isPortrait ? Math.min(dw, dh) : Math.max(dw, dh);
@@ -1625,34 +1665,51 @@
       const rays = this.buildRayGrid(view.projectionMatrix, gw, gh);
       if (!rays) return false;
 
-      const depthGrid = new Float32Array(gw * gh);
+      let depthGrid = new Float32Array(gw * gh);
       for (let gy = 0; gy < gh; gy++) {
         const vView = (gy + 0.5) / gh;
         for (let gx = 0; gx < gw; gx++) {
           const uView = (gx + 0.5) / gw;
           const dcX = uvMat[0]*uView + uvMat[4]*vView + uvMat[12];
           const dcY = uvMat[1]*uView + uvMat[5]*vView + uvMat[13];
-          const col = Math.min(dw - 1, Math.max(0, Math.floor(dcX * dw)));
-          const row = Math.min(dh - 1, Math.max(0, Math.floor(dcY * dh)));
-          depthGrid[gy * gw + gx] = rawArr[row * dw + col] * scaleToMeters;
+          const col = Math.min(dw-1, Math.max(0, Math.floor(dcX * dw)));
+          const row = Math.min(dh-1, Math.max(0, Math.floor(dcY * dh)));
+          depthGrid[gy*gw + gx] = rawArr[row*dw + col] * scaleToMeters;
+        }
+      }
+
+      const isDetail = (scanPhase === 'DETAIL_SCAN' || WrapTarget.active);
+      const isSmoothDepth = (this.session.depthType === 'smooth');
+      const strictFilter = $('opt-carve').checked;
+      const edgeFrac = (strictFilter || isSmoothDepth || isDetail) ? 0.038 : 0.065;
+
+      if ($('opt-sharp').checked) {
+        depthGrid = this.applyBilateralDepth(depthGrid, gw, gh, edgeFrac * 1.4);
+      }
+
+      // Direct TSDF ICP で姿勢の蓄積ズレを補正
+      const c2wRaw = view.transform.matrix;
+      const c2w = $('opt-icp').checked ? this.runDirectTSDFICP(depthGrid, rays, gw, gh, c2wRaw) : Mat4.mul(this.driftMat, c2wRaw);
+
+      // 囲みターゲット進捗リング更新
+      if (WrapTarget.active) {
+        const ang = Math.atan2(c2w[14] - WrapTarget.center[2], c2w[12] - WrapTarget.center[0]);
+        const s = Math.min(11, Math.floor(((ang + Math.PI) / (2 * Math.PI)) * 12));
+        if (!WrapTarget.sectors[s]) {
+          WrapTarget.sectors[s] = 1;
+          WrapTarget.coveredCount++;
+          updateStepUI();
         }
       }
 
       const rgbPixels = this.readCameraColors(view, viewport, gw, gh);
       const hasColor = rgbPixels !== null;
 
-      // ステップ・オプションに応じた厳格パラメータ
-      const isDetail = (scanPhase === 'DETAIL_SCAN');
-      const isSmoothDepth = (this.session.depthType === 'smooth');
       const baseMaxD = parseFloat($('opt-max-depth').value);
-      const maxD = isDetail ? Math.min(baseMaxD, 2.2) : baseMaxD;
+      const maxD = isDetail ? Math.min(baseMaxD, 2.3) : baseMaxD;
       const minD = 0.24;
-      const strictFilter = $('opt-carve').checked;
-      // smooth深度または複雑形状ステップ時は勾配・斜め面カットを強化
-      const edgeFrac = (strictFilter || isSmoothDepth || isDetail) ? 0.038 : 0.065;
-      const minCosTheta = isDetail ? 0.45 : (isSmoothDepth ? 0.40 : 0.30);
+      const minCosTheta = isDetail ? 0.44 : (isSmoothDepth ? 0.38 : 0.28);
 
-      const c2w = view.transform.matrix;
       const camX = c2w[12], camY = c2w[13], camZ = c2w[14];
       const vs = volume.voxelSize, trunc = volume.trunc, stepT = vs * 0.55;
       const yMinClip = (volume.floorY !== null) ? (volume.floorY - 0.07) : -99;
@@ -1660,81 +1717,59 @@
 
       for (let gy = 2; gy < gh - 2; gy++) {
         for (let gx = 2; gx < gw - 2; gx++) {
-          const gIdx = gy * gw + gx;
-          const d = depthGrid[gIdx];
+          const gIdx = gy*gw + gx, d = depthGrid[gIdx];
           if (d < minD || d > maxD) continue;
 
-          // 2ピクセル幅 Flying Pixel（面引き伸ばしカーテン）除去
-          const dL1 = depthGrid[gIdx - 1], dR1 = depthGrid[gIdx + 1];
-          const dU1 = depthGrid[gIdx - gw], dD1 = depthGrid[gIdx + gw];
-          const dL2 = depthGrid[gIdx - 2], dR2 = depthGrid[gIdx + 2];
-          const dU2 = depthGrid[gIdx - 2*gw], dD2 = depthGrid[gIdx + 2*gw];
-          if (dL1 <= 0 || dR1 <= 0 || dU1 <= 0 || dD1 <= 0 || dL2 <= 0 || dR2 <= 0 || dU2 <= 0 || dD2 <= 0) continue;
+          const dL1=depthGrid[gIdx-1], dR1=depthGrid[gIdx+1], dU1=depthGrid[gIdx-gw], dD1=depthGrid[gIdx+gw];
+          const dL2=depthGrid[gIdx-2], dR2=depthGrid[gIdx+2], dU2=depthGrid[gIdx-2*gw], dD2=depthGrid[gIdx+2*gw];
+          if (dL1<=0 || dR1<=0 || dU1<=0 || dD1<=0 || dL2<=0 || dR2<=0 || dU2<=0 || dD2<=0) continue;
+          const jump1 = d * edgeFrac, jump2 = d * (edgeFrac * 1.65);
+          if (Math.abs(d-dL1)>jump1 || Math.abs(d-dR1)>jump1 || Math.abs(d-dU1)>jump1 || Math.abs(d-dD1)>jump1 ||
+              Math.abs(d-dL2)>jump2 || Math.abs(d-dR2)>jump2 || Math.abs(d-dU2)>jump2 || Math.abs(d-dD2)>jump2) continue;
 
-          const jump1 = d * edgeFrac;
-          const jump2 = d * (edgeFrac * 1.65);
-          if (Math.abs(d-dL1) > jump1 || Math.abs(d-dR1) > jump1 || Math.abs(d-dU1) > jump1 || Math.abs(d-dD1) > jump1 ||
-              Math.abs(d-dL2) > jump2 || Math.abs(d-dR2) > jump2 || Math.abs(d-dU2) > jump2 || Math.abs(d-dD2) > jump2) {
-            continue;
-          }
-
-          // 入射角（法線余弦）判定
-          const rx = rays[gIdx*2], ry = rays[gIdx*2+1];
-          const rxR = rays[(gIdx+1)*2], ryR = rays[(gIdx+1)*2+1];
-          const rxD = rays[(gIdx+gw)*2], ryD = rays[(gIdx+gw)*2+1];
-          const v1x = rxR*dR1 - rx*d, v1y = ryR*dR1 - ry*d, v1z = -(dR1 - d);
-          const v2x = rxD*dD1 - rx*d, v2y = ryD*dD1 - ry*d, v2z = -(dD1 - d);
-          const ncx = v1y*v2z - v1z*v2y, ncy = v1z*v2x - v1x*v2z, ncz = v1x*v2y - v1y*v2x;
-          const nLen = Math.hypot(ncx, ncy, ncz) || 1;
-          const rayLen = Math.hypot(rx, ry, 1.0);
+          const rx=rays[gIdx*2], ry=rays[gIdx*2+1], rxR=rays[(gIdx+1)*2], ryR=rays[(gIdx+1)*2+1], rxD=rays[(gIdx+gw)*2], ryD=rays[(gIdx+gw)*2+1];
+          const v1x=rxR*dR1-rx*d, v1y=ryR*dR1-ry*d, v1z=-(dR1-d), v2x=rxD*dD1-rx*d, v2y=ryD*dD1-ry*d, v2z=-(dD1-d);
+          const ncx=v1y*v2z-v1z*v2y, ncy=v1z*v2x-v1x*v2z, ncz=v1x*v2y-v1y*v2x;
+          const nLen = Math.hypot(ncx, ncy, ncz) || 1, rayLen = Math.hypot(rx, ry, 1.0);
           const cosTheta = Math.abs((rx*ncx + ry*ncy - ncz) / (rayLen * nLen));
           if (cosTheta < minCosTheta) continue;
 
-          const wx = (c2w[0]*rx + c2w[4]*ry - c2w[8]) / rayLen;
-          const wy = (c2w[1]*rx + c2w[5]*ry - c2w[9]) / rayLen;
-          const wz = (c2w[2]*rx + c2w[6]*ry - c2w[10]) / rayLen;
-
+          const wx=(c2w[0]*rx+c2w[4]*ry-c2w[8])/rayLen, wy=(c2w[1]*rx+c2w[5]*ry-c2w[9])/rayLen, wz=(c2w[2]*rx+c2w[6]*ry-c2w[10])/rayLen;
           const tSurf = d * rayLen;
-          // 床・天井の境界外にあるノイズは書き込みをカット
-          const hitY = camY + wy * tSurf;
+          const hitX = camX + wx*tSurf, hitY = camY + wy*tSurf, hitZ = camZ + wz*tSurf;
           if (hitY < yMinClip || hitY > yMaxClip) continue;
 
-          const weight = (0.25 + 0.75 * cosTheta) / (0.5 + 0.5 * d * d);
+          // 部屋外枠ロックマスク（壁の外・窓の奥を遮断）
+          if (volume.shellRadii && !volume.isInsideShell(hitX, hitZ)) continue;
 
-          let cr = 0, cg = 0, cb = 0;
-          if (hasColor) {
-            const pOff = gIdx * 4;
-            cr = rgbPixels[pOff]; cg = rgbPixels[pOff+1]; cb = rgbPixels[pOff+2];
+          // テーブル囲み円筒マスク（対象外の背景の壁を完全遮断）
+          if (WrapTarget.active) {
+            const distFromTarget = Math.hypot(hitX - WrapTarget.center[0], hitZ - WrapTarget.center[2]);
+            if (distFromTarget > WrapTarget.radius) continue;
           }
 
-          // 全光線で強力な Free-space Carving（元の誤った面が空間を突き抜けて残るのを削り取る）
+          const weight = (0.25 + 0.75 * cosTheta) / (0.5 + 0.5 * d * d);
+          let cr=0, cg=0, cb=0;
+          if (hasColor) { const pOff=gIdx*4; cr=rgbPixels[pOff]; cg=rgbPixels[pOff+1]; cb=rgbPixels[pOff+2]; }
+
           let prevKey = -1;
           if (strictFilter) {
-            const carveEnd = tSurf - trunc * 1.15;
-            const carveStart = Math.max(0.22, tSurf - 2.2);
+            const carveEnd = tSurf - trunc * 1.15, carveStart = Math.max(0.22, tSurf - 2.0);
             for (let t = carveStart; t < carveEnd; t += vs * 0.95) {
-              const px = camX + wx*t, py = camY + wy*t, pz = camZ + wz*t;
-              const vx = Math.floor(px / vs), vy = Math.floor(py / vs), vz = Math.floor(pz / vs);
+              const vx=Math.floor((camX+wx*t)/vs), vy=Math.floor((camY+wy*t)/vs), vz=Math.floor((camZ+wz*t)/vs);
               const vk = voxelKey(vx, vy, vz);
-              if (vk !== prevKey) {
-                volume.carveVoxelIfExists(vx, vy, vz, weight * 0.95);
-                prevKey = vk;
-              }
+              if (vk !== prevKey) { volume.carveVoxelIfExists(vx, vy, vz, weight * 0.95); prevKey = vk; }
             }
           }
 
-          // 表面帯域のタイトなTSDF更新（奥側は 0.65*trunc で止め薄い棚の裏が埋まらないようにする）
           prevKey = -1;
-          const tStart = Math.max(0.12, tSurf - trunc);
-          const tEnd = tSurf + trunc * 0.65;
+          const tStart = Math.max(0.12, tSurf - trunc), tEnd = tSurf + trunc * 0.65;
           for (let t = tStart; t <= tEnd; t += stepT) {
-            const vx = Math.floor((camX + wx*t) / vs);
-            const vy = Math.floor((camY + wy*t) / vs);
-            const vz = Math.floor((camZ + wz*t) / vs);
+            const vx=Math.floor((camX+wx*t)/vs), vy=Math.floor((camY+wy*t)/vs), vz=Math.floor((camZ+wz*t)/vs);
             const vk = voxelKey(vx, vy, vz);
             if (vk === prevKey) continue;
             prevKey = vk;
-            const cxW = (vx + 0.5)*vs - camX, cyW = (vy + 0.5)*vs - camY, czW = (vz + 0.5)*vs - camZ;
+            const cxW=(vx+0.5)*vs-camX, cyW=(vy+0.5)*vs-camY, czW=(vz+0.5)*vs-camZ;
             const sdf = tSurf - (cxW*wx + cyW*wy + czW*wz);
             if (sdf <= trunc && sdf >= -trunc * 0.65) {
               volume.updateVoxel(vx, vy, vz, sdf, weight, cr, cg, cb, hasColor);
@@ -1751,163 +1786,164 @@
       session.requestAnimationFrame((t, f) => this.onFrame(t, f));
 
       const pose = frame.getViewerPose(this.refSpace);
-      const layer = session.renderState.baseLayer;
-      const gl = this.gl;
-
+      const layer = session.renderState.baseLayer, gl = this.gl;
       lastHitPoseMatrix = null; lastHitDist = null;
-      if (pose) lastDevPosY = pose.transform.position.y;
+      if (pose) {
+        lastDevPosY = pose.transform.position.y;
+        lastDevXZ = [pose.transform.position.x, pose.transform.position.z];
+      }
 
       if (this.hitTestSource && pose) {
         const hits = frame.getHitTestResults(this.hitTestSource);
         if (hits.length > 0) {
           const hp = hits[0].getPose(this.refSpace);
           if (hp) {
-            lastHitPoseMatrix = hp.transform.matrix;
+            lastHitPoseMatrix = Mat4.mul(this.driftMat, hp.transform.matrix);
             const p0 = pose.transform.position;
-            lastHitDist = Math.hypot(lastHitPoseMatrix[12]-p0.x, lastHitPoseMatrix[13]-p0.y, lastHitPoseMatrix[14]-p0.z);
+            lastHitDist = Math.hypot(hp.transform.matrix[12]-p0.x, hp.transform.matrix[13]-p0.y, hp.transform.matrix[14]-p0.z);
             $('reticle-dist').textContent = `${lastHitDist.toFixed(2)} m`;
           }
         }
       }
       if (lastHitDist === null) $('reticle-dist').textContent = '-- m';
 
-      // ステップ2（天井合わせ）中のライブ天井高さ計測
       if (scanPhase === 'CEILING_CAL' && pose && pose.views.length > 0) {
         const cEst = this.estimateCeilingHeight(frame, pose.views[0]);
         liveCeilingEstY = cEst;
         const btn = $('btn-ceil-capture');
         if (btn) {
-          if (cEst !== null) {
-            const hRel = (volume.floorY !== null) ? (cEst - volume.floorY).toFixed(2) : cEst.toFixed(2);
-            btn.textContent = `⬆️ 天井確定 (現在 ${hRel}m)`;
-          } else {
-            btn.textContent = '⬆️ 天井を真上に向けてください';
-          }
+          btn.textContent = (cEst !== null)
+            ? `⬆️ 天井確定 (${((volume.floorY!==null)?(cEst-volume.floorY):cEst).toFixed(2)}m)`
+            : '⬆️ 天井を真上に向けてください';
         }
       }
 
-      // 狙い消し（🧹）ボタン押下時の処理
       if (eraseRayRequest && pose) {
         eraseRayRequest = false;
-        const m = pose.transform.matrix;
-        const cPos = [m[12], m[13], m[14]];
-        const rDir = [-m[8], -m[9], -m[10]];
-        const nErased = volume.eraseAlongRay(cPos, rDir, 3.0, 0.09);
+        const m = Mat4.mul(this.driftMat, pose.transform.matrix);
+        const nErased = volume.eraseAlongRay([m[12], m[13], m[14]], [-m[8], -m[9], -m[10]], 3.0, 0.09);
         this.refreshPreviewPoints();
-        showToast(nErased > 0 ? `狙った箇所の ${nErased} ボクセルを消去しました` : '照準の先に消去対象がありませんでした');
+        showToast(nErased > 0 ? `照準先の ${nErased} ボクセルを消去` : '消去対象がありません');
       }
 
       if (pose && pose.views.length > 0) {
         const view = pose.views[0], vp = layer.getViewport(view);
         const pos = [pose.transform.position.x, pose.transform.position.y, pose.transform.position.z];
         const ori = pose.transform.orientation, quat = [ori.x, ori.y, ori.z, ori.w];
-
         let angVel = 0;
         if (this.lastPoseTime > 0 && this.prevPoseQuat) {
-          angVel = quatAngleDeg(this.prevPoseQuat, quat) / Math.max(0.008, (time - this.lastPoseTime) / 1000);
+          angVel = quatAngleDeg(this.prevPoseQuat, quat) / Math.max(0.008, (time - this.lastPoseTime)/1000);
         }
         this.prevPoseQuat = quat; this.lastPoseTime = time;
 
         const qDot = $('quality-dot'), qTxt = $('quality-text');
-        if (!scanningActive) {
-          qDot.style.background = '#94a3b8'; qTxt.textContent = '一時停止中';
-        } else if (angVel > 50) {
-          qDot.style.background = '#ef4444'; qTxt.textContent = `速すぎます (${angVel.toFixed(0)}°/s)`;
-        } else {
-          const kfDistThresh = parseFloat($('opt-kf-dist').value);
-          const kfAngleThresh = kfDistThresh * 120;
+        if (!scanningActive) { qDot.style.background = '#94a3b8'; qTxt.textContent = '一時停止中'; }
+        else if (angVel > 50) { qDot.style.background = '#ef4444'; qTxt.textContent = `速すぎます (${angVel.toFixed(0)}°/s)`; }
+        else {
+          const kfD = parseFloat($('opt-kf-dist').value), kfA = kfD * 115;
           let movedEnough = !this.lastKfPos;
           if (this.lastKfPos) {
-            const dMove = Math.hypot(pos[0]-this.lastKfPos[0], pos[1]-this.lastKfPos[1], pos[2]-this.lastKfPos[2]);
-            movedEnough = (dMove >= kfDistThresh || quatAngleDeg(this.lastKfQuat, quat) >= kfAngleThresh);
+            movedEnough = (Math.hypot(pos[0]-this.lastKfPos[0], pos[1]-this.lastKfPos[1], pos[2]-this.lastKfPos[2]) >= kfD ||
+                           quatAngleDeg(this.lastKfQuat, quat) >= kfA);
           }
           if (movedEnough) {
             const ok = this.hasDepth ? this.integrateDepthFrame(frame, view, vp) : false;
             if (ok) {
               this.lastKfPos = pos; this.lastKfQuat = quat; this.kfCount++;
               this.refreshPreviewPoints();
-              qDot.style.background = '#10b981'; qTxt.textContent = (scanPhase === 'DETAIL_SCAN') ? '精密スキャン統合中' : '高精度統合中';
-            } else {
-              qDot.style.background = '#f59e0b'; qTxt.textContent = '深度取得待機...';
-            }
-          } else {
-            qDot.style.background = '#06b6d4'; qTxt.textContent = '横へゆっくり移動中';
-          }
+              qDot.style.background = '#10b981'; qTxt.textContent = WrapTarget.active ? '🎯 囲み高精度統合' : '高精度統合中';
+            } else { qDot.style.background = '#f59e0b'; qTxt.textContent = '深度待機...'; }
+          } else { qDot.style.background = '#06b6d4'; qTxt.textContent = 'ゆっくり移動中'; }
         }
       }
 
-      // AR オーバーレイ描画
       gl.bindFramebuffer(gl.FRAMEBUFFER, layer.framebuffer);
-      gl.clearColor(0, 0, 0, 0);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       if (!pose) return;
-
-      gl.enable(gl.DEPTH_TEST);
-      gl.enable(gl.BLEND);
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.enable(gl.DEPTH_TEST); gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
       for (const view of pose.views) {
         const vp = layer.getViewport(view);
         gl.viewport(vp.x, vp.y, vp.width, vp.height);
+        // ICP ドリフト補正を反映したビュー行列でワールド点群を描画
+        const viewCorrected = Mat4.mul(view.transform.inverse.matrix, this.invDriftMat);
 
         if (this.ptCount > 0) {
           gl.useProgram(this.ptProg);
           gl.uniformMatrix4fv(gl.getUniformLocation(this.ptProg, 'uProj'), false, view.projectionMatrix);
-          gl.uniformMatrix4fv(gl.getUniformLocation(this.ptProg, 'uView'), false, view.transform.inverse.matrix);
+          gl.uniformMatrix4fv(gl.getUniformLocation(this.ptProg, 'uView'), false, viewCorrected);
           gl.uniform1f(gl.getUniformLocation(this.ptProg, 'uPtSize'), Math.min(vp.width, vp.height) * 0.011);
-          gl.bindBuffer(gl.ARRAY_BUFFER, this.ptPosBuf);
-          gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-          gl.bindBuffer(gl.ARRAY_BUFFER, this.ptColBuf);
-          gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
+          gl.bindBuffer(gl.ARRAY_BUFFER, this.ptPosBuf); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+          gl.bindBuffer(gl.ARRAY_BUFFER, this.ptColBuf); gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
           gl.drawArrays(gl.POINTS, 0, this.ptCount);
           gl.disableVertexAttribArray(1);
         }
 
-        const mvp = Mat4.mul(view.projectionMatrix, view.transform.inverse.matrix);
+        const mvp = Mat4.mul(view.projectionMatrix, viewCorrected);
         gl.useProgram(this.solidProg);
         gl.uniformMatrix4fv(gl.getUniformLocation(this.solidProg, 'uMVP'), false, mvp);
         gl.uniform1f(gl.getUniformLocation(this.solidProg, 'uPtSize'), 14.0);
 
         if (lastHitPoseMatrix) {
-          const ring = new Float32Array(25 * 3), r = 0.055;
+          const ring = new Float32Array(25*3), r = 0.055;
           for (let i = 0; i <= 24; i++) {
-            const a = (i / 24) * Math.PI * 2, lx = Math.cos(a) * r, lz = Math.sin(a) * r;
-            ring[i*3]   = lastHitPoseMatrix[0]*lx + lastHitPoseMatrix[8]*lz  + lastHitPoseMatrix[12];
-            ring[i*3+1] = lastHitPoseMatrix[1]*lx + lastHitPoseMatrix[9]*lz  + lastHitPoseMatrix[13];
-            ring[i*3+2] = lastHitPoseMatrix[2]*lx + lastHitPoseMatrix[10]*lz + lastHitPoseMatrix[14];
+            const a=(i/24)*Math.PI*2, lx=Math.cos(a)*r, lz=Math.sin(a)*r;
+            ring[i*3]=lastHitPoseMatrix[0]*lx+lastHitPoseMatrix[8]*lz+lastHitPoseMatrix[12];
+            ring[i*3+1]=lastHitPoseMatrix[1]*lx+lastHitPoseMatrix[9]*lz+lastHitPoseMatrix[13];
+            ring[i*3+2]=lastHitPoseMatrix[2]*lx+lastHitPoseMatrix[10]*lz+lastHitPoseMatrix[14];
           }
           gl.uniform4f(gl.getUniformLocation(this.solidProg, 'uColor'), 0.2, 0.95, 0.85, 0.95);
-          gl.bindBuffer(gl.ARRAY_BUFFER, this.lineBuf);
-          gl.bufferData(gl.ARRAY_BUFFER, ring, gl.DYNAMIC_DRAW);
+          gl.bindBuffer(gl.ARRAY_BUFFER, this.lineBuf); gl.bufferData(gl.ARRAY_BUFFER, ring, gl.DYNAMIC_DRAW);
           gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
           gl.drawArrays(gl.LINE_STRIP, 0, 25);
         }
 
-        // ロック済み床基準グリッド線を薄く表示
-        if (volume.floorY !== null) {
-          const fg = [], fy = volume.floorY;
-          for (let i = -2; i <= 2; i++) { fg.push(i, fy, -2, i, fy, 2, -2, fy, i, 2, fy, i); }
-          gl.uniform4f(gl.getUniformLocation(this.solidProg, 'uColor'), 0.1, 0.85, 0.5, 0.35);
-          gl.bindBuffer(gl.ARRAY_BUFFER, this.lineBuf);
-          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(fg), gl.DYNAMIC_DRAW);
+        // テーブル囲み 12分割 360°カバレッジリング描画
+        if (WrapTarget.active) {
+          const wy = (volume.floorY !== null ? volume.floorY + 0.02 : WrapTarget.center[1]);
+          const rad = WrapTarget.radius;
+          for (let s = 0; s < 12; s++) {
+            const a0 = -Math.PI + (s / 12) * Math.PI * 2;
+            const a1 = -Math.PI + ((s + 1) / 12) * Math.PI * 2;
+            const seg = new Float32Array([
+              WrapTarget.center[0] + Math.cos(a0)*rad, wy, WrapTarget.center[2] + Math.sin(a0)*rad,
+              WrapTarget.center[0] + Math.cos(a1)*rad, wy, WrapTarget.center[2] + Math.sin(a1)*rad
+            ]);
+            if (WrapTarget.sectors[s]) gl.uniform4f(gl.getUniformLocation(this.solidProg, 'uColor'), 0.1, 0.95, 0.45, 0.95);
+            else gl.uniform4f(gl.getUniformLocation(this.solidProg, 'uColor'), 0.6, 0.4, 1.0, 0.75);
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.lineBuf); gl.bufferData(gl.ARRAY_BUFFER, seg, gl.DYNAMIC_DRAW);
+            gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+            gl.drawArrays(gl.LINES, 0, 2);
+          }
+        }
+
+        // ロック済み部屋外枠ポリゴン（緑の床境界ライン）
+        if (volume.shellRadii && volume.shellCenter) {
+          const fy = (volume.floorY !== null ? volume.floorY + 0.03 : -1.2);
+          const loop = new Float32Array(37 * 3);
+          for (let i = 0; i <= 36; i++) {
+            const s = i % 36, a = -Math.PI + ((s + 0.5) / 36) * 2 * Math.PI, r = volume.shellRadii[s];
+            loop[i*3] = volume.shellCenter[0] + Math.cos(a)*r;
+            loop[i*3+1] = fy;
+            loop[i*3+2] = volume.shellCenter[1] + Math.sin(a)*r;
+          }
+          gl.uniform4f(gl.getUniformLocation(this.solidProg, 'uColor'), 1.0, 0.65, 0.15, 0.65);
+          gl.bindBuffer(gl.ARRAY_BUFFER, this.lineBuf); gl.bufferData(gl.ARRAY_BUFFER, loop, gl.DYNAMIC_DRAW);
           gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-          gl.drawArrays(gl.LINES, 0, fg.length / 3);
+          gl.drawArrays(gl.LINE_STRIP, 0, 37);
         }
 
         if (volume.cadPending.length > 0) {
           gl.uniform4f(gl.getUniformLocation(this.solidProg, 'uColor'), 1.0, 0.78, 0.1, 1.0);
-          gl.bindBuffer(gl.ARRAY_BUFFER, this.cadPtsBuf);
-          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(volume.cadPending.flat()), gl.DYNAMIC_DRAW);
+          gl.bindBuffer(gl.ARRAY_BUFFER, this.cadPtsBuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(volume.cadPending.flat()), gl.DYNAMIC_DRAW);
           gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
           gl.drawArrays(gl.POINTS, 0, volume.cadPending.length);
           if (volume.cadPending.length >= 2) gl.drawArrays(gl.LINE_STRIP, 0, volume.cadPending.length);
         }
-
         for (const pl of volume.cadPlanes) {
           const loop = [...pl.pts, pl.pts[0]];
           gl.uniform4f(gl.getUniformLocation(this.solidProg, 'uColor'), 0.1, 0.9, 0.5, 0.9);
-          gl.bindBuffer(gl.ARRAY_BUFFER, this.cadLineBuf);
-          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(loop.flat()), gl.DYNAMIC_DRAW);
+          gl.bindBuffer(gl.ARRAY_BUFFER, this.cadLineBuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(loop.flat()), gl.DYNAMIC_DRAW);
           gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
           gl.drawArrays(gl.LINE_STRIP, 0, loop.length);
         }
@@ -1915,336 +1951,189 @@
     }
   };
 
-  // ==================== ジャイロ + カメラ フォールバックAR ====================
+  // ==================== ジャイロ簡易ARフォールバック ====================
   const FallbackAR = {
     active: false, stream: null, gl: null, prog: null, buf: null, rafId: null, camPos: [0, 1.35, 0],
-
     async start(resumeExisting = false) {
       if (!resumeExisting) volume.reset(parseFloat($('opt-voxel').value));
       this.camPos = [0, parseFloat($('fb-cam-height').value) || 1.35, 0];
-      try {
-        this.stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false
-        });
-      } catch (_) { showToast('カメラの起動が許可されませんでした', 3000); return; }
-      const video = $('fallback-video');
-      video.srcObject = this.stream; await video.play();
-
-      const gl = $('fallback-gl-canvas').getContext('webgl2', { alpha: true, antialias: true });
+      try { this.stream = await navigator.mediaDevices.getUserMedia({ video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}, audio:false }); }
+      catch (_) { showToast('カメラ起動不可'); return; }
+      const video = $('fallback-video'); video.srcObject = this.stream; await video.play();
+      const gl = $('fallback-gl-canvas').getContext('webgl2', { alpha:true, antialias:true });
       this.gl = gl;
-      this.prog = compileProgram(gl,
-        `#version 300 es
-         layout(location=0) in vec3 aPos; uniform mat4 uMVP; uniform float uPtSize;
-         void main() { gl_Position = uMVP * vec4(aPos, 1.0); gl_PointSize = uPtSize; }`,
-        `#version 300 es
-         precision mediump float; uniform vec4 uCol; out vec4 outCol;
-         void main() { outCol = uCol; }`
-      );
-      this.buf = gl.createBuffer();
-      this.active = true; scanningActive = false;
-      setPhase('FREE');
-      $('stat-mode').textContent = 'GYRO-CAD';
-      $('quality-dot').style.background = '#10b981';
-      $('quality-text').textContent = 'ジャイロ幾何CADモード';
-      $('cad-strip').classList.add('open');
-      showScreen('fallback');
-      this.loop();
+      this.prog = compileProgram(gl, `#version 300 es\nlayout(location=0) in vec3 aPos;uniform mat4 uMVP;uniform float uPtSize;void main(){gl_Position=uMVP*vec4(aPos,1.0);gl_PointSize=uPtSize;}`, `#version 300 es\nprecision mediump float;uniform vec4 uCol;out vec4 outCol;void main(){outCol=uCol;}`);
+      this.buf = gl.createBuffer(); this.active = true; scanningActive = false; setPhase('FREE');
+      $('quality-dot').style.background = '#10b981'; $('quality-text').textContent = 'ジャイロ幾何CAD';
+      $('cad-strip').classList.add('open'); showScreen('fallback'); this.loop();
     },
-
-    stop() {
-      this.active = false;
-      if (this.rafId) cancelAnimationFrame(this.rafId);
-      if (this.stream) { this.stream.getTracks().forEach(t => t.stop()); this.stream = null; }
-      $('fallback-video').srcObject = null;
-    },
-
+    stop() { this.active=false; if(this.rafId)cancelAnimationFrame(this.rafId); if(this.stream){this.stream.getTracks().forEach(t=>t.stop());this.stream=null;} $('fallback-video').srcObject=null; },
     loop() {
       if (!this.active) return;
       this.rafId = requestAnimationFrame(() => this.loop());
-      const canvas = $('fallback-gl-canvas');
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
-      const w = Math.floor(canvas.clientWidth * dpr), h = Math.floor(canvas.clientHeight * dpr);
-      if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
-      const gl = this.gl;
-      gl.viewport(0, 0, w, h); gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
+      const c = $('fallback-gl-canvas'), dpr = Math.min(2, window.devicePixelRatio||1);
+      const w=Math.floor(c.clientWidth*dpr), h=Math.floor(c.clientHeight*dpr);
+      if (c.width!==w || c.height!==h) { c.width=w; c.height=h; }
+      const gl = this.gl; gl.viewport(0,0,w,h); gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
       this.camPos[1] = parseFloat($('fb-cam-height').value) || 1.35;
-      const c2w = Mat4.fromQuatPos(GyroState.quat, this.camPos);
-      const fx = -c2w[8], fy = -c2w[9], fz = -c2w[10];
+      const c2w = Mat4.fromQuatPos(GyroState.quat, this.camPos), fx=-c2w[8], fy=-c2w[9], fz=-c2w[10];
       lastHitPoseMatrix = null;
       if (fy < -0.05) {
-        const t = -this.camPos[1] / fy;
-        if (t > 0.2 && t < 12.0) {
-          const hx = this.camPos[0]+fx*t, hz = this.camPos[2]+fz*t;
-          lastHitPoseMatrix = new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, hx,0,hz,1]);
+        const t = -this.camPos[1]/fy;
+        if (t > 0.2 && t < 12) {
+          lastHitPoseMatrix = new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,this.camPos[0]+fx*t,0,this.camPos[2]+fz*t,1]);
           $('reticle-dist').textContent = `床 ${t.toFixed(2)} m`;
         }
       }
-      if (!lastHitPoseMatrix) $('reticle-dist').textContent = '床に向けて打点';
-
+      if (!lastHitPoseMatrix) $('reticle-dist').textContent = '床へ向け打点';
       const mvp = Mat4.mul(Mat4.perspective(58*Math.PI/180, w/Math.max(1,h), 0.05, 30), Mat4.invert(c2w));
-      gl.useProgram(this.prog);
-      gl.uniformMatrix4fv(gl.getUniformLocation(this.prog, 'uMVP'), false, mvp);
-      gl.uniform1f(gl.getUniformLocation(this.prog, 'uPtSize'), 14.0);
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.buf);
-      gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-
-      const grid = [];
-      for (let i = -5; i <= 5; i++) grid.push(i,0,-5, i,0,5, -5,0,i, 5,0,i);
-      gl.uniform4f(gl.getUniformLocation(this.prog, 'uCol'), 0.2, 0.7, 0.9, 0.35);
-      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(grid), gl.DYNAMIC_DRAW);
-      gl.drawArrays(gl.LINES, 0, grid.length / 3);
-
-      if (volume.cadPending.length > 0) {
-        gl.uniform4f(gl.getUniformLocation(this.prog, 'uCol'), 1.0, 0.8, 0.1, 1.0);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(volume.cadPending.flat()), gl.DYNAMIC_DRAW);
-        gl.drawArrays(gl.POINTS, 0, volume.cadPending.length);
-        if (volume.cadPending.length >= 2) gl.drawArrays(gl.LINE_STRIP, 0, volume.cadPending.length);
+      gl.useProgram(this.prog); gl.uniformMatrix4fv(gl.getUniformLocation(this.prog,'uMVP'),false,mvp);
+      gl.uniform1f(gl.getUniformLocation(this.prog,'uPtSize'),14.0);
+      gl.bindBuffer(gl.ARRAY_BUFFER,this.buf); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,3,gl.FLOAT,false,0,0);
+      const grid=[]; for(let i=-5;i<=5;i++) grid.push(i,0,-5,i,0,5,-5,0,i,5,0,i);
+      gl.uniform4f(gl.getUniformLocation(this.prog,'uCol'),0.2,0.7,0.9,0.35);
+      gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(grid),gl.DYNAMIC_DRAW); gl.drawArrays(gl.LINES,0,grid.length/3);
+      if (volume.cadPending.length>0) {
+        gl.uniform4f(gl.getUniformLocation(this.prog,'uCol'),1,0.8,0.1,1);
+        gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(volume.cadPending.flat()),gl.DYNAMIC_DRAW);
+        gl.drawArrays(gl.POINTS,0,volume.cadPending.length);
+        if(volume.cadPending.length>=2) gl.drawArrays(gl.LINE_STRIP,0,volume.cadPending.length);
       }
       for (const pl of volume.cadPlanes) {
-        const loop = [...pl.pts, pl.pts[0]];
-        gl.uniform4f(gl.getUniformLocation(this.prog, 'uCol'), 0.1, 0.95, 0.55, 0.95);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(loop.flat()), gl.DYNAMIC_DRAW);
-        gl.drawArrays(gl.LINE_STRIP, 0, loop.length);
+        const loop=[...pl.pts,pl.pts[0]]; gl.uniform4f(gl.getUniformLocation(this.prog,'uCol'),0.1,0.95,0.55,0.95);
+        gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(loop.flat()),gl.DYNAMIC_DRAW); gl.drawArrays(gl.LINE_STRIP,0,loop.length);
       }
     }
   };
 
   // ==================== 3D ビューワー ====================
   const Viewer3D = {
-    gl: null, meshProg: null, lineProg: null,
-    posBuf: null, normBuf: null, colBuf: null, idxBuf: null,
+    gl: null, meshProg: null, lineProg: null, posBuf: null, normBuf: null, colBuf: null, idxBuf: null,
     gridPosBuf: null, gridColBuf: null, gridCount: 0, measureBuf: null, mColBuf: null,
-    renderMode: 0, yaw: 0.65, pitch: 0.45, dist: 4.5, target: [0, 0.9, 0],
+    renderMode: 0, yaw: 0.65, pitch: 0.45, dist: 4.5, target: [0,0.9,0],
     measureMode: false, measurePts: [], rafId: null,
 
     init() {
       if (this.gl) return;
-      const canvas = $('viewer-canvas');
-      const gl = canvas.getContext('webgl2', { antialias: true });
+      const canvas = $('viewer-canvas'), gl = canvas.getContext('webgl2', { antialias: true });
       this.gl = gl;
-
       this.meshProg = compileProgram(gl,
-        `#version 300 es
-         layout(location=0) in vec3 aPos; layout(location=1) in vec3 aNorm; layout(location=2) in vec3 aCol;
-         uniform mat4 uProj, uView; out vec3 vPos, vNorm, vCol;
-         void main() { vPos = aPos; vNorm = aNorm; vCol = aCol; gl_Position = uProj * uView * vec4(aPos, 1.0); }`,
-        `#version 300 es
-         precision highp float; in vec3 vPos, vNorm, vCol; uniform vec3 uCamPos; uniform int uMode; out vec4 outCol;
-         void main() {
-           vec3 N = normalize(vNorm); if (!gl_FrontFacing) N = -N;
-           vec3 L1 = normalize(vec3(0.45, 0.85, 0.35)), L2 = normalize(uCamPos - vPos);
-           float light = 0.28 + 0.24 * (0.5 + 0.5 * N.y) + 0.32 * max(dot(N, L1), 0.0) + 0.28 * max(dot(N, L2), 0.0);
-           vec3 base = (uMode == 1) ? vec3(0.82, 0.85, 0.89) : vCol;
-           if (uMode == 2) { outCol = vec4(N * 0.5 + 0.5, 1.0); return; }
-           outCol = vec4(base * light, 1.0);
-         }`
+        `#version 300 es\nlayout(location=0) in vec3 aPos;layout(location=1) in vec3 aNorm;layout(location=2) in vec3 aCol;uniform mat4 uProj,uView;out vec3 vPos,vNorm,vCol;void main(){vPos=aPos;vNorm=aNorm;vCol=aCol;gl_Position=uProj*uView*vec4(aPos,1.0);}`,
+        `#version 300 es\nprecision highp float;in vec3 vPos,vNorm,vCol;uniform vec3 uCamPos;uniform int uMode;out vec4 outCol;void main(){vec3 N=normalize(vNorm);if(!gl_FrontFacing)N=-N;vec3 L1=normalize(vec3(0.45,0.85,0.35)),L2=normalize(uCamPos-vPos);float light=0.28+0.24*(0.5+0.5*N.y)+0.32*max(dot(N,L1),0.0)+0.28*max(dot(N,L2),0.0);vec3 base=(uMode==1)?vec3(0.82,0.85,0.89):vCol;if(uMode==2){outCol=vec4(N*0.5+0.5,1.0);return;}outCol=vec4(base*light,1.0);}`
       );
       this.lineProg = compileProgram(gl,
-        `#version 300 es
-         layout(location=0) in vec3 aPos; layout(location=1) in vec3 aCol; uniform mat4 uMVP; uniform float uPtSize; out vec3 vCol;
-         void main() { gl_Position = uMVP * vec4(aPos, 1.0); gl_PointSize = uPtSize; vCol = aCol; }`,
-        `#version 300 es
-         precision mediump float; in vec3 vCol; out vec4 outCol;
-         void main() { outCol = vec4(vCol, 1.0); }`
+        `#version 300 es\nlayout(location=0) in vec3 aPos;layout(location=1) in vec3 aCol;uniform mat4 uMVP;uniform float uPtSize;out vec3 vCol;void main(){gl_Position=uMVP*vec4(aPos,1.0);gl_PointSize=uPtSize;vCol=aCol;}`,
+        `#version 300 es\nprecision mediump float;in vec3 vCol;out vec4 outCol;void main(){outCol=vec4(vCol,1.0);}`
       );
-
-      this.posBuf = gl.createBuffer(); this.normBuf = gl.createBuffer();
-      this.colBuf = gl.createBuffer(); this.idxBuf = gl.createBuffer();
-      this.measureBuf = gl.createBuffer(); this.mColBuf = gl.createBuffer();
-
-      const gPos = [], gCol = [];
-      for (let i = -8; i <= 8; i++) {
-        const c = (i % 2 === 0) ? 0.26 : 0.14;
-        gPos.push(i*0.5,0,-4, i*0.5,0,4, -4,0,i*0.5, 4,0,i*0.5);
-        gCol.push(c,c,c+0.05, c,c,c+0.05, c,c,c+0.05, c,c,c+0.05);
-      }
-      gPos.push(0,0,0, 0.6,0,0, 0,0,0, 0,0.6,0, 0,0,0, 0,0,0.6);
-      gCol.push(1,0.2,0.2, 1,0.2,0.2, 0.2,1,0.2, 0.2,1,0.2, 0.2,0.5,1, 0.2,0.5,1);
+      this.posBuf=gl.createBuffer(); this.normBuf=gl.createBuffer(); this.colBuf=gl.createBuffer();
+      this.idxBuf=gl.createBuffer(); this.measureBuf=gl.createBuffer(); this.mColBuf=gl.createBuffer();
+      const gPos=[], gCol=[];
+      for (let i=-8; i<=8; i++) { const c=(i%2===0)?0.26:0.14; gPos.push(i*0.5,0,-4,i*0.5,0,4,-4,0,i*0.5,4,0,i*0.5); gCol.push(c,c,c+0.05,c,c,c+0.05,c,c,c+0.05,c,c,c+0.05); }
+      gPos.push(0,0,0,0.6,0,0,0,0,0,0,0.6,0,0,0,0,0,0,0.6); gCol.push(1,0.2,0.2,1,0.2,0.2,0.2,1,0.2,0.2,1,0.2,0.2,0.5,1,0.2,0.5,1);
       this.gridCount = gPos.length / 3;
-      this.gridPosBuf = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.gridPosBuf);
-      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(gPos), gl.STATIC_DRAW);
-      this.gridColBuf = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.gridColBuf);
-      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(gCol), gl.STATIC_DRAW);
+      this.gridPosBuf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,this.gridPosBuf); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(gPos),gl.STATIC_DRAW);
+      this.gridColBuf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,this.gridColBuf); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(gCol),gl.STATIC_DRAW);
       this.bindInputEvents(canvas);
     },
-
     uploadMesh(mesh) {
-      this.init();
-      const gl = this.gl;
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.posBuf); gl.bufferData(gl.ARRAY_BUFFER, mesh.positions, gl.STATIC_DRAW);
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.normBuf); gl.bufferData(gl.ARRAY_BUFFER, mesh.normals, gl.STATIC_DRAW);
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.colBuf); gl.bufferData(gl.ARRAY_BUFFER, mesh.colors, gl.STATIC_DRAW);
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.idxBuf); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW);
+      this.init(); const gl = this.gl;
+      gl.bindBuffer(gl.ARRAY_BUFFER,this.posBuf); gl.bufferData(gl.ARRAY_BUFFER,mesh.positions,gl.STATIC_DRAW);
+      gl.bindBuffer(gl.ARRAY_BUFFER,this.normBuf); gl.bufferData(gl.ARRAY_BUFFER,mesh.normals,gl.STATIC_DRAW);
+      gl.bindBuffer(gl.ARRAY_BUFFER,this.colBuf); gl.bufferData(gl.ARRAY_BUFFER,mesh.colors,gl.STATIC_DRAW);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,this.idxBuf); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,mesh.indices,gl.STATIC_DRAW);
       $('mesh-info').textContent = `頂点:${(mesh.positions.length/3).toLocaleString()} / 面:${(mesh.indices.length/3).toLocaleString()}`;
     },
-
     fitCamera(mesh) {
-      if (!mesh || mesh.positions.length === 0) return;
-      let minX=Infinity, minY=Infinity, minZ=Infinity, maxX=-Infinity, maxY=-Infinity, maxZ=-Infinity;
-      for (let i = 0; i < mesh.positions.length; i += 3) {
-        const x=mesh.positions[i], y=mesh.positions[i+1], z=mesh.positions[i+2];
-        if (x<minX) minX=x; if (x>maxX) maxX=x; if (y<minY) minY=y; if (y>maxY) maxY=y; if (z<minZ) minZ=z; if (z>maxZ) maxZ=z;
-      }
-      this.target = [(minX+maxX)/2, (minY+maxY)/2, (minZ+maxZ)/2];
-      this.dist = Math.max(1.5, Math.hypot(maxX-minX, maxY-minY, maxZ-minZ) * 1.15);
-      this.yaw = 0.65; this.pitch = 0.45;
+      if (!mesh || !mesh.positions.length) return;
+      let minX=Infinity,minY=Infinity,minZ=Infinity,maxX=-Infinity,maxY=-Infinity,maxZ=-Infinity;
+      for(let i=0;i<mesh.positions.length;i+=3){const x=mesh.positions[i],y=mesh.positions[i+1],z=mesh.positions[i+2];if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;if(z<minZ)minZ=z;if(z>maxZ)maxZ=z;}
+      this.target=[(minX+maxX)/2,(minY+maxY)/2,(minZ+maxZ)/2];
+      this.dist=Math.max(1.5,Math.hypot(maxX-minX,maxY-minY,maxZ-minZ)*1.15); this.yaw=0.65; this.pitch=0.45;
     },
-
     getCameraMatrices() {
-      const canvas = $('viewer-canvas');
-      const proj = Mat4.perspective(52 * Math.PI / 180, canvas.clientWidth / Math.max(1, canvas.clientHeight), 0.04, 60.0);
-      const cp = Math.cos(this.pitch), sp = Math.sin(this.pitch), cy = Math.cos(this.yaw), sy = Math.sin(this.yaw);
-      const eye = [this.target[0]+this.dist*cp*sy, this.target[1]+this.dist*sp, this.target[2]+this.dist*cp*cy];
-      return { proj, view: Mat4.lookAt(eye, this.target, [0, 1, 0]), eye };
+      const c=$('viewer-canvas'), proj=Mat4.perspective(52*Math.PI/180, c.clientWidth/Math.max(1,c.clientHeight), 0.04, 60.0);
+      const cp=Math.cos(this.pitch), sp=Math.sin(this.pitch), cy=Math.cos(this.yaw), sy=Math.sin(this.yaw);
+      const eye=[this.target[0]+this.dist*cp*sy, this.target[1]+this.dist*sp, this.target[2]+this.dist*cp*cy];
+      return { proj, view: Mat4.lookAt(eye, this.target, [0,1,0]), eye };
     },
-
-    pickMeshPoint(clientX, clientY) {
-      if (!activeMesh || activeMesh.indices.length === 0) return null;
-      const rect = $('viewer-canvas').getBoundingClientRect();
-      const xNdc = ((clientX - rect.left) / rect.width) * 2 - 1;
-      const yNdc = 1 - ((clientY - rect.top) / rect.height) * 2;
-      const { proj, view, eye } = this.getCameraMatrices();
-      const invVP = Mat4.invert(Mat4.mul(proj, view));
-      if (!invVP) return null;
-      const w = invVP[3]*xNdc + invVP[7]*yNdc + invVP[11] + invVP[15];
-      const fx = (invVP[0]*xNdc + invVP[4]*yNdc + invVP[8] + invVP[12]) / w;
-      const fy = (invVP[1]*xNdc + invVP[5]*yNdc + invVP[9] + invVP[13]) / w;
-      const fz = (invVP[2]*xNdc + invVP[6]*yNdc + invVP[10] + invVP[14]) / w;
-      let dx = fx-eye[0], dy = fy-eye[1], dz = fz-eye[2];
-      const len = Math.hypot(dx, dy, dz) || 1; dx/=len; dy/=len; dz/=len;
-
-      const pos = activeMesh.positions, idx = activeMesh.indices;
-      let bestT = Infinity;
-      for (let i = 0; i < idx.length; i += 3) {
-        const a=idx[i]*3, b=idx[i+1]*3, c=idx[i+2]*3;
-        const ax=pos[a], ay=pos[a+1], az=pos[a+2];
-        const e1x=pos[b]-ax, e1y=pos[b+1]-ay, e1z=pos[b+2]-az;
-        const e2x=pos[c]-ax, e2y=pos[c+1]-ay, e2z=pos[c+2]-az;
-        const hx=dy*e2z-dz*e2y, hy=dz*e2x-dx*e2z, hz=dx*e2y-dy*e2x;
-        const det = e1x*hx + e1y*hy + e1z*hz;
-        if (Math.abs(det) < 1e-7) continue;
-        const invD = 1/det, sx=eye[0]-ax, sy=eye[1]-ay, sz=eye[2]-az;
-        const u = (sx*hx+sy*hy+sz*hz)*invD; if (u < 0 || u > 1) continue;
-        const qx=sy*e1z-sz*e1y, qy=sz*e1x-sx*e1z, qz=sx*e1y-sy*e1x;
-        const v = (dx*qx+dy*qy+dz*qz)*invD; if (v < 0 || u + v > 1) continue;
-        const t = (e2x*qx+e2y*qy+e2z*qz)*invD;
-        if (t > 0.05 && t < bestT) bestT = t;
+    pickMeshPoint(cx, cy) {
+      if (!activeMesh || !activeMesh.indices.length) return null;
+      const r=$('viewer-canvas').getBoundingClientRect(), xN=((cx-r.left)/r.width)*2-1, yN=1-((cy-r.top)/r.height)*2;
+      const { proj, view, eye } = this.getCameraMatrices(), inv=Mat4.invert(Mat4.mul(proj,view)); if(!inv) return null;
+      const w=inv[3]*xN+inv[7]*yN+inv[11]+inv[15], fx=(inv[0]*xN+inv[4]*yN+inv[8]+inv[12])/w, fy=(inv[1]*xN+inv[5]*yN+inv[9]+inv[13])/w, fz=(inv[2]*xN+inv[6]*yN+inv[10]+inv[14])/w;
+      let dx=fx-eye[0], dy=fy-eye[1], dz=fz-eye[2], len=Math.hypot(dx,dy,dz)||1; dx/=len; dy/=len; dz/=len;
+      const pos=activeMesh.positions, idx=activeMesh.indices; let bestT=Infinity;
+      for(let i=0;i<idx.length;i+=3){
+        const a=idx[i]*3,b=idx[i+1]*3,c=idx[i+2]*3,ax=pos[a],ay=pos[a+1],az=pos[a+2];
+        const e1x=pos[b]-ax,e1y=pos[b+1]-ay,e1z=pos[b+2]-az,e2x=pos[c]-ax,e2y=pos[c+1]-ay,e2z=pos[c+2]-az;
+        const hx=dy*e2z-dz*e2y,hy=dz*e2x-dx*e2z,hz=dx*e2y-dy*e2x,det=e1x*hx+e1y*hy+e1z*hz; if(Math.abs(det)<1e-7)continue;
+        const invD=1/det,sx=eye[0]-ax,sy=eye[1]-ay,sz=eye[2]-az,u=(sx*hx+sy*hy+sz*hz)*invD; if(u<0||u>1)continue;
+        const qx=sy*e1z-sz*e1y,qy=sz*e1x-sx*e1z,qz=sx*e1y-sy*e1x,v=(dx*qx+dy*qy+dz*qz)*invD; if(v<0||u+v>1)continue;
+        const t=(e2x*qx+e2y*qy+e2z*qz)*invD; if(t>0.05&&t<bestT)bestT=t;
       }
-      return bestT < Infinity ? [eye[0]+dx*bestT, eye[1]+dy*bestT, eye[2]+dz*bestT] : null;
+      return bestT<Infinity ? [eye[0]+dx*bestT, eye[1]+dy*bestT, eye[2]+dz*bestT] : null;
     },
-
     bindInputEvents(canvas) {
-      let pointers = new Map(), prevPinch = 0, prevMid = null, moved = 0, downTime = 0;
+      let ptrs=new Map(), pDist=0, pMid=null, moved=0, downT=0;
       canvas.addEventListener('pointerdown', e => {
-        canvas.setPointerCapture(e.pointerId);
-        pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-        if (pointers.size === 1) { moved = 0; downTime = performance.now(); }
-        if (pointers.size === 2) {
-          const pts = Array.from(pointers.values());
-          prevPinch = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
-          prevMid = { x: (pts[0].x+pts[1].x)/2, y: (pts[0].y+pts[1].y)/2 };
-        }
+        canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+        if(ptrs.size===1){moved=0;downT=performance.now();}
+        if(ptrs.size===2){const p=Array.from(ptrs.values());pDist=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);pMid={x:(p[0].x+p[1].x)/2,y:(p[0].y+p[1].y)/2};}
       });
       canvas.addEventListener('pointermove', e => {
-        if (!pointers.has(e.pointerId)) return;
-        const prev = pointers.get(e.pointerId), dx = e.clientX - prev.x, dy = e.clientY - prev.y;
-        moved += Math.hypot(dx, dy); pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-        if (pointers.size === 1) {
-          if (e.buttons === 2 || e.shiftKey) this.panScreen(dx, dy);
-          else { this.yaw -= dx * 0.0065; this.pitch = Math.max(-1.45, Math.min(1.45, this.pitch + dy * 0.0065)); }
-        } else if (pointers.size === 2) {
-          const pts = Array.from(pointers.values());
-          const d = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
-          const mid = { x: (pts[0].x+pts[1].x)/2, y: (pts[0].y+pts[1].y)/2 };
-          if (prevPinch > 5) this.dist = Math.max(0.4, Math.min(25, this.dist * (prevPinch / Math.max(5, d))));
-          if (prevMid) this.panScreen(mid.x - prevMid.x, mid.y - prevMid.y);
-          prevPinch = d; prevMid = mid;
+        if(!ptrs.has(e.pointerId))return;
+        const prev=ptrs.get(e.pointerId), dx=e.clientX-prev.x, dy=e.clientY-prev.y;
+        moved+=Math.hypot(dx,dy); ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+        if(ptrs.size===1){ if(e.buttons===2||e.shiftKey)this.panScreen(dx,dy); else{this.yaw-=dx*0.0065;this.pitch=Math.max(-1.45,Math.min(1.45,this.pitch+dy*0.0065));} }
+        else if(ptrs.size===2){
+          const p=Array.from(ptrs.values()),d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y),mid={x:(p[0].x+p[1].x)/2,y:(p[0].y+p[1].y)/2};
+          if(pDist>5)this.dist=Math.max(0.4,Math.min(25,this.dist*(pDist/Math.max(5,d))));
+          if(pMid)this.panScreen(mid.x-pMid.x,mid.y-pMid.y); pDist=d;pMid=mid;
         }
       });
       const onUp = e => {
-        if (pointers.size === 1 && moved < 10 && (performance.now()-downTime) < 350 && this.measureMode) {
+        if(ptrs.size===1 && moved<10 && (performance.now()-downT)<350 && this.measureMode) {
           const pt = this.pickMeshPoint(e.clientX, e.clientY);
-          if (pt) {
-            if (this.measurePts.length >= 2) this.measurePts = [];
+          if(pt){
+            if(this.measurePts.length>=2)this.measurePts=[];
             this.measurePts.push(pt);
-            if (this.measurePts.length === 1) $('measure-banner').textContent = '1点目設定 → 2点目をタップ';
-            else {
-              const a = this.measurePts[0], b = this.measurePts[1];
-              const d = Math.hypot(b[0]-a[0], b[1]-a[1], b[2]-a[2]);
-              $('measure-banner').textContent = `実寸: ${(d*100).toFixed(1)} cm (${d.toFixed(3)} m)`;
-            }
-          } else showToast('モデル表面の上をタップしてください');
+            if(this.measurePts.length===1)$('measure-banner').textContent='1点目設定 → 2点目をタップ';
+            else{const a=this.measurePts[0],b=this.measurePts[1],d=Math.hypot(b[0]-a[0],b[1]-a[1],b[2]-a[2]);$('measure-banner').textContent=`実寸: ${(d*100).toFixed(1)} cm (${d.toFixed(3)} m)`;}
+          } else showToast('モデル上をタップしてください');
         }
-        pointers.delete(e.pointerId);
-        if (pointers.size < 2) { prevPinch = 0; prevMid = null; }
+        ptrs.delete(e.pointerId); if(ptrs.size<2){pDist=0;pMid=null;}
       };
-      canvas.addEventListener('pointerup', onUp); canvas.addEventListener('pointercancel', onUp);
-      canvas.addEventListener('contextmenu', e => e.preventDefault());
-      canvas.addEventListener('wheel', e => { e.preventDefault(); this.dist = Math.max(0.4, Math.min(25, this.dist*(1+e.deltaY*0.001))); }, { passive: false });
+      canvas.addEventListener('pointerup',onUp); canvas.addEventListener('pointercancel',onUp);
+      canvas.addEventListener('contextmenu',e=>e.preventDefault());
+      canvas.addEventListener('wheel',e=>{e.preventDefault();this.dist=Math.max(0.4,Math.min(25,this.dist*(1+e.deltaY*0.001)));},{passive:false});
     },
-
-    panScreen(dx, dy) {
-      const s = this.dist * 0.0014, cy = Math.cos(this.yaw), sy = Math.sin(this.yaw);
-      this.target[0] -= (cy * dx - sy * Math.sin(this.pitch) * dy) * s;
-      this.target[1] += Math.cos(this.pitch) * dy * s;
-      this.target[2] -= (-sy * dx - cy * Math.sin(this.pitch) * dy) * s;
-    },
-
-    startRender() {
-      this.init();
-      const loop = () => {
-        if (!$('viewer-screen').classList.contains('active')) { this.rafId = null; return; }
-        this.rafId = requestAnimationFrame(loop); this.draw();
-      };
-      if (!this.rafId) loop();
-    },
-
-    draw() {
-      const canvas = $('viewer-canvas'), dpr = Math.min(2, window.devicePixelRatio || 1);
-      const w = Math.floor(canvas.clientWidth * dpr), h = Math.floor(canvas.clientHeight * dpr);
-      if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
-      const gl = this.gl;
-      gl.viewport(0, 0, w, h); gl.clearColor(0.035, 0.05, 0.085, 1.0);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); gl.enable(gl.DEPTH_TEST);
-
-      const { proj, view, eye } = this.getCameraMatrices(), mvp = Mat4.mul(proj, view);
-      gl.useProgram(this.lineProg);
-      gl.uniformMatrix4fv(gl.getUniformLocation(this.lineProg, 'uMVP'), false, mvp);
-      gl.uniform1f(gl.getUniformLocation(this.lineProg, 'uPtSize'), 12.0);
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.gridPosBuf); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.gridColBuf); gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
-      gl.disableVertexAttribArray(2); gl.drawArrays(gl.LINES, 0, this.gridCount);
-
-      if (activeMesh && activeMesh.indices.length > 0) {
-        gl.useProgram(this.meshProg);
-        gl.uniformMatrix4fv(gl.getUniformLocation(this.meshProg, 'uProj'), false, proj);
-        gl.uniformMatrix4fv(gl.getUniformLocation(this.meshProg, 'uView'), false, view);
-        gl.uniform3fv(gl.getUniformLocation(this.meshProg, 'uCamPos'), eye);
-        gl.uniform1i(gl.getUniformLocation(this.meshProg, 'uMode'), this.renderMode);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.posBuf); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.normBuf); gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.colBuf); gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 3, gl.FLOAT, false, 0, 0);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.idxBuf);
-        gl.drawElements(gl.TRIANGLES, activeMesh.indices.length, gl.UNSIGNED_INT, 0);
+    panScreen(dx,dy){const s=this.dist*0.0014,cy=Math.cos(this.yaw),sy=Math.sin(this.yaw);this.target[0]-=(cy*dx-sy*Math.sin(this.pitch)*dy)*s;this.target[1]+=Math.cos(this.pitch)*dy*s;this.target[2]-=(-sy*dx-cy*Math.sin(this.pitch)*dy)*s;},
+    startRender(){this.init();const loop=()=>{if(!$('viewer-screen').classList.contains('active')){this.rafId=null;return;}this.rafId=requestAnimationFrame(loop);this.draw();};if(!this.rafId)loop();},
+    draw(){
+      const c=$('viewer-canvas'),dpr=Math.min(2,window.devicePixelRatio||1),w=Math.floor(c.clientWidth*dpr),h=Math.floor(c.clientHeight*dpr);
+      if(c.width!==w||c.height!==h){c.width=w;c.height=h;}
+      const gl=this.gl; gl.viewport(0,0,w,h); gl.clearColor(0.035,0.05,0.085,1); gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT); gl.enable(gl.DEPTH_TEST);
+      const {proj,view,eye}=this.getCameraMatrices(), mvp=Mat4.mul(proj,view);
+      gl.useProgram(this.lineProg); gl.uniformMatrix4fv(gl.getUniformLocation(this.lineProg,'uMVP'),false,mvp); gl.uniform1f(gl.getUniformLocation(this.lineProg,'uPtSize'),12.0);
+      gl.bindBuffer(gl.ARRAY_BUFFER,this.gridPosBuf); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,3,gl.FLOAT,false,0,0);
+      gl.bindBuffer(gl.ARRAY_BUFFER,this.gridColBuf); gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1,3,gl.FLOAT,false,0,0);
+      gl.disableVertexAttribArray(2); gl.drawArrays(gl.LINES,0,this.gridCount);
+      if(activeMesh&&activeMesh.indices.length){
+        gl.useProgram(this.meshProg); gl.uniformMatrix4fv(gl.getUniformLocation(this.meshProg,'uProj'),false,proj); gl.uniformMatrix4fv(gl.getUniformLocation(this.meshProg,'uView'),false,view);
+        gl.uniform3fv(gl.getUniformLocation(this.meshProg,'uCamPos'),eye); gl.uniform1i(gl.getUniformLocation(this.meshProg,'uMode'),this.renderMode);
+        gl.bindBuffer(gl.ARRAY_BUFFER,this.posBuf); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,3,gl.FLOAT,false,0,0);
+        gl.bindBuffer(gl.ARRAY_BUFFER,this.normBuf); gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1,3,gl.FLOAT,false,0,0);
+        gl.bindBuffer(gl.ARRAY_BUFFER,this.colBuf); gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2,3,gl.FLOAT,false,0,0);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,this.idxBuf); gl.drawElements(gl.TRIANGLES,activeMesh.indices.length,gl.UNSIGNED_INT,0);
       }
-
-      if (this.measurePts.length > 0) {
-        gl.disable(gl.DEPTH_TEST); gl.useProgram(this.lineProg);
-        gl.uniformMatrix4fv(gl.getUniformLocation(this.lineProg, 'uMVP'), false, mvp);
-        gl.uniform1f(gl.getUniformLocation(this.lineProg, 'uPtSize'), 16.0);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.measureBuf);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.measurePts.flat()), gl.DYNAMIC_DRAW);
-        gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-        const cols = this.measurePts.length === 1 ? [1,0.85,0.1] : [1,0.85,0.1, 1,0.2,0.2];
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.mColBuf);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(cols), gl.DYNAMIC_DRAW);
-        gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
-        gl.drawArrays(gl.POINTS, 0, this.measurePts.length);
-        if (this.measurePts.length === 2) gl.drawArrays(gl.LINES, 0, 2);
-        gl.enable(gl.DEPTH_TEST);
+      if(this.measurePts.length>0){
+        gl.disable(gl.DEPTH_TEST); gl.useProgram(this.lineProg); gl.uniformMatrix4fv(gl.getUniformLocation(this.lineProg,'uMVP'),false,mvp); gl.uniform1f(gl.getUniformLocation(this.lineProg,'uPtSize'),16.0);
+        gl.bindBuffer(gl.ARRAY_BUFFER,this.measureBuf); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(this.measurePts.flat()),gl.DYNAMIC_DRAW);
+        gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,3,gl.FLOAT,false,0,0);
+        const cols=this.measurePts.length===1?[1,0.85,0.1]:[1,0.85,0.1,1,0.2,0.2];
+        gl.bindBuffer(gl.ARRAY_BUFFER,this.mColBuf); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(cols),gl.DYNAMIC_DRAW);
+        gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1,3,gl.FLOAT,false,0,0);
+        gl.drawArrays(gl.POINTS,0,this.measurePts.length); if(this.measurePts.length===2)gl.drawArrays(gl.LINES,0,2); gl.enable(gl.DEPTH_TEST);
       }
     }
   };
@@ -2255,16 +2144,23 @@
       const qx=Math.abs(x-cx)-hx, qy=Math.abs(y-cy)-hy, qz=Math.abs(z-cz)-hz;
       return Math.hypot(Math.max(qx,0),Math.max(qy,0),Math.max(qz,0)) + Math.min(Math.max(qx,Math.max(qy,qz)),0);
     };
-    for (let vx=-26; vx<=26; vx++) for (let vy=-3; vy<=24; vy++) for (let vz=-26; vz<=26; vz++) {
+    for (let vx=-28; vx<=28; vx++) for (let vy=-3; vy<=26; vy++) for (let vz=-28; vz<=28; vz++) {
       const x=(vx+0.5)*vs, y=(vy+0.5)*vs, z=(vz+0.5)*vs;
-      if (Math.abs(x)>1.35 || Math.abs(z)>1.35 || y>1.25) continue;
-      const dFloor=y, dWallN=1.2-z, dWallW=x+1.2;
-      const dDesk=sdfBox(x,y,z,-0.45,0.36,-0.65,0.45,0.36,0.28), dShelf=sdfBox(x,y,z,0.72,0.55,-0.85,0.28,0.55,0.22);
-      const d = Math.min(dFloor, dWallN, dWallW, dDesk, dShelf);
+      if (Math.abs(x)>1.45 || Math.abs(z)>1.45 || y>1.35) continue;
+      const dFloor=y, dWallN=1.25-z, dWallW=x+1.25;
+      // 部屋中央のテーブル＋壁際の棚
+      const dTableTop = sdfBox(x,y,z, 0.0, 0.62, 0.0, 0.45, 0.03, 0.35);
+      const dLeg1 = sdfBox(x,y,z, -0.36, 0.30, -0.26, 0.04, 0.30, 0.04);
+      const dLeg2 = sdfBox(x,y,z,  0.36, 0.30, -0.26, 0.04, 0.30, 0.04);
+      const dLeg3 = sdfBox(x,y,z, -0.36, 0.30,  0.26, 0.04, 0.30, 0.04);
+      const dLeg4 = sdfBox(x,y,z,  0.36, 0.30,  0.26, 0.04, 0.30, 0.04);
+      const dTable = Math.min(dTableTop, dLeg1, dLeg2, dLeg3, dLeg4);
+      const dShelf = sdfBox(x,y,z, 0.85, 0.55, -0.95, 0.28, 0.55, 0.22);
+      const d = Math.min(dFloor, dWallN, dWallW, dTable, dShelf);
       if (Math.abs(d) > volume.trunc * 1.1) continue;
       const noise = Math.sin(vx*1.7+vy*2.3+vz*3.1)*0.007;
       let r=230, g=228, b=220;
-      if (d===dFloor) { r=165; g=128; b=92; } else if (d===dDesk) { r=205; g=175; b=135; } else if (d===dShelf) { r=95; g=120; b=145; }
+      if (d===dFloor) { r=165; g=128; b=92; } else if (d===dTable) { r=205; g=172; b=130; } else if (d===dShelf) { r=95; g=120; b=145; }
       volume.updateVoxel(vx, vy, vz, d+noise, 8.0, r, g, b, true);
     }
   }
@@ -2272,14 +2168,14 @@
   function finalizeAndOpenViewer() {
     if (XRApp.session) XRApp.session.end().catch(() => {});
     if (FallbackAR.active) FallbackAR.stop();
-    showToast('Surface Nets で3Dメッシュを構築中...', 2000);
+    showToast('QEF Sharp Surface Nets でメッシュ構築中...', 2000);
     setTimeout(() => {
-      const tsdfMesh = volume.extractSurfaceNetsMesh();
+      const useQEF = $('opt-sharp').checked;
+      const tsdfMesh = volume.extractSurfaceNetsMesh(useQEF);
       const yShift = (volume.floorY !== null) ? volume.floorY : 0;
       const combined = buildCombinedMesh(tsdfMesh, volume.cadPlanes, yShift);
       if (combined.positions.length === 0) {
-        showToast('スキャンされた面がありません。もう少し動かしてから完了してください。', 3200);
-        showScreen('launcher'); return;
+        showToast('スキャンされた面がありません', 3000); showScreen('launcher'); return;
       }
       originalMesh = {
         positions: new Float32Array(combined.positions), normals: new Float32Array(combined.normals),
@@ -2297,11 +2193,8 @@
     }, 30);
   }
 
-  // ==================== イベント配線 ====================
-  $('xr-overlay').addEventListener('beforexrselect', e => {
-    if (e.target.closest('.hud-Interactive')) e.preventDefault();
-  });
-
+  // ==================== UI イベント配線 ====================
+  $('xr-overlay').addEventListener('beforexrselect', e => { if (e.target.closest('.hud-Interactive')) e.preventDefault(); });
   $('btn-start-webxr').addEventListener('click', async () => { await initGyroListener(); XRApp.startSession(false); });
   $('btn-start-gyro').addEventListener('click', async () => { await initGyroListener(); FallbackAR.start(false); });
   $('btn-demo-room').addEventListener('click', () => { generateDemoRoomTSDF(); finalizeAndOpenViewer(); });
@@ -2313,11 +2206,11 @@
     btn.className = scanningActive ? 'btn-warn' : 'btn-primary';
   });
 
+  $('btn-wrap-target').addEventListener('click', () => toggleWrapMode(false));
   $('btn-erase-ray').addEventListener('click', () => { eraseRayRequest = true; });
 
   $('btn-overlay-mode').addEventListener('click', () => {
-    const order = ['rgb', 'cyan', 'weight'];
-    const labels = { rgb: 'カメラ色', cyan: 'シアン', weight: '信頼度' };
+    const order = ['rgb', 'cyan', 'weight'], labels = { rgb: '色', cyan: 'シアン', weight: '信頼度' };
     overlayColorMode = order[(order.indexOf(overlayColorMode) + 1) % order.length];
     $('btn-overlay-mode').textContent = `🎨 ${labels[overlayColorMode]}`;
     XRApp.refreshPreviewPoints();
@@ -2326,41 +2219,36 @@
   $('btn-cam-rot').addEventListener('click', () => {
     camColorRotMode = (camColorRotMode + 1) % 3;
     const labels = ['自動', '90°右', '90°左'];
-    $('btn-cam-rot').textContent = `🔄 色向:${labels[camColorRotMode]}`;
-    showToast(`カメラ色向きを「${labels[camColorRotMode]}」に変更しました`);
+    $('btn-cam-rot').textContent = `🔄 ${labels[camColorRotMode]}`;
   });
 
   $('btn-cad-toggle').addEventListener('click', () => $('cad-strip').classList.toggle('open'));
   $('btn-cad-point').addEventListener('click', () => {
-    if (!lastHitPoseMatrix) { showToast('床や壁に中央レティクルを合わせてください'); return; }
+    if (!lastHitPoseMatrix) { showToast('床や壁に照準を合わせてください'); return; }
     volume.cadPending.push([lastHitPoseMatrix[12], lastHitPoseMatrix[13], lastHitPoseMatrix[14]]);
     $('cad-count').textContent = `点:${volume.cadPending.length}`;
   });
-  $('btn-cad-undo').addEventListener('click', () => {
-    volume.cadPending.pop(); $('cad-count').textContent = `点:${volume.cadPending.length}`;
-  });
+  $('btn-cad-undo').addEventListener('click', () => { volume.cadPending.pop(); $('cad-count').textContent = `点:${volume.cadPending.length}`; });
   $('btn-cad-plane').addEventListener('click', () => {
     if (volume.cadPending.length < 3) { showToast('最低3点必要です'); return; }
     volume.cadPlanes.push({ pts: [...volume.cadPending], color: [0.18, 0.78, 0.72] });
     volume.cadPending = []; $('cad-count').textContent = '点:0';
   });
   $('btn-cad-room').addEventListener('click', () => {
-    if (volume.cadPending.length < 3) { showToast('床のコーナーを3点以上打点してください'); return; }
+    if (volume.cadPending.length < 3) { showToast('床の角を3点以上打点してください'); return; }
     const fp = [...volume.cadPending];
-    const wallH = (volume.floorY !== null && volume.ceilingY !== null)
-      ? Math.max(1.8, volume.ceilingY - volume.floorY) : 2.4;
+    const wallH = (volume.floorY !== null && volume.ceilingY !== null) ? Math.max(1.8, volume.ceilingY - volume.floorY) : 2.4;
     volume.cadPlanes.push({ pts: fp, color: [0.62, 0.50, 0.38] });
     for (let i = 0; i < fp.length; i++) {
-      const a = fp[i], b = fp[(i + 1) % fp.length];
-      volume.cadPlanes.push({ pts: [a, b, [b[0], b[1]+wallH, b[2]], [a[0], a[1]+wallH, a[2]]], color: [0.85, 0.86, 0.88] });
+      const a = fp[i], b = fp[(i+1)%fp.length];
+      volume.cadPlanes.push({ pts: [a, b, [b[0],b[1]+wallH,b[2]], [a[0],a[1]+wallH,a[2]]], color: [0.85, 0.86, 0.88] });
     }
     volume.cadPending = []; $('cad-count').textContent = '点:0';
-    showToast(`床＋高さ${wallH.toFixed(2)}mの壁を生成しました`);
+    showToast(`床＋高さ${wallH.toFixed(2)}mの壁を生成`);
   });
 
   $('fb-step-fwd').addEventListener('click', () => {
-    const c2w = Mat4.fromQuatPos(GyroState.quat, FallbackAR.camPos);
-    const fx = -c2w[8], fz = -c2w[10], len = Math.hypot(fx, fz) || 1;
+    const c2w = Mat4.fromQuatPos(GyroState.quat, FallbackAR.camPos), fx=-c2w[8], fz=-c2w[10], len=Math.hypot(fx,fz)||1;
     FallbackAR.camPos[0] += (fx/len)*0.5; FallbackAR.camPos[2] += (fz/len)*0.5;
   });
   $('fb-step-reset').addEventListener('click', () => { FallbackAR.camPos[0]=0; FallbackAR.camPos[2]=0; });
@@ -2372,8 +2260,9 @@
   });
   $('btn-ar-clear').addEventListener('click', () => {
     volume.reset(parseFloat($('opt-voxel').value));
-    XRApp.kfCount = 0; XRApp.refreshPreviewPoints();
-    $('cad-count').textContent = '点:0';
+    XRApp.kfCount = 0; Mat4.identity(XRApp.driftMat); Mat4.identity(XRApp.invDriftMat);
+    WrapTarget.active = false; $('btn-wrap-target').classList.remove('btn-active'); $('btn-wrap-target').textContent = '🎯 囲み';
+    XRApp.refreshPreviewPoints(); $('cad-count').textContent = '点:0';
     if ($('opt-workflow').value === 'guided') setPhase('FLOOR_CAL');
     showToast('スキャンをリセットしました');
   });
@@ -2391,22 +2280,26 @@
   $('btn-taubin').addEventListener('click', () => {
     if (!activeMesh) return;
     applyTaubinSmoothing(activeMesh, 6, 0.5, -0.53);
-    Viewer3D.uploadMesh(activeMesh); showToast('Taubin 平滑化を適用しました');
+    Viewer3D.uploadMesh(activeMesh); showToast('Taubin平滑化を適用');
   });
   $('btn-ransac').addEventListener('click', () => {
     if (!activeMesh) return;
-    const c = applyRansacPlaneSnap(activeMesh, 0.04, 0.87, 10, 0.88);
+    const c = applyRansacPlaneSnap(activeMesh, 0.04, 0.87, 12, 0.88, false);
     Viewer3D.uploadMesh(activeMesh); showToast(`RANSAC幾何平面補正：${c} 個の平面を平坦化`);
+  });
+  $('btn-manhattan').addEventListener('click', () => {
+    if (!activeMesh) return;
+    const c = applyRansacPlaneSnap(activeMesh, 0.045, 0.83, 12, 0.92, true);
+    Viewer3D.uploadMesh(activeMesh); showToast(`マンハッタン直交補正：${c} 個の床・壁を水平/垂直/90°整列`);
   });
   $('btn-color-smooth').addEventListener('click', () => {
     if (!activeMesh) return;
-    applyColorSmoothing(activeMesh, 2);
-    Viewer3D.uploadMesh(activeMesh); showToast('頂点色ノイズを均しました');
+    applyColorSmoothing(activeMesh, 2); Viewer3D.uploadMesh(activeMesh); showToast('色ノイズを均しました');
   });
   $('btn-clean-islands').addEventListener('click', () => {
     if (!activeMesh) return;
-    const rem = removeSmallIslands(activeMesh, 35);
-    Viewer3D.uploadMesh(activeMesh); showToast(rem > 0 ? `浮遊片 ${rem} 個を除去` : '除去対象なし');
+    const r = removeSmallIslands(activeMesh, 35); Viewer3D.uploadMesh(activeMesh);
+    showToast(r > 0 ? `浮遊ノイズ ${r} 個を除去` : '除去対象なし');
   });
   $('btn-mesh-reset').addEventListener('click', () => {
     if (!originalMesh) return;
@@ -2431,7 +2324,6 @@
     const httpsPill = $('diag-https');
     if (window.isSecureContext) { httpsPill.textContent = 'OK (安全)'; httpsPill.className = 'status-pill pill-ok'; }
     else { httpsPill.textContent = 'NG (要HTTPS)'; httpsPill.className = 'status-pill pill-err'; $('https-warning').style.display = 'block'; }
-
     const xrPill = $('diag-webxr');
     if (navigator.xr && navigator.xr.isSessionSupported) {
       try {
