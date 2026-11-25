@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>EAR TUNE - ギター耳チューニングゲーム</title>
+<title>EAR TUNE PRO - ギター・琴・ドラム 耳チューニング</title>
 <style>
   :root {
-    --bg: #14110f;
-    --panel: #1f1a17;
-    --panel-border: #382e27;
+    --bg: #120f0d;
+    --panel: #1d1815;
+    --panel-border: #362c25;
     --gold: #d9a05b;
     --gold-bright: #f5c378;
     --text: #f3ece4;
@@ -26,8 +26,8 @@
 
   body {
     margin: 0;
-    padding: 12px;
-    background: radial-gradient(circle at top, #261e19 0%, var(--bg) 70%);
+    padding: 10px;
+    background: radial-gradient(circle at top, #261e19 0%, var(--bg) 75%);
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif;
     min-height: 100vh;
@@ -38,10 +38,10 @@
 
   .app {
     width: 100%;
-    max-width: 520px;
+    max-width: 540px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
   }
 
   header {
@@ -52,24 +52,26 @@
     background: var(--panel);
     border: 1px solid var(--panel-border);
     border-radius: 12px;
+    gap: 8px;
   }
 
   .title-wrap h1 {
     margin: 0;
-    font-size: 1.05rem;
+    font-size: 1rem;
     letter-spacing: 0.04em;
     color: var(--gold-bright);
   }
 
   .title-wrap p {
     margin: 2px 0 0;
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     color: var(--muted);
   }
 
   .header-actions {
     display: flex;
     gap: 6px;
+    flex-shrink: 0;
   }
 
   button {
@@ -80,16 +82,14 @@
     transition: transform 0.08s, background 0.15s, opacity 0.15s;
   }
 
-  button:active {
-    transform: scale(0.95);
-  }
+  button:active { transform: scale(0.95); }
 
   .btn-secondary {
     background: #2f2722;
     color: var(--text);
     border: 1px solid #473b33;
     padding: 7px 10px;
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     font-weight: 600;
   }
 
@@ -97,17 +97,46 @@
     background: linear-gradient(135deg, var(--gold), #b87c38);
     color: #1a120b;
     padding: 7px 12px;
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     font-weight: 800;
     box-shadow: 0 2px 8px rgba(217, 160, 91, 0.3);
   }
 
+  /* Instrument Switcher */
+  .inst-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    padding: 5px;
+    border-radius: 12px;
+  }
+
+  .inst-btn {
+    background: transparent;
+    color: var(--muted);
+    padding: 8px 6px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
+
+  .inst-btn.active {
+    background: linear-gradient(180deg, #3a2f27, #29201b);
+    color: var(--gold-bright);
+    border: 1px solid #59473a;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  }
+
   .controls-bar {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 6px;
-    align-items: center;
-    justify-content: space-between;
     background: var(--panel);
     border: 1px solid var(--panel-border);
     border-radius: 12px;
@@ -117,10 +146,9 @@
   .mode-tabs {
     display: flex;
     gap: 4px;
-    background: #14110f;
+    background: #120f0d;
     padding: 3px;
     border-radius: 8px;
-    flex: 1 1 auto;
   }
 
   .mode-btn {
@@ -141,8 +169,8 @@
 
   .toggles-row {
     display: flex;
+    flex-wrap: wrap;
     gap: 6px;
-    width: 100%;
     justify-content: space-between;
     align-items: center;
   }
@@ -152,7 +180,7 @@
     color: var(--muted);
     border: 1px solid #3f342c;
     padding: 5px 9px;
-    font-size: 0.72rem;
+    font-size: 0.71rem;
     border-radius: 20px;
   }
 
@@ -171,7 +199,7 @@
     border: 1px solid var(--panel-border);
     border-radius: 10px;
     padding: 8px 10px;
-    font-size: 0.78rem;
+    font-size: 0.76rem;
   }
 
   .ref-info {
@@ -179,24 +207,17 @@
     line-height: 1.3;
   }
 
-  .ref-info strong {
-    color: var(--text);
-  }
-
-  .ref-buttons {
-    display: flex;
-    gap: 6px;
-    flex-shrink: 0;
-  }
+  .ref-info strong { color: var(--text); }
 
   .btn-ref {
     background: #2b3847;
     color: #bae6fd;
     border: 1px solid #3d5269;
     padding: 7px 11px;
-    font-size: 0.76rem;
+    font-size: 0.74rem;
     font-weight: 700;
     border-radius: 8px;
+    flex-shrink: 0;
   }
 
   .btn-ref.playing {
@@ -205,30 +226,34 @@
     box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
   }
 
-  .guitar-stage {
+  /* Stage Wrapper */
+  .stage-box {
     position: relative;
     width: 100%;
-    background: linear-gradient(180deg, #1b1613 0%, #110d0b 100%);
+    background: linear-gradient(180deg, #1b1613 0%, #100c0a 100%);
     border: 1px solid var(--panel-border);
     border-radius: 16px;
     overflow: hidden;
-    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.6);
+    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.65);
   }
 
-  svg#guitarSvg {
+  .inst-stage { display: none; position: relative; width: 100%; }
+  .inst-stage.active { display: block; }
+
+  .inst-stage svg {
     display: block;
     width: 100%;
     height: auto;
     touch-action: none;
   }
 
-  /* Peg Overlay Controls */
-  .peg-overlay {
+  .overlay-layer {
     position: absolute;
     inset: 0;
     pointer-events: none;
   }
 
+  /* ===== Guitar Pegs ===== */
   .peg-unit {
     position: absolute;
     transform: translate(-50%, -50%);
@@ -237,23 +262,12 @@
     gap: 4px;
     pointer-events: auto;
   }
+  .peg-unit.left { flex-direction: row; }
+  .peg-unit.right { flex-direction: row-reverse; }
 
-  .peg-unit.left {
-    flex-direction: row;
-  }
-
-  .peg-unit.right {
-    flex-direction: row-reverse;
-  }
-
-  .peg-step-col {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
-
-  .peg-step-btn {
-    width: 26px;
+  .step-col { display: flex; flex-direction: column; gap: 3px; }
+  .step-btn {
+    width: 25px;
     height: 22px;
     border-radius: 6px;
     background: #2b231e;
@@ -267,14 +281,10 @@
     touch-action: none;
   }
 
-  .peg-step-btn:hover {
-    background: #3b3029;
-  }
-
   .peg-knob {
     position: relative;
-    width: 48px;
-    height: 48px;
+    width: 46px;
+    height: 46px;
     border-radius: 50%;
     background: radial-gradient(circle at 35% 30%, #e7e5e4, #a8a29e 60%, #57534e 100%);
     border: 2px solid #292524;
@@ -285,51 +295,43 @@
     align-items: center;
     justify-content: center;
   }
-
-  .peg-knob.selected {
-    box-shadow: 0 0 0 2px var(--gold-bright), 0 4px 12px rgba(217, 160, 91, 0.45);
-  }
-
+  .peg-knob.selected { box-shadow: 0 0 0 2px var(--gold-bright), 0 4px 12px rgba(217, 160, 91, 0.5); }
   .peg-wing {
     position: absolute;
-    width: 40px;
-    height: 12px;
+    width: 38px;
+    height: 11px;
     border-radius: 6px;
     background: linear-gradient(180deg, #fafaf9 0%, #a8a29e 50%, #78716c 100%);
     border: 1px solid #44403c;
     pointer-events: none;
   }
-
   .peg-dot {
     position: absolute;
-    top: 4px;
+    top: 3px;
     width: 5px;
     height: 5px;
     border-radius: 50%;
     background: #b45309;
   }
 
-  .peg-label {
+  .knob-label {
     position: absolute;
-    bottom: -16px;
-    font-size: 0.68rem;
+    bottom: -15px;
+    font-size: 0.65rem;
     font-weight: 700;
     color: var(--muted);
-    background: rgba(20, 17, 15, 0.85);
+    background: rgba(18, 15, 13, 0.88);
     padding: 1px 5px;
     border-radius: 4px;
     pointer-events: none;
     white-space: nowrap;
   }
-
-  .peg-unit.selected .peg-label {
-    color: var(--gold-bright);
-  }
+  .selected .knob-label { color: var(--gold-bright); }
 
   .practice-badge {
     position: absolute;
     top: -15px;
-    font-size: 0.65rem;
+    font-size: 0.64rem;
     font-weight: 800;
     padding: 1px 5px;
     border-radius: 4px;
@@ -339,19 +341,153 @@
     pointer-events: none;
   }
 
+  /* ===== Koto Controls & Kotoji ===== */
+  .kotoji-handle {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    pointer-events: auto;
+    touch-action: none;
+    cursor: ew-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .kotoji-body {
+    width: 22px;
+    height: 24px;
+    background: linear-gradient(135deg, #fffbeb, #e7d8c3);
+    clip-path: polygon(50% 6%, 94% 94%, 68% 94%, 50% 56%, 32% 94%, 6% 94%);
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.7));
+    transition: transform 0.2s, opacity 0.2s;
+  }
+
+  .kotoji-handle.fallen .kotoji-body {
+    transform: rotate(90deg) scale(0.88);
+    background: linear-gradient(135deg, #fca5a5, #dc2626);
+    cursor: pointer;
+  }
+
+  .kotoji-handle.fixed .kotoji-body {
+    background: linear-gradient(135deg, #e5e7eb, #9ca3af);
+    opacity: 0.82;
+    cursor: pointer;
+  }
+
+  .kotoji-handle.selected::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 6px;
+    border: 2px solid var(--gold-bright);
+    box-shadow: 0 0 8px rgba(245, 195, 120, 0.7);
+    pointer-events: none;
+  }
+
+  .kotoji-tag {
+    position: absolute;
+    top: -13px;
+    font-size: 0.58rem;
+    font-weight: 800;
+    background: rgba(20, 17, 15, 0.9);
+    padding: 0 4px;
+    border-radius: 3px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .koto-bar {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    background: #231b15;
+    border-top: 1px solid var(--panel-border);
+  }
+  .koto-bar.active { display: flex; }
+
+  .koto-bar-btns {
+    display: flex;
+    gap: 6px;
+  }
+
+  .koto-move-btn {
+    background: #382c23;
+    color: var(--text);
+    border: 1px solid #59473a;
+    padding: 7px 12px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    touch-action: none;
+  }
+
+  /* ===== Drum Lugs ===== */
+  .drum-lug-unit {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .drum-bolt {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #f5f5f4, #a8a29e 65%, #44403c 100%);
+    border: 2px solid #1c1917;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.65);
+    cursor: ns-resize;
+    touch-action: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .drum-bolt.selected {
+    box-shadow: 0 0 0 2px var(--gold-bright), 0 3px 10px rgba(245, 195, 120, 0.55);
+  }
+
+  .drum-bolt.anchor {
+    border-color: var(--good);
+  }
+
+  .drum-key-bar {
+    position: absolute;
+    width: 30px;
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(180deg, #fafaf9, #78716c);
+    border: 1px solid #292524;
+    pointer-events: none;
+  }
+
+  .drum-key-dot {
+    position: absolute;
+    right: 3px;
+    top: 1px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #d97706;
+  }
+
   .footer-hint {
     text-align: center;
-    font-size: 0.72rem;
+    font-size: 0.71rem;
     color: var(--muted);
-    padding: 4px 8px;
-    line-height: 1.4;
+    padding: 2px 6px 6px;
+    line-height: 1.45;
   }
 
   /* Result Modal */
   .modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(10, 8, 7, 0.82);
+    background: rgba(10, 8, 7, 0.84);
     backdrop-filter: blur(4px);
     display: none;
     align-items: center;
@@ -359,14 +495,11 @@
     padding: 16px;
     z-index: 100;
   }
-
-  .modal-backdrop.open {
-    display: flex;
-  }
+  .modal-backdrop.open { display: flex; }
 
   .modal {
     width: 100%;
-    max-width: 420px;
+    max-width: 430px;
     background: #1f1a17;
     border: 1px solid var(--gold);
     border-radius: 16px;
@@ -374,41 +507,34 @@
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75);
   }
 
-  .modal-header {
-    text-align: center;
-    margin-bottom: 12px;
-  }
-
+  .modal-header { text-align: center; margin-bottom: 12px; }
   .rank-badge {
     display: inline-block;
-    font-size: 2rem;
+    font-size: 1.9rem;
     font-weight: 900;
     color: var(--gold-bright);
-    line-height: 1;
+    line-height: 1.1;
   }
-
-  .score-text {
-    font-size: 0.9rem;
-    color: var(--muted);
-    margin-top: 4px;
-  }
+  .score-text { font-size: 0.88rem; color: var(--muted); margin-top: 4px; }
 
   .result-list {
     display: flex;
     flex-direction: column;
     gap: 6px;
     margin-bottom: 14px;
+    max-height: 50vh;
+    overflow-y: auto;
   }
 
   .result-row {
     display: grid;
-    grid-template-columns: 44px 1fr 78px 66px;
+    grid-template-columns: 54px 1fr 74px 68px;
     align-items: center;
     gap: 8px;
     background: #15110f;
     padding: 7px 10px;
     border-radius: 8px;
-    font-size: 0.8rem;
+    font-size: 0.78rem;
   }
 
   .meter-track {
@@ -418,7 +544,6 @@
     position: relative;
     overflow: hidden;
   }
-
   .meter-center {
     position: absolute;
     left: 50%;
@@ -428,7 +553,6 @@
     background: #78716c;
     transform: translateX(-50%);
   }
-
   .meter-dot {
     position: absolute;
     top: 1px;
@@ -438,16 +562,8 @@
     transform: translateX(-50%);
   }
 
-  .modal-actions {
-    display: flex;
-    gap: 8px;
-  }
-
-  .modal-actions button {
-    flex: 1;
-    padding: 10px;
-    font-size: 0.84rem;
-  }
+  .modal-actions { display: flex; gap: 8px; }
+  .modal-actions button { flex: 1; padding: 10px; font-size: 0.82rem; }
 </style>
 </head>
 <body>
@@ -455,8 +571,8 @@
 <div class="app">
   <header>
     <div class="title-wrap">
-      <h1>🎸 EAR TUNE</h1>
-      <p>耳だけで合わせるギターチューニング</p>
+      <h1>🎶 EAR TUNE PRO</h1>
+      <p>耳だけで合わせる総合チューニングゲーム</p>
     </div>
     <div class="header-actions">
       <button class="btn-secondary" id="shuffleBtn">シャッフル</button>
@@ -464,99 +580,141 @@
     </div>
   </header>
 
+  <!-- Instrument Switcher -->
+  <div class="inst-tabs" id="instTabs">
+    <button class="inst-btn active" data-inst="guitar">🎸 ギター</button>
+    <button class="inst-btn" data-inst="koto">🎍 琴 (琴柱)</button>
+    <button class="inst-btn" data-inst="drum">🥁 ドラム</button>
+  </div>
+
+  <!-- Sub-mode & Toggles -->
   <div class="controls-bar">
-    <div class="mode-tabs" id="modeTabs">
-      <button class="mode-btn active" data-mode="easy">お手本あり</button>
-      <button class="mode-btn" data-mode="fret5">5F相対法</button>
-      <button class="mode-btn" data-mode="master">A440音叉</button>
-    </div>
-    <div class="toggles-row">
-      <button class="toggle-pill" id="fineToggle">微調整モード: OFF</button>
-      <button class="toggle-pill" id="timbreToggle">音色: アコギ</button>
-      <button class="toggle-pill" id="muteBtn">🔇 消音</button>
-    </div>
+    <div class="mode-tabs" id="modeTabs"></div>
+    <div class="toggles-row" id="togglesRow"></div>
   </div>
 
+  <!-- Reference Bar -->
   <div class="ref-bar">
-    <div class="ref-info" id="refInfo">
-      <strong>選択中: 6弦 (E2)</strong><br>
-      お手本と聴き比べてペグを回そう
+    <div class="ref-info" id="refInfo"></div>
+    <button class="btn-ref" id="playRefBtn">🔊 お手本を鳴らす</button>
+  </div>
+
+  <!-- Stage Box -->
+  <div class="stage-box">
+    <!-- 1. GUITAR STAGE -->
+    <div class="inst-stage active" id="guitarStage">
+      <svg id="guitarSvg" viewBox="0 0 420 520" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="headWood" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#3b261a"/><stop offset="100%" stop-color="#190f0a"/>
+          </linearGradient>
+          <linearGradient id="neckWood" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#241710"/><stop offset="50%" stop-color="#332117"/><stop offset="100%" stop-color="#241710"/>
+          </linearGradient>
+          <linearGradient id="bodyWood" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#5c351e"/><stop offset="100%" stop-color="#331c0f"/>
+          </linearGradient>
+        </defs>
+        <path d="M 35 435 Q 210 405 385 435 L 420 520 L 0 520 Z" fill="url(#bodyWood)" stroke="#231209" stroke-width="2"/>
+        <circle cx="210" cy="488" r="66" fill="#0d0805" stroke="#c89250" stroke-width="3"/>
+        <circle cx="210" cy="488" r="72" fill="none" stroke="#8c5b2b" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <path d="M 135 235 L 116 195 L 112 36 Q 112 20 132 18 L 210 24 L 288 18 Q 308 20 308 36 L 304 195 L 285 235 Z" fill="url(#headWood)" stroke="#4a3122" stroke-width="2"/>
+        <polygon points="135,235 285,235 335,470 85,470" fill="url(#neckWood)" stroke="#170f0a" stroke-width="1.5"/>
+        <line x1="126" y1="275" x2="294" y2="275" stroke="#a8a29e" stroke-width="2" opacity="0.7"/>
+        <line x1="118" y1="315" x2="302" y2="315" stroke="#a8a29e" stroke-width="2" opacity="0.7"/>
+        <line x1="109" y1="355" x2="311" y2="355" stroke="#a8a29e" stroke-width="2" opacity="0.7"/>
+        <line x1="100" y1="395" x2="320" y2="395" stroke="#a8a29e" stroke-width="2" opacity="0.7"/>
+        <circle cx="210" cy="335" r="5" fill="#e7e5e4" opacity="0.35"/>
+        <rect x="133" y="229" width="154" height="8" rx="2" fill="#f5efe6" stroke="#b8ab99" stroke-width="1"/>
+        <g fill="#d6d3d1" stroke="#57534e" stroke-width="2">
+          <circle cx="142" cy="55" r="7"/><circle cx="142" cy="120" r="7"/><circle cx="142" cy="185" r="7"/>
+          <circle cx="278" cy="55" r="7"/><circle cx="278" cy="120" r="7"/><circle cx="278" cy="185" r="7"/>
+        </g>
+        <g id="guitarStringsLayer"></g>
+        <g id="guitarFretsLayer"></g>
+        <g id="guitarHitLayer"></g>
+      </svg>
+      <div class="overlay-layer" id="guitarOverlay"></div>
     </div>
-    <div class="ref-buttons">
-      <button class="btn-ref" id="playRefBtn">🔊 お手本を鳴らす</button>
+
+    <!-- 2. KOTO STAGE -->
+    <div class="inst-stage" id="kotoStage">
+      <svg id="kotoSvg" viewBox="0 0 460 430" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="kiriWood" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#8b5a2b"/>
+            <stop offset="20%" stop-color="#c28e54"/>
+            <stop offset="55%" stop-color="#cf9b61"/>
+            <stop offset="85%" stop-color="#b58048"/>
+            <stop offset="100%" stop-color="#7c4e24"/>
+          </linearGradient>
+        </defs>
+        <!-- Koto Body (Paulownia / 桐) -->
+        <rect x="10" y="14" width="440" height="402" rx="10" fill="url(#kiriWood)" stroke="#4a2c11" stroke-width="2.5"/>
+        <!-- Wood grain subtle lines -->
+        <line x1="45" y1="90" x2="415" y2="90" stroke="#9e6d39" stroke-width="1" opacity="0.35"/>
+        <line x1="45" y1="215" x2="415" y2="215" stroke="#9e6d39" stroke-width="1" opacity="0.35"/>
+        <line x1="45" y1="340" x2="415" y2="340" stroke="#9e6d39" stroke-width="1" opacity="0.35"/>
+        <!-- Decorative Brocade Endings -->
+        <rect x="12" y="16" width="38" height="398" rx="6" fill="#4c1d24" stroke="#d9a05b" stroke-width="1"/>
+        <rect x="410" y="16" width="38" height="398" rx="6" fill="#4c1d24" stroke="#d9a05b" stroke-width="1"/>
+        <!-- Plucking Zone Highlight -->
+        <rect x="336" y="22" width="66" height="386" rx="4" fill="rgba(255,245,220,0.08)" stroke="rgba(255,245,220,0.18)" stroke-dasharray="3 3"/>
+        <text x="369" y="20" text-anchor="middle" font-size="8.5" fill="#fef3c7" opacity="0.75">爪で弾くエリア</text>
+        <!-- Unkaku (Left Bridge) & Ryukaku (Right Bridge) -->
+        <rect x="52" y="22" width="7" height="386" rx="2" fill="#f5efe6" stroke="#78716c" stroke-width="1"/>
+        <rect x="401" y="22" width="8" height="386" rx="2" fill="#f5efe6" stroke="#78716c" stroke-width="1"/>
+
+        <g id="kotoStringsLayer"></g>
+        <g id="kotoHitLayer"></g>
+      </svg>
+      <div class="overlay-layer" id="kotoOverlay"></div>
+      <div class="koto-bar" id="kotoBar">
+        <div id="kotoSelLabel" style="font-size:0.78rem; font-weight:700; color:var(--gold-bright);">選択: 二 (G3)</div>
+        <div class="koto-bar-btns">
+          <button class="koto-move-btn" id="kotoStandBtn">🎍 立てる</button>
+          <button class="koto-move-btn" id="kotoLeftBtn">◀ 左(低く)</button>
+          <button class="koto-move-btn" id="kotoRightBtn">▶ 右(高く)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. DRUM STAGE -->
+    <div class="inst-stage" id="drumStage">
+      <svg id="drumSvg" viewBox="0 0 420 420" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="drumHead" cx="50%" cy="46%" r="54%">
+            <stop offset="0%" stop-color="#f7f4ee"/>
+            <stop offset="70%" stop-color="#e8e1d5"/>
+            <stop offset="100%" stop-color="#cfc5b4"/>
+          </radialGradient>
+          <linearGradient id="chromeRim" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#f5f5f4"/>
+            <stop offset="45%" stop-color="#a8a29e"/>
+            <stop offset="100%" stop-color="#57534e"/>
+          </linearGradient>
+        </defs>
+        <!-- Shell shadow -->
+        <circle cx="210" cy="216" r="148" fill="#090706" opacity="0.65"/>
+        <!-- Metal Lug Casings -->
+        <g id="drumCasings" fill="#d6d3d1" stroke="#44403c" stroke-width="1.5"></g>
+        <!-- Outer Chrome Hoop -->
+        <circle cx="210" cy="210" r="140" fill="url(#chromeRim)" stroke="#292524" stroke-width="2.5"/>
+        <circle cx="210" cy="210" r="131" fill="#1c1917"/>
+        <!-- Coated Drumhead -->
+        <circle id="drumHeadCircle" cx="210" cy="210" r="127" fill="url(#drumHead)" stroke="#a8a29e" stroke-width="1"/>
+        <!-- Center target -->
+        <circle cx="210" cy="210" r="46" fill="rgba(0,0,0,0.03)" stroke="rgba(120,113,108,0.28)" stroke-dasharray="4 4"/>
+        <text x="210" y="213" text-anchor="middle" font-size="11" font-weight="700" fill="#78716c" opacity="0.75">CENTER</text>
+
+        <g id="drumTargetsLayer"></g>
+        <g id="drumRippleLayer"></g>
+      </svg>
+      <div class="overlay-layer" id="drumOverlay"></div>
     </div>
   </div>
 
-  <div class="guitar-stage" id="guitarStage">
-    <svg id="guitarSvg" viewBox="0 0 420 520" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="headWood" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#3b261a"/>
-          <stop offset="50%" stop-color="#271810"/>
-          <stop offset="100%" stop-color="#190f0a"/>
-        </linearGradient>
-        <linearGradient id="neckWood" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stop-color="#241710"/>
-          <stop offset="50%" stop-color="#332117"/>
-          <stop offset="100%" stop-color="#241710"/>
-        </linearGradient>
-        <linearGradient id="bodyWood" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#5c351e"/>
-          <stop offset="100%" stop-color="#331c0f"/>
-        </linearGradient>
-      </defs>
-
-      <!-- Acoustic Body top edge at bottom -->
-      <path d="M 35 435 Q 210 405 385 435 L 420 520 L 0 520 Z" fill="url(#bodyWood)" stroke="#231209" stroke-width="2"/>
-      <!-- Soundhole & Rosette -->
-      <circle cx="210" cy="488" r="66" fill="#0d0805" stroke="#c89250" stroke-width="3"/>
-      <circle cx="210" cy="488" r="72" fill="none" stroke="#8c5b2b" stroke-width="1.5" stroke-dasharray="4 3"/>
-
-      <!-- Headstock Silhouette -->
-      <path d="M 135 235 L 116 195 L 112 36 Q 112 20 132 18 L 210 24 L 288 18 Q 308 20 308 36 L 304 195 L 285 235 Z"
-            fill="url(#headWood)" stroke="#4a3122" stroke-width="2"/>
-
-      <!-- Fretboard / Neck -->
-      <polygon points="135,235 285,235 335,470 85,470" fill="url(#neckWood)" stroke="#170f0a" stroke-width="1.5"/>
-
-      <!-- Fret wires (4F and 5F zone) -->
-      <line x1="126" y1="275" x2="294" y2="275" stroke="#a8a29e" stroke-width="2" opacity="0.7"/>
-      <line x1="118" y1="315" x2="302" y2="315" stroke="#a8a29e" stroke-width="2" opacity="0.7"/>
-      <line x1="109" y1="355" x2="311" y2="355" stroke="#a8a29e" stroke-width="2" opacity="0.7"/>
-      <line x1="100" y1="395" x2="320" y2="395" stroke="#a8a29e" stroke-width="2" opacity="0.7"/>
-      <!-- Fret inlay dot -->
-      <circle cx="210" cy="335" r="5" fill="#e7e5e4" opacity="0.35"/>
-
-      <!-- Nut (Bone) -->
-      <rect x="133" y="229" width="154" height="8" rx="2" fill="#f5efe6" stroke="#b8ab99" stroke-width="1"/>
-
-      <!-- Tuner Posts inside headstock -->
-      <g id="tunerPosts" fill="#d6d3d1" stroke="#57534e" stroke-width="2">
-        <circle cx="142" cy="55" r="7"/>
-        <circle cx="142" cy="120" r="7"/>
-        <circle cx="142" cy="185" r="7"/>
-        <circle cx="278" cy="55" r="7"/>
-        <circle cx="278" cy="120" r="7"/>
-        <circle cx="278" cy="185" r="7"/>
-      </g>
-
-      <!-- Strings (rendered dynamically) -->
-      <g id="stringsLayer"></g>
-
-      <!-- Fret press interactive buttons (4F/5F) -->
-      <g id="fretButtonsLayer"></g>
-
-      <!-- Invisible wider hit targets for plucking / strumming -->
-      <g id="hitLayer"></g>
-    </svg>
-
-    <div class="peg-overlay" id="pegOverlay"></div>
-  </div>
-
-  <div class="footer-hint">
-    💡 弦をタップ（または横になぞってストローク）で音を鳴らし、ペグを<strong>上下にドラッグ</strong>か<strong>＋/−をタップ</strong>して回します。<br>
-    ネック上の「5F / 4F」を押すと、隣の弦との<strong>うなり</strong>を聴き比べられます！
-  </div>
+  <div class="footer-hint" id="footerHint"></div>
 </div>
 
 <!-- Result Modal -->
@@ -564,7 +722,7 @@
   <div class="modal">
     <div class="modal-header">
       <div class="rank-badge" id="rankBadge">S</div>
-      <div class="score-text" id="scoreText">平均誤差: 2.1 cents / 96点</div>
+      <div class="score-text" id="scoreText"></div>
     </div>
     <div class="result-list" id="resultList"></div>
     <div class="modal-actions">
@@ -576,8 +734,10 @@
 
 <script>
 (() => {
-  // ===== String Definitions (6th E2 to 1st E4) =====
-  const STRINGS = [
+  // =========================================================
+  // 1. INSTRUMENT DEFINITIONS
+  // =========================================================
+  const GUITAR_STRINGS = [
     { id: 0, label: '6E', full: '6弦 (E2)', targetFreq: 82.406889, gauge: 3.3, color: '#d49a6a', post: [142, 185], nutX: 150, bridgeX: 95,  pegPos: [62, 185],  side: 'left',  compareFret: 5 },
     { id: 1, label: '5A', full: '5弦 (A2)', targetFreq: 110.000000, gauge: 2.7, color: '#d9a477', post: [142, 120], nutX: 174, bridgeX: 141, pegPos: [62, 120],  side: 'left',  compareFret: 5 },
     { id: 2, label: '4D', full: '4弦 (D3)', targetFreq: 146.832384, gauge: 2.2, color: '#dfaf86', post: [142, 55],  nutX: 198, bridgeX: 187, pegPos: [62, 55],   side: 'left',  compareFret: 5 },
@@ -586,27 +746,76 @@
     { id: 5, label: '1E', full: '1弦 (E4)', targetFreq: 329.627557, gauge: 1.1, color: '#ffffff', post: [278, 185], nutX: 270, bridgeX: 325, pegPos: [358, 185], side: 'right', compareFret: 0 }
   ];
 
-  const MAX_CENTS = 220;
+  // Hirajoshi tuning (D base) - 13 strings
+  const KOTO_STRINGS = [
+    { id: 0,  kanji: '一', note: 'D4',  freq: 293.6648 },
+    { id: 1,  kanji: '二', note: 'G3',  freq: 195.9977 },
+    { id: 2,  kanji: '三', note: 'A3',  freq: 220.0000 },
+    { id: 3,  kanji: '四', note: 'B♭3', freq: 233.0819 },
+    { id: 4,  kanji: '五', note: 'D4',  freq: 293.6648 },
+    { id: 5,  kanji: '六', note: 'E♭4', freq: 311.1270 },
+    { id: 6,  kanji: '七', note: 'G4',  freq: 391.9954 },
+    { id: 7,  kanji: '八', note: 'A4',  freq: 440.0000 },
+    { id: 8,  kanji: '九', note: 'B♭4', freq: 466.1638 },
+    { id: 9,  kanji: '十', note: 'D5',  freq: 587.3295 },
+    { id: 10, kanji: '斗', note: 'E♭5', freq: 622.2540 },
+    { id: 11, kanji: '為', note: 'G5',  freq: 783.9909 },
+    { id: 12, kanji: '巾', note: 'A5',  freq: 880.0000 }
+  ];
+  const KOTO_TARGETS = [1, 2, 3, 5, 6, 8]; // 6 strings to stand & tune (二,三,四,六,七,九)
 
-  // ===== State =====
+  const DRUM_TYPES = {
+    tom:   { name: 'タム (D3)',       freq: 146.8324 },
+    snare: { name: 'スネア (G3)',     freq: 195.9977 },
+    floor: { name: 'フロアタム (A2)', freq: 110.0000 }
+  };
+  const DRUM_ANGLES = [-90, -30, 30, 90, 150, 210]; // 6 tension lugs clockwise from top
+
+  // =========================================================
+  // 2. APP STATE
+  // =========================================================
   const state = {
-    mode: 'easy',        // 'easy' | 'fret5' | 'master'
+    instrument: 'guitar', // 'guitar' | 'koto' | 'drum'
     fineMode: false,
-    timbre: 'guitar',    // 'guitar' | 'sine'
     practicePeek: false,
-    selectedIdx: 0,
-    cents: [0, 0, 0, 0, 0, 0],
-    pegAngles: [0, 0, 0, 0, 0, 0],
-    fretted: [false, false, false, false, false, false],
-    vibAmp: [0, 0, 0, 0, 0, 0],
-    vibPhase: [0, 0, 0, 0, 0, 0],
-    lastPluckTime: [0, 0, 0, 0, 0, 0]
+
+    // Guitar
+    guitarMode: 'easy', // 'easy' | 'fret5' | 'master'
+    guitarTimbre: 'guitar',
+    guitarSel: 0,
+    guitarCents: [0,0,0,0,0,0],
+    guitarAngles: [0,0,0,0,0,0],
+    guitarFretted: [false,false,false,false,false,false],
+    guitarVibAmp: [0,0,0,0,0,0],
+    guitarVibPhase: [0,0,0,0,0,0],
+    guitarLastPluck: [0,0,0,0,0,0],
+
+    // Koto
+    kotoMode: 'easy', // 'easy' | 'ear'
+    kotoSel: 1,
+    kotoCents: new Array(13).fill(0),
+    kotoStanding: new Array(13).fill(true),
+    kotoVibAmp: new Array(13).fill(0),
+    kotoVibPhase: new Array(13).fill(0),
+    kotoLastPluck: new Array(13).fill(0),
+
+    // Drum
+    drumMode: 'easy', // 'easy' | 'anchor' (張り合わせのみ: 1番基準)
+    drumType: 'tom',
+    snareOn: false,
+    drumSel: 0,
+    drumCents: [0,0,0,0,0,0],
+    drumAngles: [0,0,0,0,0,0]
   };
 
-  // ===== Web Audio Engine =====
+  // =========================================================
+  // 3. WEB AUDIO ENGINE
+  // =========================================================
   let audioCtx = null;
   let masterGain = null;
-  const activeVoices = new Array(6).fill(null);
+  const guitarVoices = new Array(6).fill(null);
+  const kotoVoices = new Array(13).fill(null);
+  const drumLugVoices = new Array(6).fill(null);
   let refVoice = null;
 
   function ensureAudio() {
@@ -614,16 +823,14 @@
       const AC = window.AudioContext || window.webkitAudioContext;
       audioCtx = new AC();
       masterGain = audioCtx.createGain();
-      masterGain.gain.value = 0.7;
+      masterGain.gain.value = 0.72;
 
-      // Subtle warm acoustic body EQ
       const bodyEQ = audioCtx.createBiquadFilter();
       bodyEQ.type = 'peaking';
       bodyEQ.frequency.value = 190;
-      bodyEQ.Q.value = 1.2;
-      bodyEQ.gain.value = 3.5;
+      bodyEQ.Q.value = 1.1;
+      bodyEQ.gain.value = 3.0;
 
-      // Soft limiter / compressor
       const comp = audioCtx.createDynamicsCompressor();
       comp.threshold.value = -10;
       comp.ratio.value = 4;
@@ -632,16 +839,7 @@
       bodyEQ.connect(comp);
       comp.connect(audioCtx.destination);
     }
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
-  }
-
-  function getStringFreq(idx) {
-    const s = STRINGS[idx];
-    const openFreq = s.targetFreq * Math.pow(2, state.cents[idx] / 1200);
-    const fret = state.fretted[idx] ? s.compareFret : 0;
-    return openFreq * Math.pow(2, fret / 12);
+    if (audioCtx.state === 'suspended') audioCtx.resume();
   }
 
   function stopVoice(voice, fadeSec = 0.03) {
@@ -658,157 +856,330 @@
     } catch {}
   }
 
-  function pluckString(idx) {
+  function muteAll() {
+    guitarVoices.forEach((v, i) => { if (v) { stopVoice(v, 0.04); guitarVoices[i] = null; } state.guitarVibAmp[i] = 0; });
+    kotoVoices.forEach((v, i) => { if (v) { stopVoice(v, 0.04); kotoVoices[i] = null; } state.kotoVibAmp[i] = 0; });
+    drumLugVoices.forEach((v, i) => { if (v) { stopVoice(v, 0.04); drumLugVoices[i] = null; } });
+    if (refVoice) {
+      stopVoice(refVoice, 0.04);
+      refVoice = null;
+      document.getElementById('playRefBtn').classList.remove('playing');
+      updateRefUI();
+    }
+  }
+
+  // --- Guitar Synth ---
+  function getGuitarFreq(idx) {
+    const s = GUITAR_STRINGS[idx];
+    const open = s.targetFreq * Math.pow(2, state.guitarCents[idx] / 1200);
+    return open * Math.pow(2, (state.guitarFretted[idx] ? s.compareFret : 0) / 12);
+  }
+
+  function pluckGuitar(idx) {
     ensureAudio();
     const now = audioCtx.currentTime;
-    state.selectedIdx = idx;
-    state.vibAmp[idx] = 8.5;
-    state.lastPluckTime[idx] = performance.now();
+    state.guitarSel = idx;
+    state.guitarVibAmp[idx] = 8.5;
+    state.guitarLastPluck[idx] = performance.now();
     updateSelectionUI();
 
-    if (activeVoices[idx]) {
-      stopVoice(activeVoices[idx], 0.025);
-      activeVoices[idx] = null;
-    }
+    if (guitarVoices[idx]) { stopVoice(guitarVoices[idx], 0.025); guitarVoices[idx] = null; }
 
-    const baseFreq = getStringFreq(idx);
-    const voiceGain = audioCtx.createGain();
+    const f = getGuitarFreq(idx);
+    const vGain = audioCtx.createGain();
     const filter = audioCtx.createBiquadFilter();
     filter.type = 'lowpass';
 
-    const oscs = [];
-    const multipliers = state.timbre === 'sine'
-      ? [1]
-      : [1, 2, 3, 4, 5, 6];
-    const harmonicAmps = state.timbre === 'sine'
-      ? [0.65]
-      : (idx <= 2 ? [0.48, 0.45, 0.30, 0.20, 0.10, 0.05] : [0.58, 0.38, 0.22, 0.12, 0.06, 0.02]);
-
-    multipliers.forEach((mult, i) => {
+    const mults = state.guitarTimbre === 'sine' ? [1] : [1, 2, 3, 4, 5, 6];
+    const amps = state.guitarTimbre === 'sine' ? [0.65] : (idx <= 2 ? [0.48, 0.45, 0.30, 0.20, 0.10, 0.05] : [0.58, 0.38, 0.22, 0.12, 0.06, 0.02]);
+    const pairs = mults.map((m, i) => {
       const osc = audioCtx.createOscillator();
       const g = audioCtx.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(baseFreq * mult, now);
-      g.gain.value = harmonicAmps[i];
-      osc.connect(g);
-      g.connect(filter);
+      osc.frequency.setValueAtTime(f * m, now);
+      g.gain.value = amps[i];
+      osc.connect(g); g.connect(filter);
       osc.start(now);
-      oscs.push({ osc, mult });
+      return { osc, mult: m };
     });
 
-    // Pluck brightness sweep
-    if (state.timbre === 'guitar') {
-      filter.frequency.setValueAtTime(Math.min(baseFreq * 14, 4200), now);
-      filter.frequency.exponentialRampToValueAtTime(Math.max(baseFreq * 2.8, 380), now + 0.75);
-
-      // Subtle pick transient
-      const bufSize = Math.floor(audioCtx.sampleRate * 0.018);
-      const noiseBuf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
-      const data = noiseBuf.getChannelData(0);
-      for (let i = 0; i < bufSize; i++) {
-        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufSize * 0.35));
-      }
-      const noise = audioCtx.createBufferSource();
-      noise.buffer = noiseBuf;
-      const nFilter = audioCtx.createBiquadFilter();
-      nFilter.type = 'bandpass';
-      nFilter.frequency.value = 1800;
-      const nGain = audioCtx.createGain();
-      nGain.gain.value = 0.14;
-      noise.connect(nFilter);
-      nFilter.connect(nGain);
-      nGain.connect(masterGain);
-      noise.start(now);
+    if (state.guitarTimbre === 'guitar') {
+      filter.frequency.setValueAtTime(Math.min(f * 14, 4200), now);
+      filter.frequency.exponentialRampToValueAtTime(Math.max(f * 2.8, 380), now + 0.75);
+      playNoiseBurst(1800, 0.018, 0.13);
     } else {
       filter.frequency.value = 6000;
     }
 
-    // Sustain envelope (long enough to turn peg and listen for beats!)
-    const sustainSec = idx <= 2 ? 5.8 : 4.6;
-    voiceGain.gain.setValueAtTime(0.001, now);
-    voiceGain.gain.linearRampToValueAtTime(0.5, now + 0.008);
-    voiceGain.gain.exponentialRampToValueAtTime(0.0008, now + sustainSec);
+    const dur = idx <= 2 ? 5.6 : 4.5;
+    vGain.gain.setValueAtTime(0.001, now);
+    vGain.gain.linearRampToValueAtTime(0.48, now + 0.008);
+    vGain.gain.exponentialRampToValueAtTime(0.0008, now + dur);
+    filter.connect(vGain); vGain.connect(masterGain);
 
-    filter.connect(voiceGain);
-    voiceGain.connect(masterGain);
-
-    const voice = {
-      oscs: oscs.map(o => o.osc),
-      pairs: oscs,
-      gainNode: voiceGain,
-      expiresAt: now + sustainSec
-    };
-    activeVoices[idx] = voice;
-
-    setTimeout(() => {
-      if (activeVoices[idx] === voice) {
-        voice.oscs.forEach(o => { try { o.stop(); o.disconnect(); } catch {} });
-        try { voice.gainNode.disconnect(); } catch {}
-        activeVoices[idx] = null;
-      }
-    }, sustainSec * 1000 + 60);
+    const voice = { oscs: pairs.map(p => p.osc), pairs, gainNode: vGain, expiresAt: now + dur };
+    guitarVoices[idx] = voice;
+    setTimeout(() => { if (guitarVoices[idx] === voice) guitarVoices[idx] = null; }, dur * 1000 + 60);
   }
 
-  function updateRingingPitch(idx) {
-    const voice = activeVoices[idx];
-    if (!voice || !audioCtx) return;
+  // --- Koto Synth ---
+  function getKotoFreq(idx) {
+    return KOTO_STRINGS[idx].freq * Math.pow(2, state.kotoCents[idx] / 1200);
+  }
+
+  function playWoodClack() {
+    ensureAudio();
     const now = audioCtx.currentTime;
-    if (now >= voice.expiresAt) return;
-    const f = getStringFreq(idx);
-    voice.pairs.forEach(({ osc, mult }) => {
-      osc.frequency.setTargetAtTime(f * mult, now, 0.015);
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(520, now);
+    osc.frequency.exponentialRampToValueAtTime(220, now + 0.045);
+    g.gain.setValueAtTime(0.35, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(now); osc.stop(now + 0.06);
+    playNoiseBurst(1400, 0.02, 0.22);
+  }
+
+  function pluckKoto(idx) {
+    ensureAudio();
+    const now = audioCtx.currentTime;
+    state.kotoSel = idx;
+    state.kotoLastPluck[idx] = performance.now();
+    updateSelectionUI();
+
+    if (kotoVoices[idx]) { stopVoice(kotoVoices[idx], 0.02); kotoVoices[idx] = null; }
+
+    // If bridge (Kotoji) is fallen, play muted dull thump!
+    if (!state.kotoStanding[idx]) {
+      state.kotoVibAmp[idx] = 2.0;
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(135, now);
+      osc.frequency.exponentialRampToValueAtTime(65, now + 0.08);
+      g.gain.setValueAtTime(0.28, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+      osc.connect(g); g.connect(masterGain);
+      osc.start(now); osc.stop(now + 0.1);
+      playNoiseBurst(550, 0.03, 0.18);
+      return;
+    }
+
+    state.kotoVibAmp[idx] = 7.5;
+    const f = getKotoFreq(idx);
+    const vGain = audioCtx.createGain();
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(Math.min(f * 16, 6500), now);
+    filter.frequency.exponentialRampToValueAtTime(Math.max(f * 3.2, 520), now + 0.55);
+
+    const mults = [1, 2, 3, 4, 5, 6];
+    const amps = [0.46, 0.42, 0.32, 0.22, 0.12, 0.06];
+    const pairs = mults.map((m, i) => {
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = 'sine';
+      // Slight subtle tsume stretch settle over first 35ms
+      osc.frequency.setValueAtTime(f * m * 1.003, now);
+      osc.frequency.exponentialRampToValueAtTime(f * m, now + 0.035);
+      g.gain.value = amps[i];
+      osc.connect(g); g.connect(filter);
+      osc.start(now);
+      return { osc, mult: m };
     });
+
+    // Tsume ivory plectrum click
+    playNoiseBurst(3200, 0.014, 0.16);
+
+    const dur = 4.2;
+    vGain.gain.setValueAtTime(0.001, now);
+    vGain.gain.linearRampToValueAtTime(0.45, now + 0.005);
+    vGain.gain.exponentialRampToValueAtTime(0.0008, now + dur);
+    filter.connect(vGain); vGain.connect(masterGain);
+
+    const voice = { oscs: pairs.map(p => p.osc), pairs, gainNode: vGain, expiresAt: now + dur };
+    kotoVoices[idx] = voice;
+    setTimeout(() => { if (kotoVoices[idx] === voice) kotoVoices[idx] = null; }, dur * 1000 + 60);
+  }
+
+  // --- Drum Synth ---
+  function getDrumLugFreq(idx) {
+    const base = DRUM_TYPES[state.drumType].freq;
+    return base * Math.pow(2, state.drumCents[idx] / 1200);
+  }
+
+  function strikeDrumLug(idx) {
+    ensureAudio();
+    const now = audioCtx.currentTime;
+    state.drumSel = idx;
+    updateSelectionUI();
+    spawnDrumRipple(idx, false);
+
+    if (drumLugVoices[idx]) { stopVoice(drumLugVoices[idx], 0.02); drumLugVoices[idx] = null; }
+
+    const f = getDrumLugFreq(idx);
+    const vGain = audioCtx.createGain();
+
+    // Clear head overtone at lug + subtle Bessel membrane partial (1.59x)
+    const pairs = [
+      { mult: 1.0, amp: 0.58, decay: 1.5 },
+      { mult: 1.59, amp: 0.22, decay: 0.55 },
+      { mult: 2.0, amp: 0.12, decay: 0.35 }
+    ].map(spec => {
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f * spec.mult * 1.04, now);
+      osc.frequency.exponentialRampToValueAtTime(f * spec.mult, now + 0.025);
+      g.gain.setValueAtTime(spec.amp, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + spec.decay);
+      osc.connect(g); g.connect(vGain);
+      osc.start(now);
+      return { osc, mult: spec.mult };
+    });
+
+    // Stick tap transient
+    playNoiseBurst(2600, 0.015, 0.22);
+    if (state.snareOn) playNoiseBurst(3400, 0.14, 0.12, 'highpass');
+
+    const dur = 1.65;
+    vGain.gain.setValueAtTime(0.001, now);
+    vGain.gain.linearRampToValueAtTime(0.62, now + 0.004);
+    vGain.gain.exponentialRampToValueAtTime(0.0008, now + dur);
+    vGain.connect(masterGain);
+
+    const voice = { oscs: pairs.map(p => p.osc), pairs, gainNode: vGain, expiresAt: now + dur };
+    drumLugVoices[idx] = voice;
+    setTimeout(() => { if (drumLugVoices[idx] === voice) drumLugVoices[idx] = null; }, dur * 1000 + 50);
+  }
+
+  function strikeDrumCenter() {
+    ensureAudio();
+    const now = audioCtx.currentTime;
+    spawnDrumRipple(-1, true);
+
+    const vGain = audioCtx.createGain();
+    const freqs = [0,1,2,3,4,5].map(i => getDrumLugFreq(i));
+    const avgFreq = freqs.reduce((a, b) => a + b, 0) / 6;
+
+    // 1. Deep fundamental punch (0,1 mode)
+    const bodyOsc = audioCtx.createOscillator();
+    const bodyGain = audioCtx.createGain();
+    bodyOsc.type = 'sine';
+    bodyOsc.frequency.setValueAtTime(avgFreq * 0.85 * 1.25, now);
+    bodyOsc.frequency.exponentialRampToValueAtTime(avgFreq * 0.85, now + 0.045);
+    bodyGain.gain.setValueAtTime(0.5, now);
+    bodyGain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+    bodyOsc.connect(bodyGain); bodyGain.connect(vGain);
+    bodyOsc.start(now); bodyOsc.stop(now + 0.95);
+
+    // 2. All 6 lugs' partials blend together -> beats/wobbles if uneven, pure boom if even!
+    freqs.forEach(lf => {
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(lf, now);
+      g.gain.setValueAtTime(0.11, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 1.25);
+      osc.connect(g); g.connect(vGain);
+      osc.start(now); osc.stop(now + 1.3);
+    });
+
+    // Attack + optional snare wires
+    playNoiseBurst(1600, 0.025, 0.32);
+    if (state.snareOn) playNoiseBurst(2600, 0.28, 0.36, 'highpass');
+
+    vGain.gain.setValueAtTime(0.75, now);
+    vGain.connect(masterGain);
+  }
+
+  function playNoiseBurst(freq, dur, amp, type = 'bandpass') {
+    const bufSize = Math.max(64, Math.floor(audioCtx.sampleRate * dur));
+    const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufSize * 0.32));
+    }
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    const f = audioCtx.createBiquadFilter();
+    f.type = type;
+    f.frequency.value = freq;
+    const g = audioCtx.createGain();
+    g.gain.value = amp;
+    src.connect(f); f.connect(g); g.connect(masterGain);
+    src.start(audioCtx.currentTime);
+  }
+
+  function updateRingingPitch(inst, idx) {
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+    if (inst === 'guitar' && guitarVoices[idx] && now < guitarVoices[idx].expiresAt) {
+      const f = getGuitarFreq(idx);
+      guitarVoices[idx].pairs.forEach(({ osc, mult }) => osc.frequency.setTargetAtTime(f * mult, now, 0.015));
+    } else if (inst === 'koto' && kotoVoices[idx] && now < kotoVoices[idx].expiresAt) {
+      const f = getKotoFreq(idx);
+      kotoVoices[idx].pairs.forEach(({ osc, mult }) => osc.frequency.setTargetAtTime(f * mult, now, 0.015));
+    } else if (inst === 'drum' && drumLugVoices[idx] && now < drumLugVoices[idx].expiresAt) {
+      const f = getDrumLugFreq(idx);
+      drumLugVoices[idx].pairs.forEach(({ osc, mult }) => osc.frequency.setTargetAtTime(f * mult, now, 0.015));
+    }
   }
 
   function playReferenceTone() {
     ensureAudio();
     const btn = document.getElementById('playRefBtn');
-
     if (refVoice) {
       stopVoice(refVoice, 0.05);
       refVoice = null;
       btn.classList.remove('playing');
-      updateRefText();
+      updateRefUI();
       return;
     }
 
     let freq = 440;
-    let isFork = false;
-    if (state.mode === 'easy') {
-      freq = STRINGS[state.selectedIdx].targetFreq;
-    } else if (state.mode === 'fret5') {
-      freq = STRINGS[0].targetFreq; // 6th string E2
+    let modeStyle = 'guitar';
+    if (state.instrument === 'guitar') {
+      if (state.guitarMode === 'easy') freq = GUITAR_STRINGS[state.guitarSel].targetFreq;
+      else if (state.guitarMode === 'fret5') freq = GUITAR_STRINGS[0].targetFreq;
+      else { freq = 440; modeStyle = 'sine'; }
+    } else if (state.instrument === 'koto') {
+      freq = state.kotoMode === 'easy' ? KOTO_STRINGS[state.kotoSel].freq : KOTO_STRINGS[0].freq;
+      modeStyle = 'koto';
     } else {
-      freq = 440.0; // A440 Tuning Fork
-      isFork = true;
+      freq = DRUM_TYPES[state.drumType].freq;
+      modeStyle = 'drum';
     }
 
     const now = audioCtx.currentTime;
     const gain = audioCtx.createGain();
     const oscs = [];
 
-    if (isFork || state.timbre === 'sine') {
+    if (modeStyle === 'sine' || (state.instrument === 'guitar' && state.guitarTimbre === 'sine')) {
       const o = audioCtx.createOscillator();
-      o.type = 'sine';
-      o.frequency.setValueAtTime(freq, now);
-      o.connect(gain);
-      o.start(now);
-      oscs.push(o);
+      o.type = 'sine'; o.frequency.setValueAtTime(freq, now);
+      o.connect(gain); o.start(now); oscs.push(o);
+    } else if (modeStyle === 'drum') {
+      [1, 1.59].forEach((m, i) => {
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = 'sine'; o.frequency.setValueAtTime(freq * m, now);
+        g.gain.value = i === 0 ? 0.65 : 0.16;
+        o.connect(g); g.connect(gain); o.start(now); oscs.push(o);
+      });
     } else {
       [1, 2, 3, 4].forEach((m, i) => {
         const o = audioCtx.createOscillator();
         const g = audioCtx.createGain();
-        o.type = 'sine';
-        o.frequency.setValueAtTime(freq * m, now);
+        o.type = 'sine'; o.frequency.setValueAtTime(freq * m, now);
         g.gain.value = [0.55, 0.35, 0.18, 0.08][i];
-        o.connect(g);
-        g.connect(gain);
-        o.start(now);
-        oscs.push(o);
+        o.connect(g); g.connect(gain); o.start(now); oscs.push(o);
       });
     }
 
-    const dur = 4.5;
+    const dur = modeStyle === 'drum' ? 2.4 : 4.2;
     gain.gain.setValueAtTime(0.001, now);
     gain.gain.linearRampToValueAtTime(0.38, now + 0.02);
     gain.gain.exponentialRampToValueAtTime(0.0008, now + dur);
@@ -817,373 +1188,654 @@
     refVoice = { oscs, gainNode: gain };
     btn.classList.add('playing');
     btn.textContent = '⏹ 基準音を止める';
-
     setTimeout(() => {
       if (refVoice && refVoice.gainNode === gain) {
         oscs.forEach(o => { try { o.stop(); o.disconnect(); } catch {} });
         try { gain.disconnect(); } catch {}
         refVoice = null;
         btn.classList.remove('playing');
-        updateRefText();
+        updateRefUI();
       }
     }, dur * 1000 + 50);
   }
 
-  function muteAll() {
-    for (let i = 0; i < 6; i++) {
-      if (activeVoices[i]) {
-        stopVoice(activeVoices[i], 0.04);
-        activeVoices[i] = null;
-      }
-      state.vibAmp[i] = 0;
-    }
-    if (refVoice) {
-      stopVoice(refVoice, 0.04);
-      refVoice = null;
-      document.getElementById('playRefBtn').classList.remove('playing');
-      updateRefText();
-    }
+  // =========================================================
+  // 4. ADJUSTMENTS & HOLD HELPERS
+  // =========================================================
+  function adjustGuitar(idx, delta) {
+    const next = Math.max(-220, Math.min(220, state.guitarCents[idx] + delta));
+    const applied = next - state.guitarCents[idx];
+    state.guitarCents[idx] = next;
+    const dir = GUITAR_STRINGS[idx].side === 'left' ? -1 : 1;
+    state.guitarAngles[idx] += applied * 3.0 * dir;
+    updateGuitarPegVisual(idx);
+    updateRingingPitch('guitar', idx);
   }
 
-  // ===== Pitch / Peg Adjustment =====
-  function adjustCents(idx, deltaCents) {
-    const next = Math.max(-MAX_CENTS, Math.min(MAX_CENTS, state.cents[idx] + deltaCents));
-    const applied = next - state.cents[idx];
-    state.cents[idx] = next;
-    // Rotate peg visually (~3 degrees per cent)
-    const dir = STRINGS[idx].side === 'left' ? -1 : 1;
-    state.pegAngles[idx] += applied * 3.0 * dir;
-    updatePegVisual(idx);
-    updateRingingPitch(idx);
+  function adjustKoto(idx, delta) {
+    if (!KOTO_TARGETS.includes(idx) || !state.kotoStanding[idx]) return;
+    state.kotoCents[idx] = Math.max(-200, Math.min(200, state.kotoCents[idx] + delta));
+    updateKotojiVisual(idx);
+    updateRingingPitch('koto', idx);
   }
 
-  // ===== Build SVG & Interactive Pegs =====
-  const stringsLayer = document.getElementById('stringsLayer');
-  const fretButtonsLayer = document.getElementById('fretButtonsLayer');
-  const hitLayer = document.getElementById('hitLayer');
-  const pegOverlay = document.getElementById('pegOverlay');
-
-  const stringPathEls = [];
-  const pegKnobEls = [];
-  const pegWingEls = [];
-  const pegUnitEls = [];
-  const pegBadgeEls = [];
-  const fretCircleEls = [];
-
-  function initBoard() {
-    stringsLayer.innerHTML = '';
-    fretButtonsLayer.innerHTML = '';
-    hitLayer.innerHTML = '';
-    pegOverlay.innerHTML = '';
-
-    let isStrumming = false;
-
-    window.addEventListener('pointerup', () => { isStrumming = false; });
-    window.addEventListener('pointercancel', () => { isStrumming = false; });
-
-    STRINGS.forEach((s, idx) => {
-      // 1. Headstock segment (post to nut)
-      const headLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      headLine.setAttribute('x1', s.post[0]);
-      headLine.setAttribute('y1', s.post[1]);
-      headLine.setAttribute('x2', s.nutX);
-      headLine.setAttribute('y2', 233);
-      headLine.setAttribute('stroke', s.color);
-      headLine.setAttribute('stroke-width', s.gauge);
-      headLine.setAttribute('stroke-linecap', 'round');
-      stringsLayer.appendChild(headLine);
-
-      // 2. Neck/Body vibrating segment (nut to bottom)
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('d', `M ${s.nutX} 233 Q ${(s.nutX + s.bridgeX) / 2} 376 ${s.bridgeX} 520`);
-      path.setAttribute('fill', 'none');
-      path.setAttribute('stroke', s.color);
-      path.setAttribute('stroke-width', s.gauge);
-      stringsLayer.appendChild(path);
-      stringPathEls[idx] = path;
-
-      // 3. Fret comparison button (5F or 4F on 3G)
-      if (s.compareFret > 0) {
-        const fretY = s.compareFret === 5 ? 335 : 295;
-        const t = (fretY - 233) / (520 - 233);
-        const fretX = s.nutX + (s.bridgeX - s.nutX) * t;
-
-        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        g.style.cursor = 'pointer';
-
-        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.setAttribute('cx', fretX);
-        circle.setAttribute('cy', fretY);
-        circle.setAttribute('r', 12);
-        circle.setAttribute('fill', '#261e19');
-        circle.setAttribute('stroke', '#78716c');
-        circle.setAttribute('stroke-width', '1.5');
-
-        const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        txt.setAttribute('x', fretX);
-        txt.setAttribute('y', fretY + 3.5);
-        txt.setAttribute('text-anchor', 'middle');
-        txt.setAttribute('font-size', '9');
-        txt.setAttribute('font-weight', 'bold');
-        txt.setAttribute('fill', '#d6d3d1');
-        txt.textContent = s.compareFret + 'F';
-
-        g.appendChild(circle);
-        g.appendChild(txt);
-        g.addEventListener('pointerdown', (e) => {
-          e.stopPropagation();
-          state.fretted[idx] = !state.fretted[idx];
-          updateFretVisual(idx);
-          updateRingingPitch(idx);
-          pluckString(idx);
-        });
-        fretButtonsLayer.appendChild(g);
-        fretCircleEls[idx] = { circle, txt };
-      }
-
-      // 4. Hit area for plucking / strumming (lower pluck zone y=360..520)
-      const hitPoly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-      const halfW = 22;
-      const topX = s.nutX + (s.bridgeX - s.nutX) * ((360 - 233) / (520 - 233));
-      hitPoly.setAttribute('points', `${topX - 15},355 ${topX + 15},355 ${s.bridgeX + halfW},520 ${s.bridgeX - halfW},520`);
-      hitPoly.setAttribute('fill', 'transparent');
-      hitPoly.style.cursor = 'pointer';
-
-      hitPoly.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        isStrumming = true;
-        pluckString(idx);
-      });
-      hitPoly.addEventListener('pointerenter', () => {
-        if (isStrumming && performance.now() - state.lastPluckTime[idx] > 110) {
-          pluckString(idx);
-        }
-      });
-      hitLayer.appendChild(hitPoly);
-
-      // 5. Peg Overlay Unit
-      const unit = document.createElement('div');
-      unit.className = `peg-unit ${s.side}`;
-      unit.style.left = `${(s.pegPos[0] / 420) * 100}%`;
-      unit.style.top = `${(s.pegPos[1] / 520) * 100}%`;
-
-      const stepCol = document.createElement('div');
-      stepCol.className = 'peg-step-col';
-
-      const plusBtn = document.createElement('button');
-      plusBtn.className = 'peg-step-btn';
-      plusBtn.textContent = '＋';
-      plusBtn.title = '締める (音を高く)';
-
-      const minusBtn = document.createElement('button');
-      minusBtn.className = 'peg-step-btn';
-      minusBtn.textContent = '−';
-      minusBtn.title = 'ゆるめる (音を低く)';
-
-      attachHoldAction(plusBtn, idx, +1);
-      attachHoldAction(minusBtn, idx, -1);
-      stepCol.appendChild(plusBtn);
-      stepCol.appendChild(minusBtn);
-
-      const knob = document.createElement('div');
-      knob.className = 'peg-knob';
-
-      const wing = document.createElement('div');
-      wing.className = 'peg-wing';
-      const dot = document.createElement('div');
-      dot.className = 'peg-dot';
-      wing.appendChild(dot);
-
-      const lbl = document.createElement('div');
-      lbl.className = 'peg-label';
-      lbl.textContent = s.label;
-
-      const badge = document.createElement('div');
-      badge.className = 'practice-badge';
-      badge.style.display = 'none';
-
-      knob.appendChild(wing);
-      knob.appendChild(lbl);
-      knob.appendChild(badge);
-
-      // Drag / Wheel on Peg Knob
-      let dragging = false;
-      let lastY = 0;
-
-      knob.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        knob.setPointerCapture(e.pointerId);
-        dragging = true;
-        lastY = e.clientY;
-        state.selectedIdx = idx;
-        updateSelectionUI();
-        ensureAudio();
-      });
-
-      knob.addEventListener('pointermove', (e) => {
-        if (!dragging) return;
-        const dy = lastY - e.clientY;
-        lastY = e.clientY;
-        if (dy !== 0) {
-          const sens = state.fineMode ? 0.22 : 0.75;
-          adjustCents(idx, dy * sens);
-        }
-      });
-
-      const endDrag = (e) => {
-        if (dragging) {
-          dragging = false;
-          try { knob.releasePointerCapture(e.pointerId); } catch {}
-        }
-      };
-      knob.addEventListener('pointerup', endDrag);
-      knob.addEventListener('pointercancel', endDrag);
-
-      knob.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        state.selectedIdx = idx;
-        updateSelectionUI();
-        const sens = state.fineMode ? 0.4 : 2.0;
-        adjustCents(idx, (e.deltaY < 0 ? 1 : -1) * sens);
-      }, { passive: false });
-
-      unit.appendChild(stepCol);
-      unit.appendChild(knob);
-      pegOverlay.appendChild(unit);
-
-      pegUnitEls[idx] = unit;
-      pegKnobEls[idx] = knob;
-      pegWingEls[idx] = wing;
-      pegBadgeEls[idx] = badge;
-    });
-
-    // Enable mobile touch-move strumming across hitLayer
-    const svgEl = document.getElementById('guitarSvg');
-    svgEl.addEventListener('touchmove', (e) => {
-      if (!isStrumming || !e.touches.length) return;
-      const touch = e.touches[0];
-      const rect = svgEl.getBoundingClientRect();
-      const svgX = ((touch.clientX - rect.left) / rect.width) * 420;
-      const svgY = ((touch.clientY - rect.top) / rect.height) * 520;
-      if (svgY < 350) return;
-
-      STRINGS.forEach((s, idx) => {
-        const t = (svgY - 233) / (520 - 233);
-        const sx = s.nutX + (s.bridgeX - s.nutX) * t;
-        if (Math.abs(svgX - sx) < 18 && performance.now() - state.lastPluckTime[idx] > 120) {
-          pluckString(idx);
-        }
-      });
-    }, { passive: true });
+  function adjustDrum(idx, delta) {
+    if (state.drumMode === 'anchor' && idx === 0) return;
+    const next = Math.max(-200, Math.min(200, state.drumCents[idx] + delta));
+    const applied = next - state.drumCents[idx];
+    state.drumCents[idx] = next;
+    state.drumAngles[idx] += applied * 2.8;
+    updateDrumBoltVisual(idx);
+    updateRingingPitch('drum', idx);
   }
 
-  function attachHoldAction(btn, idx, sign) {
-    let timer = null;
-    let interval = null;
-
-    const step = () => {
-      state.selectedIdx = idx;
-      updateSelectionUI();
-      const amount = state.fineMode ? 0.25 : 1.5;
-      adjustCents(idx, sign * amount);
-    };
-
-    const stop = () => {
-      clearTimeout(timer);
-      clearInterval(interval);
-      timer = null;
-      interval = null;
-    };
-
+  function attachHold(btn, actionFn) {
+    let t = null, iv = null;
+    const stop = () => { clearTimeout(t); clearInterval(iv); t = iv = null; };
     btn.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+      e.preventDefault(); e.stopPropagation();
       ensureAudio();
-      step();
-      timer = setTimeout(() => {
-        interval = setInterval(step, 55);
-      }, 260);
+      actionFn();
+      t = setTimeout(() => { iv = setInterval(actionFn, 55); }, 250);
     });
-
     btn.addEventListener('pointerup', stop);
     btn.addEventListener('pointerleave', stop);
     btn.addEventListener('pointercancel', stop);
   }
 
-  // ===== UI Updates =====
-  function updatePegVisual(idx) {
-    pegWingEls[idx].style.transform = `rotate(${state.pegAngles[idx]}deg)`;
-    const badge = pegBadgeEls[idx];
-    if (state.practicePeek) {
-      const c = state.cents[idx];
-      const sign = c >= 0 ? '+' : '';
-      badge.style.display = 'block';
-      badge.textContent = `${sign}${c.toFixed(1)}¢`;
-      const abs = Math.abs(c);
-      badge.style.color = abs <= 2.5 ? 'var(--good)' : abs <= 8 ? 'var(--warn)' : 'var(--bad)';
-    } else {
-      badge.style.display = 'none';
-    }
+  // =========================================================
+  // 5. BUILD GUITAR UI
+  // =========================================================
+  const guitarStringEls = [], guitarPegUnits = [], guitarPegKnobs = [], guitarPegWings = [], guitarBadges = [], guitarFretEls = [];
+
+  function initGuitarUI() {
+    const sLayer = document.getElementById('guitarStringsLayer');
+    const fLayer = document.getElementById('guitarFretsLayer');
+    const hLayer = document.getElementById('guitarHitLayer');
+    const overlay = document.getElementById('guitarOverlay');
+    sLayer.innerHTML = fLayer.innerHTML = hLayer.innerHTML = overlay.innerHTML = '';
+
+    let strumming = false;
+    window.addEventListener('pointerup', () => { strumming = false; });
+
+    GUITAR_STRINGS.forEach((s, idx) => {
+      const hl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      hl.setAttribute('x1', s.post[0]); hl.setAttribute('y1', s.post[1]);
+      hl.setAttribute('x2', s.nutX); hl.setAttribute('y2', 233);
+      hl.setAttribute('stroke', s.color); hl.setAttribute('stroke-width', s.gauge);
+      hl.setAttribute('stroke-linecap', 'round');
+      sLayer.appendChild(hl);
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', `M ${s.nutX} 233 Q ${(s.nutX+s.bridgeX)/2} 376 ${s.bridgeX} 520`);
+      path.setAttribute('fill', 'none'); path.setAttribute('stroke', s.color); path.setAttribute('stroke-width', s.gauge);
+      sLayer.appendChild(path);
+      guitarStringEls[idx] = path;
+
+      if (s.compareFret > 0) {
+        const fy = s.compareFret === 5 ? 335 : 295;
+        const fx = s.nutX + (s.bridgeX - s.nutX) * ((fy - 233) / (520 - 233));
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.style.cursor = 'pointer';
+        const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        c.setAttribute('cx', fx); c.setAttribute('cy', fy); c.setAttribute('r', 12);
+        c.setAttribute('fill', '#261e19'); c.setAttribute('stroke', '#78716c'); c.setAttribute('stroke-width', '1.5');
+        const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        txt.setAttribute('x', fx); txt.setAttribute('y', fy + 3.5);
+        txt.setAttribute('text-anchor', 'middle'); txt.setAttribute('font-size', '9');
+        txt.setAttribute('font-weight', 'bold'); txt.setAttribute('fill', '#d6d3d1');
+        txt.textContent = s.compareFret + 'F';
+        g.appendChild(c); g.appendChild(txt);
+        g.addEventListener('pointerdown', (e) => {
+          e.stopPropagation();
+          state.guitarFretted[idx] = !state.guitarFretted[idx];
+          updateGuitarFretVisual(idx);
+          updateRingingPitch('guitar', idx);
+          pluckGuitar(idx);
+        });
+        fLayer.appendChild(g);
+        guitarFretEls[idx] = { c, txt };
+      }
+
+      const hit = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      const topX = s.nutX + (s.bridgeX - s.nutX) * ((360 - 233) / (520 - 233));
+      hit.setAttribute('points', `${topX-15},355 ${topX+15},355 ${s.bridgeX+22},520 ${s.bridgeX-22},520`);
+      hit.setAttribute('fill', 'transparent'); hit.style.cursor = 'pointer';
+      hit.addEventListener('pointerdown', (e) => { e.preventDefault(); strumming = true; pluckGuitar(idx); });
+      hit.addEventListener('pointerenter', () => {
+        if (strumming && performance.now() - state.guitarLastPluck[idx] > 110) pluckGuitar(idx);
+      });
+      hLayer.appendChild(hit);
+
+      const unit = document.createElement('div');
+      unit.className = `peg-unit ${s.side}`;
+      unit.style.left = `${(s.pegPos[0] / 420) * 100}%`;
+      unit.style.top = `${(s.pegPos[1] / 520) * 100}%`;
+
+      const col = document.createElement('div'); col.className = 'step-col';
+      const pBtn = document.createElement('button'); pBtn.className = 'step-btn'; pBtn.textContent = '＋';
+      const mBtn = document.createElement('button'); mBtn.className = 'step-btn'; mBtn.textContent = '−';
+      attachHold(pBtn, () => { state.guitarSel = idx; updateSelectionUI(); adjustGuitar(idx, state.fineMode ? 0.25 : 1.5); });
+      attachHold(mBtn, () => { state.guitarSel = idx; updateSelectionUI(); adjustGuitar(idx, -(state.fineMode ? 0.25 : 1.5)); });
+      col.appendChild(pBtn); col.appendChild(mBtn);
+
+      const knob = document.createElement('div'); knob.className = 'peg-knob';
+      const wing = document.createElement('div'); wing.className = 'peg-wing';
+      const dot = document.createElement('div'); dot.className = 'peg-dot';
+      wing.appendChild(dot);
+      const lbl = document.createElement('div'); lbl.className = 'knob-label'; lbl.textContent = s.label;
+      const badge = document.createElement('div'); badge.className = 'practice-badge'; badge.style.display = 'none';
+      knob.appendChild(wing); knob.appendChild(lbl); knob.appendChild(badge);
+
+      let dragging = false, lastY = 0;
+      knob.addEventListener('pointerdown', (e) => {
+        e.preventDefault(); knob.setPointerCapture(e.pointerId);
+        dragging = true; lastY = e.clientY; state.guitarSel = idx; updateSelectionUI(); ensureAudio();
+      });
+      knob.addEventListener('pointermove', (e) => {
+        if (!dragging) return;
+        const dy = lastY - e.clientY; lastY = e.clientY;
+        if (dy !== 0) adjustGuitar(idx, dy * (state.fineMode ? 0.22 : 0.75));
+      });
+      const endD = (e) => { if (dragging) { dragging = false; try { knob.releasePointerCapture(e.pointerId); } catch {} } };
+      knob.addEventListener('pointerup', endD); knob.addEventListener('pointercancel', endD);
+      knob.addEventListener('wheel', (e) => {
+        e.preventDefault(); state.guitarSel = idx; updateSelectionUI();
+        adjustGuitar(idx, (e.deltaY < 0 ? 1 : -1) * (state.fineMode ? 0.4 : 2.0));
+      }, { passive: false });
+
+      unit.appendChild(col); unit.appendChild(knob); overlay.appendChild(unit);
+      guitarPegUnits[idx] = unit; guitarPegKnobs[idx] = knob; guitarPegWings[idx] = wing; guitarBadges[idx] = badge;
+    });
+
+    const svgEl = document.getElementById('guitarSvg');
+    svgEl.addEventListener('touchmove', (e) => {
+      if (!strumming || !e.touches.length) return;
+      const t = e.touches[0], r = svgEl.getBoundingClientRect();
+      const sx = ((t.clientX - r.left) / r.width) * 420;
+      const sy = ((t.clientY - r.top) / r.height) * 520;
+      if (sy < 350) return;
+      GUITAR_STRINGS.forEach((s, idx) => {
+        const x = s.nutX + (s.bridgeX - s.nutX) * ((sy - 233) / (520 - 233));
+        if (Math.abs(sx - x) < 18 && performance.now() - state.guitarLastPluck[idx] > 120) pluckGuitar(idx);
+      });
+    }, { passive: true });
   }
 
-  function updateFretVisual(idx) {
-    const el = fretCircleEls[idx];
-    if (!el) return;
-    if (state.fretted[idx]) {
-      el.circle.setAttribute('fill', '#d9a05b');
-      el.circle.setAttribute('stroke', '#fef08a');
-      el.txt.setAttribute('fill', '#14110f');
+  function updateGuitarPegVisual(idx) {
+    guitarPegWings[idx].style.transform = `rotate(${state.guitarAngles[idx]}deg)`;
+    const b = guitarBadges[idx];
+    if (state.practicePeek) {
+      const c = state.guitarCents[idx];
+      b.style.display = 'block';
+      b.textContent = `${c >= 0 ? '+' : ''}${c.toFixed(1)}¢`;
+      b.style.color = Math.abs(c) <= 2.5 ? 'var(--good)' : Math.abs(c) <= 8 ? 'var(--warn)' : 'var(--bad)';
+    } else b.style.display = 'none';
+  }
+
+  function updateGuitarFretVisual(idx) {
+    const el = guitarFretEls[idx]; if (!el) return;
+    el.c.setAttribute('fill', state.guitarFretted[idx] ? '#d9a05b' : '#261e19');
+    el.c.setAttribute('stroke', state.guitarFretted[idx] ? '#fef08a' : '#78716c');
+    el.txt.setAttribute('fill', state.guitarFretted[idx] ? '#14110f' : '#d6d3d1');
+  }
+
+  // =========================================================
+  // 6. BUILD KOTO UI
+  // =========================================================
+  const kotoStringEls = [], kotojiEls = [], kotojiTags = [], kotojiBadges = [];
+
+  function kotoY(idx) { return 36 + idx * 30; }
+  function kotoBaseX(idx) { return 255 - idx * 5.2; }
+
+  function initKotoUI() {
+    const sLayer = document.getElementById('kotoStringsLayer');
+    const hLayer = document.getElementById('kotoHitLayer');
+    const overlay = document.getElementById('kotoOverlay');
+    sLayer.innerHTML = hLayer.innerHTML = overlay.innerHTML = '';
+
+    let gliss = false;
+    window.addEventListener('pointerup', () => { gliss = false; });
+
+    KOTO_STRINGS.forEach((ks, idx) => {
+      const y = kotoY(idx);
+
+      // Kanji string number on left
+      const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      txt.setAttribute('x', 30); txt.setAttribute('y', y + 4);
+      txt.setAttribute('text-anchor', 'middle'); txt.setAttribute('font-size', '12');
+      txt.setAttribute('font-weight', 'bold'); txt.setAttribute('fill', '#fde68a');
+      txt.textContent = ks.kanji;
+      sLayer.appendChild(txt);
+
+      // String path
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', `M 56 ${y} Q 230 ${y} 404 ${y}`);
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', KOTO_TARGETS.includes(idx) ? '#fef3c7' : '#e7d8c3');
+      path.setAttribute('stroke-width', 1.7);
+      sLayer.appendChild(path);
+      kotoStringEls[idx] = path;
+
+      // Pluck hit area (right side)
+      const hit = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      hit.setAttribute('x', 330); hit.setAttribute('y', y - 14);
+      hit.setAttribute('width', 78); hit.setAttribute('height', 28);
+      hit.setAttribute('fill', 'transparent'); hit.style.cursor = 'pointer';
+      hit.addEventListener('pointerdown', (e) => { e.preventDefault(); gliss = true; pluckKoto(idx); });
+      hit.addEventListener('pointerenter', () => {
+        if (gliss && performance.now() - state.kotoLastPluck[idx] > 90) pluckKoto(idx);
+      });
+      hLayer.appendChild(hit);
+
+      // Kotoji (Movable Bridge) handle
+      const isTarget = KOTO_TARGETS.includes(idx);
+      const handle = document.createElement('div');
+      handle.className = `kotoji-handle ${isTarget ? '' : 'fixed'}`;
+      handle.style.left = `${(kotoBaseX(idx) / 460) * 100}%`;
+      handle.style.top = `${(y / 430) * 100}%`;
+
+      const body = document.createElement('div'); body.className = 'kotoji-body';
+      const tag = document.createElement('div'); tag.className = 'kotoji-tag';
+      const badge = document.createElement('div'); badge.className = 'practice-badge'; badge.style.display = 'none';
+      handle.appendChild(body); handle.appendChild(tag); handle.appendChild(badge);
+
+      let dragging = false, startX = 0, moved = false;
+      handle.addEventListener('pointerdown', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        ensureAudio();
+        state.kotoSel = idx;
+        updateSelectionUI();
+
+        if (!isTarget) { pluckKoto(idx); return; }
+        if (!state.kotoStanding[idx]) {
+          state.kotoStanding[idx] = true;
+          playWoodClack();
+          updateKotojiVisual(idx);
+          updateSelectionUI();
+          return;
+        }
+        handle.setPointerCapture(e.pointerId);
+        dragging = true; startX = e.clientX; moved = false;
+      });
+      handle.addEventListener('pointermove', (e) => {
+        if (!dragging) return;
+        const dx = e.clientX - startX;
+        if (Math.abs(dx) > 2) moved = true;
+        startX = e.clientX;
+        if (dx !== 0) adjustKoto(idx, dx * (state.fineMode ? 0.3 : 1.05));
+      });
+      const endK = (e) => {
+        if (dragging) {
+          dragging = false;
+          try { handle.releasePointerCapture(e.pointerId); } catch {}
+          if (!moved) pluckKoto(idx);
+        }
+      };
+      handle.addEventListener('pointerup', endK);
+      handle.addEventListener('pointercancel', endK);
+
+      overlay.appendChild(handle);
+      kotojiEls[idx] = handle;
+      kotojiTags[idx] = tag;
+      kotojiBadges[idx] = badge;
+    });
+
+    // Touch glissando on Koto SVG
+    const svgEl = document.getElementById('kotoSvg');
+    svgEl.addEventListener('touchmove', (e) => {
+      if (!gliss || !e.touches.length) return;
+      const t = e.touches[0], r = svgEl.getBoundingClientRect();
+      const sx = ((t.clientX - r.left) / r.width) * 460;
+      const sy = ((t.clientY - r.top) / r.height) * 430;
+      if (sx < 320) return;
+      const idx = Math.round((sy - 36) / 30);
+      if (idx >= 0 && idx < 13 && performance.now() - state.kotoLastPluck[idx] > 95) pluckKoto(idx);
+    }, { passive: true });
+
+    // Koto bottom control bar
+    document.getElementById('kotoStandBtn').addEventListener('click', () => {
+      const idx = state.kotoSel;
+      if (KOTO_TARGETS.includes(idx) && !state.kotoStanding[idx]) {
+        state.kotoStanding[idx] = true;
+        playWoodClack();
+        updateKotojiVisual(idx);
+        updateSelectionUI();
+      }
+    });
+    attachHold(document.getElementById('kotoLeftBtn'), () => adjustKoto(state.kotoSel, -(state.fineMode ? 0.25 : 1.8)));
+    attachHold(document.getElementById('kotoRightBtn'), () => adjustKoto(state.kotoSel, (state.fineMode ? 0.25 : 1.8)));
+  }
+
+  function updateKotojiVisual(idx) {
+    const isTarget = KOTO_TARGETS.includes(idx);
+    const el = kotojiEls[idx];
+    const tag = kotojiTags[idx];
+    const badge = kotojiBadges[idx];
+    const standing = state.kotoStanding[idx];
+
+    el.classList.toggle('fallen', isTarget && !standing);
+    const xPos = kotoBaseX(idx) + state.kotoCents[idx] * 0.22;
+    el.style.left = `${(Math.max(85, Math.min(315, xPos)) / 460) * 100}%`;
+
+    if (isTarget) {
+      if (!standing) {
+        tag.style.display = 'block'; tag.textContent = '立てる'; tag.style.color = '#fca5a5';
+      } else {
+        tag.style.display = 'block'; tag.textContent = KOTO_STRINGS[idx].kanji; tag.style.color = 'var(--gold-bright)';
+      }
     } else {
-      el.circle.setAttribute('fill', '#261e19');
-      el.circle.setAttribute('stroke', '#78716c');
-      el.txt.setAttribute('fill', '#d6d3d1');
+      tag.style.display = 'none';
     }
+
+    if (state.practicePeek && isTarget) {
+      const c = state.kotoCents[idx];
+      badge.style.display = 'block';
+      badge.textContent = `${c >= 0 ? '+' : ''}${c.toFixed(1)}¢`;
+      badge.style.color = Math.abs(c) <= 2.5 ? 'var(--good)' : Math.abs(c) <= 8 ? 'var(--warn)' : 'var(--bad)';
+    } else badge.style.display = 'none';
+  }
+
+  // =========================================================
+  // 7. BUILD DRUM UI
+  // =========================================================
+  const drumUnits = [], drumBolts = [], drumKeyBars = [], drumBadges = [];
+
+  function initDrumUI() {
+    const casings = document.getElementById('drumCasings');
+    const targets = document.getElementById('drumTargetsLayer');
+    const overlay = document.getElementById('drumOverlay');
+    casings.innerHTML = targets.innerHTML = overlay.innerHTML = '';
+
+    // Center Hit Zone
+    const centerHit = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    centerHit.setAttribute('cx', 210); centerHit.setAttribute('cy', 210); centerHit.setAttribute('r', 56);
+    centerHit.setAttribute('fill', 'transparent'); centerHit.style.cursor = 'pointer';
+    centerHit.addEventListener('pointerdown', (e) => { e.preventDefault(); strikeDrumCenter(); });
+    targets.appendChild(centerHit);
+
+    DRUM_ANGLES.forEach((deg, idx) => {
+      const rad = (deg * Math.PI) / 180;
+      const cos = Math.cos(rad), sin = Math.sin(rad);
+
+      // Lug casing on hoop
+      const cx = 210 + 144 * cos, cy = 210 + 144 * sin;
+      const casing = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      casing.setAttribute('cx', cx); casing.setAttribute('cy', cy); casing.setAttribute('r', 8);
+      casings.appendChild(casing);
+
+      // Edge tap zone inside drumhead
+      const tx = 210 + 95 * cos, ty = 210 + 95 * sin;
+      const tg = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      tg.style.cursor = 'pointer';
+      const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      ring.setAttribute('cx', tx); ring.setAttribute('cy', ty); ring.setAttribute('r', 26);
+      ring.setAttribute('fill', 'rgba(0,0,0,0.03)');
+      ring.setAttribute('stroke', 'rgba(120,113,108,0.32)');
+      ring.setAttribute('stroke-dasharray', '3 3');
+      const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      txt.setAttribute('x', tx); txt.setAttribute('y', ty + 4);
+      txt.setAttribute('text-anchor', 'middle'); txt.setAttribute('font-size', '11');
+      txt.setAttribute('font-weight', '800'); txt.setAttribute('fill', '#57534e');
+      txt.textContent = idx + 1;
+      tg.appendChild(ring); tg.appendChild(txt);
+      tg.addEventListener('pointerdown', (e) => { e.preventDefault(); strikeDrumLug(idx); });
+      targets.appendChild(tg);
+
+      // Outer Tension Bolt & Step Buttons
+      const bx = 210 + 174 * cos, by = 210 + 174 * sin;
+      const unit = document.createElement('div');
+      unit.className = 'drum-lug-unit';
+      unit.style.left = `${(bx / 420) * 100}%`;
+      unit.style.top = `${(by / 420) * 100}%`;
+      if (cos < -0.2) unit.style.flexDirection = 'row';
+      else unit.style.flexDirection = 'row-reverse';
+
+      const col = document.createElement('div'); col.className = 'step-col';
+      const pBtn = document.createElement('button'); pBtn.className = 'step-btn'; pBtn.textContent = '＋';
+      const mBtn = document.createElement('button'); mBtn.className = 'step-btn'; mBtn.textContent = '−';
+      attachHold(pBtn, () => { state.drumSel = idx; updateSelectionUI(); adjustDrum(idx, state.fineMode ? 0.25 : 1.8); });
+      attachHold(mBtn, () => { state.drumSel = idx; updateSelectionUI(); adjustDrum(idx, -(state.fineMode ? 0.25 : 1.8)); });
+      col.appendChild(pBtn); col.appendChild(mBtn);
+
+      const bolt = document.createElement('div'); bolt.className = 'drum-bolt';
+      const bar = document.createElement('div'); bar.className = 'drum-key-bar';
+      const dot = document.createElement('div'); dot.className = 'drum-key-dot';
+      bar.appendChild(dot);
+      const lbl = document.createElement('div'); lbl.className = 'knob-label'; lbl.textContent = `L${idx + 1}`;
+      const badge = document.createElement('div'); badge.className = 'practice-badge'; badge.style.display = 'none';
+      bolt.appendChild(bar); bolt.appendChild(lbl); bolt.appendChild(badge);
+
+      let dragging = false, lastY = 0;
+      bolt.addEventListener('pointerdown', (e) => {
+        e.preventDefault(); bolt.setPointerCapture(e.pointerId);
+        dragging = true; lastY = e.clientY; state.drumSel = idx; updateSelectionUI(); ensureAudio();
+      });
+      bolt.addEventListener('pointermove', (e) => {
+        if (!dragging) return;
+        const dy = lastY - e.clientY; lastY = e.clientY;
+        if (dy !== 0) adjustDrum(idx, dy * (state.fineMode ? 0.22 : 0.75));
+      });
+      const endB = (e) => { if (dragging) { dragging = false; try { bolt.releasePointerCapture(e.pointerId); } catch {} } };
+      bolt.addEventListener('pointerup', endB); bolt.addEventListener('pointercancel', endB);
+
+      unit.appendChild(col); unit.appendChild(bolt); overlay.appendChild(unit);
+      drumUnits[idx] = unit; drumBolts[idx] = bolt; drumKeyBars[idx] = bar; drumBadges[idx] = badge;
+    });
+  }
+
+  function updateDrumBoltVisual(idx) {
+    drumKeyBars[idx].style.transform = `rotate(${state.drumAngles[idx]}deg)`;
+    const isAnchor = state.drumMode === 'anchor' && idx === 0;
+    drumBolts[idx].classList.toggle('anchor', isAnchor);
+    const b = drumBadges[idx];
+    if (state.practicePeek) {
+      const c = state.drumCents[idx];
+      b.style.display = 'block';
+      b.textContent = isAnchor ? '基準' : `${c >= 0 ? '+' : ''}${c.toFixed(1)}¢`;
+      b.style.color = isAnchor ? 'var(--good)' : (Math.abs(c) <= 2.5 ? 'var(--good)' : Math.abs(c) <= 8 ? 'var(--warn)' : 'var(--bad)');
+    } else b.style.display = 'none';
+  }
+
+  function spawnDrumRipple(idx, isCenter) {
+    const layer = document.getElementById('drumRippleLayer');
+    let x = 210, y = 210;
+    if (!isCenter) {
+      const rad = (DRUM_ANGLES[idx] * Math.PI) / 180;
+      x = 210 + 95 * Math.cos(rad);
+      y = 210 + 95 * Math.sin(rad);
+    }
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', isCenter ? 12 : 8);
+    c.setAttribute('fill', 'none'); c.setAttribute('stroke', '#d97706'); c.setAttribute('stroke-width', '2.5');
+    c.setAttribute('opacity', '0.85');
+    layer.appendChild(c);
+
+    let r = isCenter ? 12 : 8, op = 0.85;
+    const anim = () => {
+      r += isCenter ? 3.5 : 2.2; op -= 0.055;
+      if (op <= 0) { c.remove(); return; }
+      c.setAttribute('r', r); c.setAttribute('opacity', op);
+      requestAnimationFrame(anim);
+    };
+    requestAnimationFrame(anim);
+  }
+
+  // =========================================================
+  // 8. INSTRUMENT SWITCHING, CONTROLS & SELECTION UI
+  // =========================================================
+  function renderControlsBar() {
+    const modeTabs = document.getElementById('modeTabs');
+    const togglesRow = document.getElementById('togglesRow');
+
+    if (state.instrument === 'guitar') {
+      modeTabs.innerHTML = `
+        <button class="mode-btn ${state.guitarMode==='easy'?'active':''}" data-val="easy">お手本あり</button>
+        <button class="mode-btn ${state.guitarMode==='fret5'?'active':''}" data-val="fret5">5F相対法</button>
+        <button class="mode-btn ${state.guitarMode==='master'?'active':''}" data-val="master">A440音叉</button>
+      `;
+      togglesRow.innerHTML = `
+        <button class="toggle-pill ${state.fineMode?'active':''}" id="fineBtn">微調整: ${state.fineMode?'ON':'OFF'}</button>
+        <button class="toggle-pill ${state.guitarTimbre==='sine'?'active':''}" id="timbreBtn">音色: ${state.guitarTimbre==='guitar'?'アコギ':'ピュア音'}</button>
+        <button class="toggle-pill" id="muteBtn">🔇 消音</button>
+      `;
+      document.getElementById('timbreBtn').onclick = () => {
+        state.guitarTimbre = state.guitarTimbre === 'guitar' ? 'sine' : 'guitar';
+        renderControlsBar();
+      };
+    } else if (state.instrument === 'koto') {
+      modeTabs.innerHTML = `
+        <button class="mode-btn ${state.kotoMode==='easy'?'active':''}" data-val="easy">平調子 (お手本あり)</button>
+        <button class="mode-btn ${state.kotoMode==='ear'?'active':''}" data-val="ear">一弦基準・耳調弦</button>
+      `;
+      togglesRow.innerHTML = `
+        <button class="toggle-pill ${state.fineMode?'active':''}" id="fineBtn">微調整: ${state.fineMode?'ON':'OFF'}</button>
+        <button class="toggle-pill" id="standAllBtn">🎍 柱を全部立てる</button>
+        <button class="toggle-pill" id="muteBtn">🔇 消音</button>
+      `;
+      document.getElementById('standAllBtn').onclick = () => {
+        KOTO_TARGETS.forEach(idx => { state.kotoStanding[idx] = true; updateKotojiVisual(idx); });
+        playWoodClack();
+        updateSelectionUI();
+      };
+    } else {
+      modeTabs.innerHTML = `
+        <button class="mode-btn ${state.drumMode==='easy'?'active':''}" data-val="easy">お手本あり (全6ラグ)</button>
+        <button class="mode-btn ${state.drumMode==='anchor'?'active':''}" data-val="anchor">張り合わせのみ (L1基準)</button>
+      `;
+      togglesRow.innerHTML = `
+        <button class="toggle-pill ${state.fineMode?'active':''}" id="fineBtn">微調整: ${state.fineMode?'ON':'OFF'}</button>
+        <button class="toggle-pill" id="drumTypeBtn">種類: ${DRUM_TYPES[state.drumType].name}</button>
+        <button class="toggle-pill ${state.snareOn?'active':''}" id="snareBtn">響き線: ${state.snareOn?'ON':'OFF'}</button>
+        <button class="toggle-pill" id="muteBtn">🔇 消音</button>
+      `;
+      document.getElementById('drumTypeBtn').onclick = () => {
+        const order = ['tom', 'snare', 'floor'];
+        state.drumType = order[(order.indexOf(state.drumType) + 1) % 3];
+        if (state.drumType === 'snare') state.snareOn = false;
+        renderControlsBar(); updateRefUI();
+      };
+      document.getElementById('snareBtn').onclick = () => {
+        state.snareOn = !state.snareOn; renderControlsBar();
+      };
+    }
+
+    document.getElementById('fineBtn').onclick = () => { state.fineMode = !state.fineMode; renderControlsBar(); };
+    document.getElementById('muteBtn').onclick = muteAll;
   }
 
   function updateSelectionUI() {
-    STRINGS.forEach((_, idx) => {
-      const sel = idx === state.selectedIdx;
-      pegUnitEls[idx].classList.toggle('selected', sel);
-      pegKnobEls[idx].classList.toggle('selected', sel);
-    });
-    updateRefText();
+    if (state.instrument === 'guitar') {
+      GUITAR_STRINGS.forEach((_, idx) => {
+        const sel = idx === state.guitarSel;
+        guitarPegUnits[idx].classList.toggle('selected', sel);
+        guitarPegKnobs[idx].classList.toggle('selected', sel);
+      });
+    } else if (state.instrument === 'koto') {
+      KOTO_STRINGS.forEach((_, idx) => {
+        kotojiEls[idx].classList.toggle('selected', idx === state.kotoSel);
+      });
+      const ks = KOTO_STRINGS[state.kotoSel];
+      const isT = KOTO_TARGETS.includes(state.kotoSel);
+      const standing = state.kotoStanding[state.kotoSel];
+      document.getElementById('kotoBar').classList.add('active');
+      document.getElementById('kotoSelLabel').textContent = isT
+        ? `選択: ${ks.kanji} (${ks.note}) ${standing ? '' : '[倒]'}`
+        : `${ks.kanji} (${ks.note}) [基準・調律済]`;
+      document.getElementById('kotoStandBtn').style.display = (isT && !standing) ? 'inline-block' : 'none';
+      document.getElementById('kotoLeftBtn').disabled = !isT || !standing;
+      document.getElementById('kotoRightBtn').disabled = !isT || !standing;
+    } else {
+      DRUM_ANGLES.forEach((_, idx) => {
+        drumUnits[idx].classList.toggle('selected', idx === state.drumSel);
+        drumBolts[idx].classList.toggle('selected', idx === state.drumSel);
+      });
+    }
+    updateRefUI();
   }
 
-  function updateRefText() {
+  function updateRefUI() {
     const info = document.getElementById('refInfo');
     const btn = document.getElementById('playRefBtn');
-    const s = STRINGS[state.selectedIdx];
+    const hint = document.getElementById('footerHint');
 
-    if (state.mode === 'easy') {
-      info.innerHTML = `<strong>選択中: ${s.full}</strong><br>お手本と聴き比べてペグを回そう`;
-      if (!refVoice) btn.textContent = `🔊 ${s.label} のお手本`;
-    } else if (state.mode === 'fret5') {
-      info.innerHTML = `<strong>5フレット相対法 (選択: ${s.full})</strong><br>6弦を基準に、5F(3弦は4F)でうなりを消そう`;
-      if (!refVoice) btn.textContent = `🔊 6弦基準音 (E2)`;
+    if (state.instrument === 'guitar') {
+      const s = GUITAR_STRINGS[state.guitarSel];
+      if (state.guitarMode === 'easy') {
+        info.innerHTML = `<strong>選択中: ${s.full}</strong><br>お手本と聴き比べてペグを回そう`;
+        if (!refVoice) btn.textContent = `🔊 ${s.label} のお手本`;
+      } else if (state.guitarMode === 'fret5') {
+        info.innerHTML = `<strong>5フレット相対法 (選択: ${s.full})</strong><br>6弦を基準に、5F(3弦は4F)でうなりを消そう`;
+        if (!refVoice) btn.textContent = `🔊 6弦基準音 (E2)`;
+      } else {
+        info.innerHTML = `<strong>Master (A440音叉)</strong><br>440Hzの音叉を頼りに5弦(A)から合わせよう`;
+        if (!refVoice) btn.textContent = `🔔 音叉 440Hz`;
+      }
+      hint.innerHTML = `💡 弦をタップ（またはなぞってストローク）で音を鳴らし、ペグを<strong>上下ドラッグ</strong>か<strong>＋/−タップ</strong>で回します。`;
+    } else if (state.instrument === 'koto') {
+      const ks = KOTO_STRINGS[state.kotoSel];
+      if (state.kotoMode === 'easy') {
+        info.innerHTML = `<strong>選択中: ${ks.kanji}の弦 (${ks.note})</strong><br>赤く倒れた琴柱をタップで立てて左右に動かそう`;
+        if (!refVoice) btn.textContent = `🔊 ${ks.kanji}のお手本`;
+      } else {
+        info.innerHTML = `<strong>耳調弦モード (平調子)</strong><br>調律済みの弦（七・八・十など）とのオクターブ・同音で合わせよう`;
+        if (!refVoice) btn.textContent = `🔊 一の弦 (D4)`;
+      }
+      hint.innerHTML = `💡 赤く倒れた<strong>琴柱をタップで立てて</strong>から、左右にドラッグ（または下の◀/▶）で音程を合わせます。右端を縦になぞると全弦弾けます！`;
     } else {
-      info.innerHTML = `<strong>Master (A440音叉のみ)</strong><br>440Hzの音叉を頼りに5弦(A)から合わせよう`;
-      if (!refVoice) btn.textContent = `🔔 音叉 440Hz`;
+      const dt = DRUM_TYPES[state.drumType];
+      if (state.drumMode === 'easy') {
+        info.innerHTML = `<strong>選択: ラグ#${state.drumSel + 1} (${dt.name})</strong><br>フチ(1〜6)を叩いて全ボルトを基準音に揃えよう`;
+        if (!refVoice) btn.textContent = `🔊 基準ピッチを鳴らす`;
+      } else {
+        info.innerHTML = `<strong>張り合わせ勝負 (1番ラグ基準)</strong><br>L1の音程を聴いて、L2〜L6の張りを完璧に揃えよう`;
+        if (!refVoice) btn.textContent = `🔊 目標参考音`;
+      }
+      hint.innerHTML = `💡 ドラムの<strong>フチ(1〜6)を叩く</strong>と各ボルトの音程が鳴ります。ボルトを回して全6箇所を揃え、最後に<strong>CENTER</strong>を叩いてみよう！`;
     }
   }
 
-  // ===== Game Flow & Grading =====
-  function shuffleStrings() {
+  // =========================================================
+  // 9. SHUFFLE & RESULTS
+  // =========================================================
+  function shuffleCurrent() {
     muteAll();
     state.practicePeek = false;
-    state.fretted.fill(false);
 
-    STRINGS.forEach((_, idx) => {
-      if (state.mode === 'fret5' && idx === 0) {
-        // In 5-fret mode, start 6th string close or slightly off? Let's detune it too since E2 ref is given!
-        // Actually giving E2 ref + detuned 6th string is full experience.
-      }
-      const sign = Math.random() < 0.5 ? -1 : 1;
-      const offset = sign * (30 + Math.random() * 95); // ±30 to ±125 cents
-      state.cents[idx] = offset;
-      state.pegAngles[idx] = Math.random() * 360;
-      updatePegVisual(idx);
-      updateFretVisual(idx);
-    });
+    if (state.instrument === 'guitar') {
+      state.guitarFretted.fill(false);
+      GUITAR_STRINGS.forEach((_, idx) => {
+        const sign = Math.random() < 0.5 ? -1 : 1;
+        state.guitarCents[idx] = sign * (30 + Math.random() * 90);
+        state.guitarAngles[idx] = Math.random() * 360;
+        updateGuitarPegVisual(idx);
+        updateGuitarFretVisual(idx);
+      });
+    } else if (state.instrument === 'koto') {
+      KOTO_STRINGS.forEach((_, idx) => {
+        if (KOTO_TARGETS.includes(idx)) {
+          const sign = Math.random() < 0.5 ? -1 : 1;
+          state.kotoCents[idx] = sign * (35 + Math.random() * 105);
+          state.kotoStanding[idx] = false; // Fallen bridges!
+        } else {
+          state.kotoCents[idx] = 0;
+          state.kotoStanding[idx] = true;
+        }
+        updateKotojiVisual(idx);
+      });
+      state.kotoSel = KOTO_TARGETS[0];
+    } else {
+      DRUM_ANGLES.forEach((_, idx) => {
+        if (state.drumMode === 'anchor' && idx === 0) {
+          state.drumCents[idx] = 0;
+        } else {
+          const sign = Math.random() < 0.5 ? -1 : 1;
+          state.drumCents[idx] = sign * (30 + Math.random() * 95);
+        }
+        state.drumAngles[idx] = Math.random() * 360;
+        updateDrumBoltVisual(idx);
+      });
+    }
     updateSelectionUI();
   }
 
@@ -1191,39 +1843,53 @@
     const list = document.getElementById('resultList');
     list.innerHTML = '';
 
+    let items = [];
+    if (state.instrument === 'guitar') {
+      items = GUITAR_STRINGS.map((s, i) => ({ name: s.label, cents: state.guitarCents[i], ok: true }));
+    } else if (state.instrument === 'koto') {
+      items = KOTO_TARGETS.map(i => ({
+        name: `${KOTO_STRINGS[i].kanji}(${KOTO_STRINGS[i].note})`,
+        cents: state.kotoCents[i],
+        ok: state.kotoStanding[i]
+      }));
+    } else {
+      const start = state.drumMode === 'anchor' ? 1 : 0;
+      for (let i = start; i < 6; i++) {
+        items.push({ name: `ラグ #${i + 1}`, cents: state.drumCents[i], ok: true });
+      }
+    }
+
     let totalAbs = 0;
-    STRINGS.forEach((s, idx) => {
-      const c = state.cents[idx];
-      const abs = Math.abs(c);
+    let unstood = 0;
+    items.forEach(it => {
+      const abs = it.ok ? Math.abs(it.cents) : 120;
+      if (!it.ok) unstood++;
       totalAbs += abs;
 
-      let status = 'ズレ';
-      let color = 'var(--bad)';
-      if (abs <= 2.0) { status = '神耳!!'; color = 'var(--good)'; }
+      let status = 'ズレ', color = 'var(--bad)';
+      if (!it.ok) { status = '柱倒れ!'; color = 'var(--bad)'; }
+      else if (abs <= 2.0) { status = '神耳!!'; color = 'var(--good)'; }
       else if (abs <= 5.0) { status = '合格!'; color = '#86efac'; }
       else if (abs <= 12.0) { status = '惜しい'; color = 'var(--warn)'; }
 
-      const pct = Math.max(4, Math.min(96, 50 + (c / 60) * 50));
-      const sign = c >= 0 ? '+' : '';
-
+      const pct = Math.max(4, Math.min(96, 50 + (it.cents / 60) * 50));
+      const sign = it.cents >= 0 ? '+' : '';
       const row = document.createElement('div');
       row.className = 'result-row';
       row.innerHTML = `
-        <strong style="color:var(--gold-bright)">${s.label}</strong>
-        <div class="meter-track">
-          <div class="meter-center"></div>
-          <div class="meter-dot" style="left:${pct}%; background:${color};"></div>
-        </div>
-        <span style="text-align:right; font-variant-numeric:tabular-nums;">${sign}${c.toFixed(1)} ¢</span>
+        <strong style="color:var(--gold-bright)">${it.name}</strong>
+        <div class="meter-track"><div class="meter-center"></div><div class="meter-dot" style="left:${pct}%; background:${color};"></div></div>
+        <span style="text-align:right; font-variant-numeric:tabular-nums;">${it.ok ? sign + it.cents.toFixed(1) + ' ¢' : '未設置'}</span>
         <span style="text-align:right; font-weight:700; color:${color};">${status}</span>
       `;
       list.appendChild(row);
     });
 
-    const avg = totalAbs / 6;
+    const avg = totalAbs / items.length;
     const score = Math.max(0, Math.round(100 - avg * 2.2));
     let rank = 'C';
-    if (avg <= 2.0) rank = 'S+ (絶対音感級)';
+    if (unstood > 0) rank = '未完成 (琴柱が倒れています)';
+    else if (avg <= 2.0) rank = 'S+ (達人級!!)';
     else if (avg <= 4.5) rank = 'S (プロ級)';
     else if (avg <= 8.5) rank = 'A (ナイス耳)';
     else if (avg <= 16.0) rank = 'B (あと少し)';
@@ -1233,86 +1899,106 @@
     document.getElementById('resultModal').classList.add('open');
   }
 
-  // ===== String Vibration Animation Loop =====
-  function animateStrings() {
-    STRINGS.forEach((s, idx) => {
-      const amp = state.vibAmp[idx];
+  // =========================================================
+  // 10. ANIMATION LOOP (Guitar & Koto strings)
+  // =========================================================
+  function animateAll() {
+    // Guitar
+    GUITAR_STRINGS.forEach((s, idx) => {
+      const amp = state.guitarVibAmp[idx];
       const midX = (s.nutX + s.bridgeX) / 2;
       if (amp > 0.08) {
-        state.vibPhase[idx] += 0.75 + idx * 0.14;
-        const dx = Math.sin(state.vibPhase[idx]) * amp;
-        stringPathEls[idx].setAttribute('d', `M ${s.nutX} 233 Q ${midX + dx} 376 ${s.bridgeX} 520`);
-        state.vibAmp[idx] *= 0.965;
+        state.guitarVibPhase[idx] += 0.75 + idx * 0.14;
+        const dx = Math.sin(state.guitarVibPhase[idx]) * amp;
+        guitarStringEls[idx].setAttribute('d', `M ${s.nutX} 233 Q ${midX + dx} 376 ${s.bridgeX} 520`);
+        state.guitarVibAmp[idx] *= 0.965;
       } else if (amp !== 0) {
-        state.vibAmp[idx] = 0;
-        stringPathEls[idx].setAttribute('d', `M ${s.nutX} 233 Q ${midX} 376 ${s.bridgeX} 520`);
+        state.guitarVibAmp[idx] = 0;
+        guitarStringEls[idx].setAttribute('d', `M ${s.nutX} 233 Q ${midX} 376 ${s.bridgeX} 520`);
       }
     });
-    requestAnimationFrame(animateStrings);
+
+    // Koto (vibrates between Kotoji and Right Bridge!)
+    KOTO_STRINGS.forEach((_, idx) => {
+      const amp = state.kotoVibAmp[idx];
+      const y = kotoY(idx);
+      const kx = Math.max(85, Math.min(315, kotoBaseX(idx) + state.kotoCents[idx] * 0.22));
+      const midX = (kx + 404) / 2;
+      if (amp > 0.08) {
+        state.kotoVibPhase[idx] += 0.85 + idx * 0.1;
+        const dy = Math.sin(state.kotoVibPhase[idx]) * amp;
+        kotoStringEls[idx].setAttribute('d', `M 56 ${y} L ${kx} ${y} Q ${midX} ${y + dy} 404 ${y}`);
+        state.kotoVibAmp[idx] *= 0.96;
+      } else if (amp !== 0) {
+        state.kotoVibAmp[idx] = 0;
+        kotoStringEls[idx].setAttribute('d', `M 56 ${y} Q 230 ${y} 404 ${y}`);
+      } else {
+        kotoStringEls[idx].setAttribute('d', `M 56 ${y} Q 230 ${y} 404 ${y}`);
+      }
+    });
+
+    requestAnimationFrame(animateAll);
   }
 
-  // ===== Event Bindings =====
+  // =========================================================
+  // 11. GLOBAL EVENTS
+  // =========================================================
+  document.getElementById('instTabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('.inst-btn');
+    if (!btn) return;
+    const nextInst = btn.dataset.inst;
+    if (nextInst === state.instrument) return;
+
+    muteAll();
+    state.instrument = nextInst;
+    document.querySelectorAll('.inst-btn').forEach(b => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.inst-stage').forEach(st => st.classList.remove('active'));
+    document.getElementById(`${nextInst}Stage`).classList.add('active');
+
+    renderControlsBar();
+    shuffleCurrent();
+  });
+
   document.getElementById('modeTabs').addEventListener('click', (e) => {
     const btn = e.target.closest('.mode-btn');
     if (!btn) return;
-    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    state.mode = btn.dataset.mode;
-    shuffleStrings();
+    const val = btn.dataset.val;
+    if (state.instrument === 'guitar') state.guitarMode = val;
+    else if (state.instrument === 'koto') state.kotoMode = val;
+    else state.drumMode = val;
+
+    renderControlsBar();
+    shuffleCurrent();
   });
 
-  document.getElementById('fineToggle').addEventListener('click', (e) => {
-    state.fineMode = !state.fineMode;
-    e.target.classList.toggle('active', state.fineMode);
-    e.target.textContent = `微調整モード: ${state.fineMode ? 'ON' : 'OFF'}`;
-  });
-
-  document.getElementById('timbreToggle').addEventListener('click', (e) => {
-    state.timbre = state.timbre === 'guitar' ? 'sine' : 'guitar';
-    e.target.classList.toggle('active', state.timbre === 'sine');
-    e.target.textContent = `音色: ${state.timbre === 'guitar' ? 'アコギ' : 'ピュア音(Sine)'}`;
-  });
-
-  document.getElementById('muteBtn').addEventListener('click', muteAll);
   document.getElementById('playRefBtn').addEventListener('click', playReferenceTone);
-  document.getElementById('shuffleBtn').addEventListener('click', shuffleStrings);
+  document.getElementById('shuffleBtn').addEventListener('click', shuffleCurrent);
   document.getElementById('checkBtn').addEventListener('click', showResults);
 
   document.getElementById('practiceBtn').addEventListener('click', () => {
     state.practicePeek = true;
-    STRINGS.forEach((_, idx) => updatePegVisual(idx));
+    if (state.instrument === 'guitar') GUITAR_STRINGS.forEach((_, i) => updateGuitarPegVisual(i));
+    else if (state.instrument === 'koto') KOTO_STRINGS.forEach((_, i) => updateKotojiVisual(i));
+    else DRUM_ANGLES.forEach((_, i) => updateDrumBoltVisual(i));
     document.getElementById('resultModal').classList.remove('open');
   });
 
   document.getElementById('nextGameBtn').addEventListener('click', () => {
     document.getElementById('resultModal').classList.remove('open');
-    shuffleStrings();
+    shuffleCurrent();
   });
 
   document.getElementById('resultModal').addEventListener('click', (e) => {
-    if (e.target.id === 'resultModal') {
-      e.target.classList.remove('open');
-    }
+    if (e.target.id === 'resultModal') e.target.classList.remove('open');
   });
 
-  // Keyboard shortcuts (6~1 keys to pluck strings)
-  window.addEventListener('keydown', (e) => {
-    if (['6', '5', '4', '3', '2', '1'].includes(e.key)) {
-      const idx = 6 - parseInt(e.key, 10);
-      pluckString(idx);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      adjustCents(state.selectedIdx, state.fineMode ? 0.25 : 1.5);
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      adjustCents(state.selectedIdx, state.fineMode ? -0.25 : -1.5);
-    }
-  });
-
-  // Start!
-  initBoard();
-  shuffleStrings();
-  requestAnimationFrame(animateStrings);
+  // Boot
+  initGuitarUI();
+  initKotoUI();
+  initDrumUI();
+  renderControlsBar();
+  shuffleCurrent();
+  requestAnimationFrame(animateAll);
 })();
 </script>
 </body>
