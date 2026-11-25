@@ -174,9 +174,7 @@
     }
 
     /* 内訳バー */
-    .factor {
-      margin-bottom: 12px;
-    }
+    .factor { margin-bottom: 12px; }
     .factor:last-child { margin-bottom: 0; }
 
     .factor-head {
@@ -225,7 +223,7 @@
       border-radius: 10px;
       padding: 12px;
       min-height: 110px;
-      max-height: 200px;
+      max-height: 220px;
       overflow-y: auto;
       font-size: 0.95rem;
     }
@@ -236,17 +234,18 @@
     }
 
     .log-entry {
-      margin-bottom: 6px;
-      padding-bottom: 6px;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
       border-bottom: 1px solid rgba(255,255,255,0.06);
     }
 
     .tag-angry {
-      background: rgba(239, 68, 68, 0.25);
+      background: rgba(239, 68, 68, 0.28);
       color: #fca5a5;
       padding: 1px 5px;
       border-radius: 4px;
       font-weight: 600;
+      margin: 0 1px;
     }
 
     /* 設定スライダー */
@@ -332,7 +331,7 @@
 
         <div class="factor">
           <div class="factor-head">
-            <span>💬 言葉の攻撃性・否定表現</span>
+            <span>💬 言葉の攻撃性・否定・侮辱表現</span>
             <span id="valText">0%</span>
           </div>
           <div class="bar-bg"><div class="bar-fill" id="barText"></div></div>
@@ -357,7 +356,7 @@
           <button id="clearLogBtn" style="padding:4px 10px;font-size:0.75rem;background:#334155;color:#f8fafc;">履歴クリア</button>
         </div>
         <div class="transcript-box" id="transcriptBox">
-          <div style="color: var(--muted);">ここに認識された会話内容と、検出された怒りワードが表示されます。</div>
+          <div style="color: var(--muted);">ここに認識された会話内容と、検出された攻撃的・怒り表現が表示されます。</div>
         </div>
       </div>
 
@@ -371,79 +370,179 @@
           <span style="color:var(--muted);">（静かな部屋で反応が鈍い場合は上げ、騒がしい環境では下げてください）</span>
         </div>
         <p class="note">
-          ※ マイク入力および音声認識（Web Speech API）を利用するため、Chrome / Edge 等のブラウザで <code>https://</code> または <code>localhost</code> 環境での実行を推奨します（<code>file://</code> ではブラウザの仕様によりマイクや音声認識が制限される場合があります）。音声データはブラウザ内のみで処理され、外部サーバーへ送信されません（Web Speech APIの標準処理を除く）。
+          ※ マイク入力および音声認識（Web Speech API）を利用するため、Chrome / Edge 等のブラウザで <code>https://</code> または <code>localhost</code> 環境での実行を推奨します。音声データはブラウザ内のみで処理されます（Web Speech APIの標準処理を除く）。
         </p>
       </div>
     </div>
   </div>
 
   <script>
-    // ====== 怒りキーワード辞書（簡易ヒューリスティック） ======
+    // ====== 怒り・罵倒・攻撃表現キーワード辞書 ======
     const ANGER_KEYWORDS = [
-      // 強い怒り・攻撃的表現
-      { word: "ふざけんな", weight: 40 },
-      { word: "ふざけるな", weight: 40 },
-      { word: "死ね", weight: 50 },
-      { word: "殺す", weight: 50 },
-      { word: "バカ", weight: 30 },
-      { word: "馬鹿", weight: 30 },
-      { word: "アホ", weight: 30 },
+      // 自傷他害・脅迫・極端な攻撃
+      { word: "死ね", weight: 55 },
+      { word: "しね", weight: 50 },
+      { word: "死んで", weight: 40 },
+      { word: "自殺", weight: 48 },
+      { word: "殺す", weight: 55 },
+      { word: "ころす", weight: 50 },
+      { word: "くたばれ", weight: 50 },
+      { word: "消えろ", weight: 45 },
+      { word: "消え失せろ", weight: 48 },
+      { word: "失せろ", weight: 42 },
+      { word: "うせろ", weight: 42 },
+      { word: "ぶっ飛ばす", weight: 45 },
+      { word: "殴る", weight: 35 },
+      { word: "潰す", weight: 32 },
+      { word: "地獄", weight: 28 },
+
+      // 強い罵倒・侮蔑・差別/スラング系
+      { word: "ふざけんな", weight: 42 },
+      { word: "ふざけるな", weight: 42 },
+      { word: "なめんな", weight: 40 },
+      { word: "なめるな", weight: 40 },
+      { word: "舐めんな", weight: 40 },
+      { word: "無能", weight: 38 },
+      { word: "能無し", weight: 38 },
+      { word: "役立たず", weight: 38 },
+      { word: "使えない", weight: 30 },
+      { word: "ゴミ", weight: 35 },
+      { word: "ごみ", weight: 25 },
+      { word: "カス", weight: 38 },
+      { word: "かす", weight: 25 },
+      { word: "クズ", weight: 38 },
+      { word: "くず", weight: 30 },
+      { word: "ザコ", weight: 32 },
+      { word: "雑魚", weight: 32 },
+      { word: "底辺", weight: 34 },
+      { word: "チー牛", weight: 35 },
+      { word: "陰キャ", weight: 25 },
+      { word: "老害", weight: 35 },
+      { word: "障害者", weight: 38 },
+      { word: "ガイジ", weight: 45 },
+      { word: "池沼", weight: 45 },
+      { word: "キチガイ", weight: 45 },
+      { word: "気狂い", weight: 45 },
+      { word: "頭おかしい", weight: 35 },
+      { word: "頭がおかしい", weight: 35 },
+      { word: "脳みそ", weight: 26 },
+      { word: "低脳", weight: 40 },
+      { word: "馬鹿", weight: 32 },
+      { word: "バカ", weight: 32 },
+      { word: "ばか", weight: 30 },
+      { word: "アホ", weight: 32 },
+      { word: "あほ", weight: 30 },
+      { word: "間抜け", weight: 30 },
+      { word: "マヌケ", weight: 30 },
+      { word: "ボケ", weight: 32 },
       { word: "クソ", weight: 35 },
       { word: "くそ", weight: 35 },
-      { word: "うるさい", weight: 30 },
-      { word: "黙れ", weight: 38 },
-      { word: "許さない", weight: 35 },
-      { word: "許せない", weight: 35 },
-      { word: "いい加減にしろ", weight: 38 },
-      { word: "いい加減にして", weight: 32 },
+      { word: "くそったれ", weight: 48 },
+      { word: "ちくしょう", weight: 35 },
+      { word: "キモい", weight: 30 },
+      { word: "気持ち悪い", weight: 28 },
+      { word: "うざい", weight: 30 },
+      { word: "ウザい", weight: 30 },
+      { word: "邪魔", weight: 28 },
+      { word: "ブス", weight: 35 },
+      { word: "デブ", weight: 32 },
+      { word: "ハゲ", weight: 30 },
+      { word: "社会不適合", weight: 38 },
+      { word: "社不", weight: 35 },
+      { word: "引きこもり", weight: 24 },
+      { word: "ニート", weight: 24 },
+      { word: "人間失格", weight: 42 },
+      { word: "人間のクズ", weight: 48 },
+
+      // 否定・見下し・皮肉・人格攻撃
+      { word: "何もできない", weight: 32 },
+      { word: "何も出来ない", weight: 32 },
+      { word: "できもしない", weight: 28 },
+      { word: "どうせ", weight: 18 },
+      { word: "価値がない", weight: 35 },
+      { word: "価値ない", weight: 35 },
+      { word: "存在価値", weight: 34 },
+      { word: "生きてる価値", weight: 45 },
+      { word: "社会の役に立て", weight: 35 },
+      { word: "社会の役に", weight: 24 },
+      { word: "役に立て", weight: 25 },
+      { word: "恥ずかしくない", weight: 28 },
+      { word: "恥を知れ", weight: 38 },
+      { word: "恥知らず", weight: 35 },
+      { word: "親の顔", weight: 32 },
+      { word: "身の程", weight: 30 },
+      { word: "何様", weight: 32 },
+      { word: "調子に乗るな", weight: 36 },
+      { word: "調子乗るな", weight: 36 },
+      { word: "勘違い", weight: 20 },
+      { word: "話にならない", weight: 28 },
+      { word: "話にならん", weight: 30 },
+      { word: "日本語通じ", weight: 30 },
+      { word: "日本語が通じ", weight: 30 },
+      { word: "終わってる", weight: 28 },
+      { word: "救いようがない", weight: 32 },
+      { word: "論外", weight: 28 },
+      { word: "最低", weight: 28 },
+      { word: "最悪", weight: 28 },
       { word: "ありえない", weight: 25 },
       { word: "あり得ない", weight: 25 },
-      { word: "最悪", weight: 28 },
-      { word: "最低", weight: 28 },
+
+      // 威圧・拒絶・詰問・イライラ
+      { word: "てめえ", weight: 42 },
+      { word: "てめぇ", weight: 42 },
+      { word: "貴様", weight: 40 },
+      { word: "お前", weight: 20 },
+      { word: "おまえ", weight: 20 },
+      { word: "黙れ", weight: 38 },
+      { word: "だまれ", weight: 38 },
+      { word: "うるさい", weight: 30 },
+      { word: "うるせえ", weight: 36 },
+      { word: "うるせぇ", weight: 36 },
+      { word: "いい加減にしろ", weight: 40 },
+      { word: "いい加減にして", weight: 32 },
+      { word: "やめろ", weight: 30 },
+      { word: "どけ", weight: 30 },
+      { word: "帰れ", weight: 28 },
+      { word: "関わるな", weight: 32 },
+      { word: "近寄るな", weight: 32 },
+      { word: "触るな", weight: 30 },
+      { word: "見るな", weight: 26 },
+      { word: "謝れ", weight: 35 },
+      { word: "許さない", weight: 35 },
+      { word: "許せない", weight: 35 },
       { word: "ムカつく", weight: 32 },
       { word: "むかつく", weight: 32 },
-      { word: "イライラ", weight: 25 },
-      { word: "いらいら", weight: 25 },
       { word: "腹立つ", weight: 30 },
       { word: "腹が立つ", weight: 30 },
-      { word: "なめんな", weight: 38 },
-      { word: "なめるな", weight: 38 },
-      { word: "信じられない", weight: 22 },
-      { word: "おかしい", weight: 20 },
-      { word: "ダメ", weight: 15 },
-      { word: "だめ", weight: 15 },
-      { word: "無理", weight: 15 },
-      { word: "嫌だ", weight: 18 },
-      { word: "やだ", weight: 16 },
-      { word: "やめろ", weight: 30 },
-      { word: "やめて", weight: 20 },
-      { word: "どけ", weight: 30 },
-      { word: "知らねえ", weight: 28 },
-      { word: "知らない", weight: 14 },
-      { word: "関係ない", weight: 18 },
-      { word: "何回", weight: 20 },
-      { word: "何度", weight: 18 },
-      { word: "なんで", weight: 14 },
-      { word: "どうして", weight: 12 },
+      { word: "イライラ", weight: 24 },
+      { word: "いらいら", weight: 24 },
+      { word: "キレ", weight: 28 },
+      { word: "知らねえ", weight: 30 },
+      { word: "知らねぇ", weight: 30 },
       { word: "意味わからん", weight: 28 },
       { word: "意味がわからない", weight: 24 },
-      { word: "遅い", weight: 18 },
       { word: "早くしろ", weight: 32 },
-      { word: "ちゃんと", weight: 15 },
-      { word: "責任", weight: 20 },
-      { word: "謝れ", weight: 35 },
-      { word: "怒", weight: 22 },
-      { word: "キレ", weight: 28 },
-      { word: "おい", weight: 18 },
-      { word: "てめえ", weight: 42 },
-      { word: "お前", weight: 20 },
-      { word: "貴様", weight: 40 },
-      { word: "ちくしょう", weight: 35 },
-      { word: "くそったれ", weight: 45 },
+      { word: "とぼけるな", weight: 34 },
+      { word: "言い訳", weight: 22 },
+      { word: "何回", weight: 18 },
+      { word: "何度", weight: 16 },
+      { word: "なんで", weight: 14 },
+      { word: "おい", weight: 16 },
       { word: "!", weight: 10 },
       { word: "！", weight: 10 },
-      { word: "?", weight: 6 },
-      { word: "？", weight: 6 }
+      { word: "?", weight: 5 },
+      { word: "？", weight: 5 }
+    ];
+
+    // ====== 正規表現による威圧的語尾・荒い口調・構文パターン ======
+    const ANGER_PATTERNS = [
+      { regex: /^(?:なんだ|何だ)(?:[\s、,！!]|よ|お前|てめ|これ)/g, weight: 22, label: "詰問" },
+      { regex: /(?:じゃねえ|じゃねぇ|じゃねー|てめえ|くそっ)/g, weight: 24, label: "荒い口調" },
+      { regex: /(?:んだよ|のかよ|ってんだよ|やがれ|しやがれ)/g, weight: 22, label: "威圧語尾" },
+      { regex: /[一-龠ぁ-んァ-ヶ]{1,8}(?:しろ|せよ|やめろ|だまれ|うせろ|きえろ)(?:よ|！|!|$|\s)/g, weight: 22, label: "強い命令" },
+      { regex: /(?:するな|言うな|来るな|見るな|触るな)(?:よ|！|!|$|\s)/g, weight: 24, label: "強い禁止" },
+      { regex: /(?:死|殺|自殺|消え|くたば|無能|ゴミ|カス|クズ|障害).{0,6}(?:しろ|して|やれ|せよ|だろ|だよ)/g, weight: 28, label: "攻撃的命令" },
+      { regex: /(.)\1{3,}/g, weight: 15, label: "叫び・強調" }
     ];
 
     // ====== DOM要素 ======
@@ -490,7 +589,6 @@
     let sensitivity = 1.2;
     let peakScore = 0;
 
-    // スムージング用スコア (0-100)
     let smoothVolume = 0;
     let smoothTension = 0;
     let smoothEnergy = 0;
@@ -498,7 +596,6 @@
     let speechRateScore = 0;
     let smoothTotal = 0;
 
-    // 急変検出用履歴
     let prevRms = 0;
     let attackIntensity = 0;
     let lastSpeechTime = Date.now();
@@ -514,6 +611,7 @@
       textAngerScore = 0;
       peakScore = 0;
       peakScoreEl.textContent = "0%";
+      updateUI(0, 0, 0, 0, 0, null, 0, 0);
     });
 
     // ====== マイク＆音声解析開始 ======
@@ -573,7 +671,7 @@
       speechSupportBadge.textContent = "音声認識: 停止中";
     }
 
-    // ====== Web Speech API (文字起こし & テキスト感情解析) ======
+    // ====== Web Speech API ======
     function startSpeechRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
@@ -596,23 +694,21 @@
 
           if (res.isFinal) {
             removeInterim();
-            analyzeAndLogText(text, true);
+            analyzeAndLogText(text);
           } else {
             interimText += text;
-            // 途中結果でもキーワード反応させる（反応速度向上）
-            const quickScore = evaluateTextAnger(text);
-            if (quickScore > textAngerScore) {
-              textAngerScore = Math.min(100, textAngerScore * 0.4 + quickScore * 0.7);
+            const quick = analyzeTextDetail(text).score;
+            if (quick > textAngerScore) {
+              textAngerScore = Math.min(100, textAngerScore * 0.35 + quick * 0.75);
             }
           }
         }
 
         if (interimText) {
           showInterim(interimText);
-          // 発話速度スコア（文字数ベース）
           const now = Date.now();
           const dt = Math.max(0.5, (now - lastSpeechTime) / 1000);
-          const cps = interimText.length / dt; // chars per sec
+          const cps = interimText.length / dt;
           if (interimText.length > 4) {
             speechRateScore = Math.min(100, Math.max(speechRateScore, (cps - 3) * 14));
           }
@@ -626,7 +722,6 @@
       };
 
       recognition.onend = () => {
-        // 録音中なら自動再開
         if (isRunning) {
           try { recognition.start(); } catch (e) {}
         }
@@ -654,27 +749,81 @@
       }
     }
 
-    function evaluateTextAnger(text) {
+    // ====== テキスト詳細解析（キーワード＋正規表現＋安全ハイライト） ======
+    function analyzeTextDetail(text) {
       let score = 0;
+      const spans = [];
+
+      // 1. キーワード検索（出現回数も考慮し、最大2回まで加算）
       for (const item of ANGER_KEYWORDS) {
-        if (text.includes(item.word)) {
-          score += item.weight;
+        let idx = text.indexOf(item.word);
+        let count = 0;
+        while (idx !== -1) {
+          spans.push([idx, idx + item.word.length]);
+          if (count < 2) {
+            score += count === 0 ? item.weight : Math.round(item.weight * 0.5);
+          }
+          count++;
+          idx = text.indexOf(item.word, idx + item.word.length);
         }
       }
-      // 同じ文字の連続（「あああああ」「なんなんだよおお」）など感情の昂りを加点
-      if (/(.)\1{3,}/.test(text)) score += 15;
-      return Math.min(100, score);
+
+      // 2. 正規表現パターン検索
+      for (const pat of ANGER_PATTERNS) {
+        pat.regex.lastIndex = 0;
+        let match;
+        let count = 0;
+        while ((match = pat.regex.exec(text)) !== null) {
+          spans.push([match.index, match.index + match[0].length]);
+          if (count < 2) {
+            score += pat.weight;
+          }
+          count++;
+          if (match.index === pat.regex.lastIndex) pat.regex.lastIndex++;
+        }
+      }
+
+      // 複数の異なる要素が検出された場合は相乗ブースト
+      if (spans.length >= 3) score += 15;
+      if (spans.length >= 5) score += 15;
+
+      return {
+        score: Math.min(100, score),
+        spans: mergeSpans(spans)
+      };
     }
 
-    function highlightAngerWords(text) {
-      let html = escapeHtml(text);
-      for (const item of ANGER_KEYWORDS) {
-        const w = escapeHtml(item.word);
-        if (w.length >= 2 && html.includes(w)) {
-          html = html.split(w).join(`<span class="tag-angry">${w}</span>`);
+    function mergeSpans(spans) {
+      if (spans.length === 0) return [];
+      spans.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
+      const merged = [spans[0]];
+      for (let i = 1; i < spans.length; i++) {
+        const last = merged[merged.length - 1];
+        const cur = spans[i];
+        if (cur[0] <= last[1]) {
+          last[1] = Math.max(last[1], cur[1]);
+        } else {
+          merged.push(cur);
         }
       }
-      return html;
+      return merged;
+    }
+
+    function renderHighlightedHtml(text, mergedSpans) {
+      if (mergedSpans.length === 0) return escapeHtml(text);
+      let out = "";
+      let cursor = 0;
+      for (const [start, end] of mergedSpans) {
+        if (start > cursor) {
+          out += escapeHtml(text.slice(cursor, start));
+        }
+        out += `<span class="tag-angry">${escapeHtml(text.slice(start, end))}</span>`;
+        cursor = end;
+      }
+      if (cursor < text.length) {
+        out += escapeHtml(text.slice(cursor));
+      }
+      return out;
     }
 
     function escapeHtml(str) {
@@ -683,17 +832,19 @@
       }[m]));
     }
 
-    function analyzeAndLogText(text, isFinal) {
+    function analyzeAndLogText(text) {
       lastSpeechTime = Date.now();
-      const score = evaluateTextAnger(text);
-      textAngerScore = Math.min(100, Math.max(textAngerScore, score));
+      const result = analyzeTextDetail(text);
+      textAngerScore = Math.min(100, Math.max(textAngerScore, result.score));
 
       const entry = document.createElement("div");
       entry.className = "log-entry";
       const timeStr = new Date().toLocaleTimeString("ja-JP", { hour12: false });
-      entry.innerHTML = `<span style="color:var(--muted);font-size:0.8em;">[${timeStr}]</span> ${highlightAngerWords(text)} <span style="color:var(--muted);font-size:0.8em;">(言葉スコア: ${score}%)</span>`;
+      const highlighted = renderHighlightedHtml(text, result.spans);
+      entry.innerHTML = `<span style="color:var(--muted);font-size:0.8em;">[${timeStr}]</span> ${highlighted} <span style="color:var(--muted);font-size:0.8em;">(言葉スコア: ${result.score}%)</span>`;
       transcriptBox.appendChild(entry);
       transcriptBox.scrollTop = transcriptBox.scrollHeight;
+      return result.score;
     }
 
     // ====== 音響特徴量リアルタイム解析ループ ======
@@ -707,7 +858,6 @@
       analyser.getFloatTimeDomainData(timeData);
       analyser.getByteFrequencyData(freqData);
 
-      // 1. RMS（音量）計算
       let sumSq = 0;
       for (let i = 0; i < bufferLength; i++) {
         sumSq += timeData[i] * timeData[i];
@@ -715,19 +865,16 @@
       const rms = Math.sqrt(sumSq / bufferLength);
       const db = 20 * Math.log10(Math.max(rms, 1e-6));
 
-      // 感度補正を適用して 0〜100 スコア化（-50dBあたりから反応し、-12dB付近で100%）
       const rawVolumeScore = Math.max(0, Math.min(100, ((db + 48) / 34) * 100 * sensitivity));
 
-      // 2. 音の立ち上がり・急変（アタック強度）
       const deltaRms = Math.max(0, rms - prevRms);
       prevRms = rms;
       if (deltaRms * sensitivity > 0.015) {
         attackIntensity = Math.min(100, attackIntensity + deltaRms * sensitivity * 900);
       } else {
-        attackIntensity *= 0.94; // 減衰
+        attackIntensity *= 0.94;
       }
 
-      // 3. スペクトル重心（声の鋭さ・張り詰め具合） & 4. ピッチ推定
       const sampleRate = audioCtx.sampleRate;
       const nyquist = sampleRate / 2;
       const binCount = freqData.length;
@@ -736,7 +883,7 @@
       let magSum = 0;
       for (let i = 1; i < binCount; i++) {
         const freq = (i / binCount) * nyquist;
-        if (freq < 80 || freq > 6000) continue; // 音声帯域に絞る
+        if (freq < 80 || freq > 6000) continue;
         const mag = freqData[i];
         weightedSum += freq * mag;
         magSum += mag;
@@ -745,57 +892,50 @@
       const centroid = magSum > 200 ? weightedSum / magSum : 0;
       const pitch = rms > 0.01 ? estimatePitch(timeData, sampleRate) : 0;
 
-      // 声が出ているときのみ緊張度を更新（無音時は減衰）
       let rawTension = 0;
       if (rawVolumeScore > 12) {
-        // スペクトル重心が1000Hzを超えると声が鋭く張っている傾向、2400Hz以上で最大
         const centroidScore = Math.max(0, Math.min(100, ((centroid - 750) / 1700) * 100));
-        // ピッチが180Hz以上（地声より高め）だと興奮・怒りの可能性アップ
         const pitchScore = pitch > 0 ? Math.max(0, Math.min(100, ((pitch - 130) / 220) * 100)) : 0;
         rawTension = centroidScore * 0.65 + pitchScore * 0.35;
       }
 
-      // 5. スムージング＆時間減衰
       smoothVolume = smoothVolume * 0.78 + rawVolumeScore * 0.22;
       smoothTension = smoothTension * 0.85 + rawTension * 0.15;
       const rawEnergy = Math.min(100, attackIntensity * 0.7 + speechRateScore * 0.3);
       smoothEnergy = smoothEnergy * 0.85 + rawEnergy * 0.15;
 
-      // テキストスコアと発話速度は徐々に自然減衰させる
       textAngerScore *= 0.994;
       speechRateScore *= 0.985;
 
-      // 総合怒り度（重み付け）
-      // 声量が極端に小さいときは声の緊張度を抑える（誤検知防止）
       const voiceGate = Math.min(1, smoothVolume / 25);
       const acousticAnger = (smoothVolume * 0.42 + smoothTension * 0.33 + smoothEnergy * 0.25) * voiceGate;
 
-      // 言葉の怒りと音響の怒りを統合（言葉が怒っていれば声量が小さくても反応、両方高ければブースト）
-      let combined = acousticAnger * 0.65 + textAngerScore * 0.45;
-      if (acousticAnger > 50 && textAngerScore > 40) {
-        combined += 15; // 相乗効果ボーナス
+      // 音響と言葉の統合（言葉の攻撃性が極めて高い場合はボソッと喋っても強く反応させる）
+      let combined = Math.max(
+        acousticAnger * 0.65 + textAngerScore * 0.45,
+        textAngerScore * 0.85
+      );
+      if (acousticAnger > 45 && textAngerScore > 35) {
+        combined += 15;
       }
       combined = Math.min(100, combined);
 
-      // ピーク余韻を持たせつつ滑らかに更新
       if (combined > smoothTotal) {
         smoothTotal = smoothTotal * 0.65 + combined * 0.35;
       } else {
         smoothTotal = smoothTotal * 0.93 + combined * 0.07;
       }
 
-      // UI更新
       updateUI(smoothTotal, smoothVolume, smoothTension, smoothEnergy, textAngerScore, db, pitch, centroid);
       drawWaveform(timeData, smoothTotal);
 
       rafId = requestAnimationFrame(loopAudioAnalysis);
     }
 
-    // 簡易自己相関法による基本周波数(F0)推定
     function estimatePitch(buf, sampleRate) {
       const size = buf.length;
-      const maxLag = Math.floor(sampleRate / 70);  // 最低70Hz
-      const minLag = Math.floor(sampleRate / 450); // 最高450Hz
+      const maxLag = Math.floor(sampleRate / 70);
+      const minLag = Math.floor(sampleRate / 450);
 
       let bestLag = -1;
       let bestCorr = 0;
@@ -839,7 +979,6 @@
       const deg = (tRound / 100) * 360;
       scoreCircle.style.background = `conic-gradient(${color} ${deg}deg, var(--border) ${deg}deg)`;
 
-      // 判定ラベル
       if (tRound < 15) {
         statusLabelEl.textContent = "😌 穏やか・平常";
         statusDescEl.textContent = "落ち着いた話し方です。怒りの兆候は見られません。";
@@ -848,13 +987,13 @@
         statusDescEl.textContent = "少し声に力が入っています。通常の会話〜やや熱意のある状態です。";
       } else if (tRound < 60) {
         statusLabelEl.textContent = "😠 イライラ・不機嫌";
-        statusDescEl.textContent = "声の張りや言葉遣いに苛立ちが混ざり始めています。";
+        statusDescEl.textContent = "声の張りや言葉遣いに苛立ち・否定が混ざり始めています。";
       } else if (tRound < 82) {
         statusLabelEl.textContent = "😡 かなり怒っている";
-        statusDescEl.textContent = "強い口調、高い声圧、または攻撃的な言葉が検出されています！";
+        statusDescEl.textContent = "強い口調、高い声圧、または攻撃的・侮辱的な言葉が検出されています！";
       } else {
         statusLabelEl.textContent = "🤬 激怒・限界突破";
-        statusDescEl.textContent = "怒鳴り声や非常に強い怒りの表現を検出しました。落ち着く時間が必要です。";
+        statusDescEl.textContent = "怒鳴り声や非常に強い怒り・罵倒の表現を検出しました。";
       }
 
       setBar(barVolume, valVolume, vol);
@@ -902,22 +1041,17 @@
       waveCtx.stroke();
     }
 
-    // ====== マイクなしでも試せるテキスト単体テスト ======
+    // ====== テキスト単体テスト ======
     demoBtn.addEventListener("click", () => {
-      const samples = [
-        "今日はいい天気ですね。よろしくお願いします。",
-        "なんで何回も同じことを言わせるんですか？",
-        "いい加減にしろ！ふざけんなよ、本当に最悪だ！！"
-      ];
-      const input = prompt("テストしたいセリフを入力してください:", samples[2]);
+      const sample = "いい加減にしろ！ふざけんなよ、本当に最悪だ！！";
+      const input = prompt("テストしたいセリフを入力してください:", sample);
       if (!input) return;
 
-      if (transcriptBox.textContent.includes("ここに認識された")) {
+      if (transcriptBox.textContent.includes("ここに認識された") || transcriptBox.textContent.includes("履歴をクリア")) {
         transcriptBox.innerHTML = "";
       }
-      analyzeAndLogText(input, true);
-      const score = evaluateTextAnger(input);
-      // デモ時はテキストスコアをそのまま総合値にも反映させて表示確認できるようにする
+      const score = analyzeAndLogText(input);
+      smoothTotal = score;
       updateUI(score, 0, 0, 0, score, null, 0, 0);
     });
   </script>
