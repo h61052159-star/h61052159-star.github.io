@@ -4,13 +4,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>SpatialRoom 3D — 非AI純幾何 AR部屋スキャナー</title>
+<title>SpatialRoom 3D v2 — 非AI純幾何・順序AR部屋スキャナー</title>
 <style>
   :root {
     --bg: #0b0f17;
-    --panel: rgba(16, 22, 34, 0.86);
+    --panel: rgba(15, 23, 42, 0.88);
     --panel-solid: #111827;
-    --border: rgba(148, 163, 184, 0.22);
+    --border: rgba(148, 163, 184, 0.24);
     --text: #f1f5f9;
     --muted: #94a3b8;
     --accent: #06b6d4;
@@ -27,10 +27,10 @@
   }
   button {
     font-family: inherit; border: none; outline: none; cursor: pointer;
-    color: var(--text); background: rgba(255,255,255,0.08);
-    border-radius: 10px; padding: 10px 14px; font-size: 13px; font-weight: 600;
+    color: var(--text); background: rgba(255,255,255,0.09);
+    border-radius: 10px; padding: 10px 12px; font-size: 13px; font-weight: 600;
     transition: transform 0.08s ease, background 0.15s ease, opacity 0.15s ease;
-    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
   }
   button:active { transform: scale(0.96); }
   button:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -41,24 +41,23 @@
   .btn-sm { padding: 7px 10px; font-size: 12px; border-radius: 8px; }
   .btn-active { outline: 2px solid var(--accent); background: rgba(6, 182, 212, 0.25); }
 
-  /* 画面切り替え */
   .screen { position: fixed; inset: 0; display: none; flex-direction: column; overflow: hidden; }
   .screen.active { display: flex; }
 
   /* ランチャー画面 */
-  #launcher-screen { overflow-y: auto; padding: 18px 16px 40px; gap: 14px; }
+  #launcher-screen { overflow-y: auto; padding: 16px 16px 40px; gap: 12px; }
   .card {
     background: var(--panel-solid); border: 1px solid var(--border);
     border-radius: 16px; padding: 14px 16px;
   }
-  .header-title { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; display: flex; align-items: center; gap: 8px; }
+  .header-title { font-size: 19px; font-weight: 800; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .badge {
     font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px;
     background: rgba(6,182,212,0.18); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3);
   }
   .diag-row {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 13px;
+    padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 12.5px;
   }
   .diag-row:last-child { border-bottom: none; }
   .status-pill { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
@@ -70,47 +69,51 @@
   .setting-item label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
   .setting-item select, .setting-item input[type="number"] {
     width: 100%; background: #1e293b; color: var(--text); border: 1px solid var(--border);
-    border-radius: 8px; padding: 8px 10px; font-size: 13px;
+    border-radius: 8px; padding: 8px 10px; font-size: 12.5px;
   }
   .toggle-row {
     display: flex; justify-content: space-between; align-items: center;
-    margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06); font-size: 13px;
+    margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06); font-size: 12.5px;
   }
 
-  /* AR キャンバス & DOM Overlay */
+  /* AR & Overlay */
   #ar-canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: none; }
-  #fallback-video {
-    position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; z-index: 1;
-  }
-  #fallback-gl-canvas {
-    position: fixed; inset: 0; width: 100%; height: 100%; display: none; z-index: 2; pointer-events: none;
-  }
+  #fallback-video { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; z-index: 1; }
+  #fallback-gl-canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: none; z-index: 2; pointer-events: none; }
+
   #xr-overlay {
     position: fixed; inset: 0; z-index: 10; display: none; flex-direction: column;
     justify-content: space-between; pointer-events: none;
-    padding: max(10px, env(safe-area-inset-top)) 10px max(12px, env(safe-area-inset-bottom));
+    padding: max(8px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
   }
   #xr-overlay.active { display: flex; }
   .hud-Interactive { pointer-events: auto; }
 
-  .hud-top {
-    display: flex; flex-direction: column; gap: 6px;
-  }
+  .hud-top { display: flex; flex-direction: column; gap: 6px; }
   .hud-bar {
     background: var(--panel); backdrop-filter: blur(10px);
-    border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px;
-    display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px;
+    border: 1px solid var(--border); border-radius: 12px; padding: 7px 10px;
+    display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 11.5px;
   }
-  .quality-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
-  .hud-stats { display: flex; gap: 10px; font-variant-numeric: tabular-nums; font-size: 11px; color: #cbd5e1; }
+  .quality-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+  .hud-stats { display: flex; gap: 8px; font-variant-numeric: tabular-nums; font-size: 11px; color: #cbd5e1; }
 
-  /* 中央レティクル & 距離表示 */
+  /* 順序スキャン ステップカード */
+  .step-card {
+    background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(10px);
+    border: 1px solid rgba(56, 189, 248, 0.45); border-radius: 14px;
+    padding: 9px 11px; display: flex; flex-direction: column; gap: 7px;
+  }
+  .step-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 800; color: #38bdf8; }
+  .step-desc { font-size: 11.5px; color: #e2e8f0; line-height: 1.4; }
+  .step-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
   #reticle-hud {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
     display: flex; flex-direction: column; align-items: center; pointer-events: none;
   }
   .crosshair {
-    width: 28px; height: 28px; border: 2px solid rgba(56, 189, 248, 0.9);
+    width: 28px; height: 28px; border: 2px solid rgba(56, 189, 248, 0.92);
     border-radius: 50%; position: relative; box-shadow: 0 0 8px rgba(0,0,0,0.6);
   }
   .crosshair::after {
@@ -118,11 +121,11 @@
     background: #fff; border-radius: 50%; transform: translate(-50%, -50%);
   }
   #reticle-dist {
-    margin-top: 6px; background: rgba(0,0,0,0.65); padding: 2px 8px;
+    margin-top: 6px; background: rgba(0,0,0,0.72); padding: 2px 8px;
     border-radius: 6px; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
   }
 
-  .hud-bottom { display: flex; flex-direction: column; gap: 8px; }
+  .hud-bottom { display: flex; flex-direction: column; gap: 6px; }
   .cad-strip {
     background: var(--panel); backdrop-filter: blur(10px); border: 1px solid var(--border);
     border-radius: 12px; padding: 6px 8px; display: none; gap: 6px; overflow-x: auto; align-items: center;
@@ -130,7 +133,7 @@
   .cad-strip.open { display: flex; }
   .ctrl-dock {
     background: var(--panel); backdrop-filter: blur(10px); border: 1px solid var(--border);
-    border-radius: 16px; padding: 8px; display: flex; flex-direction: column; gap: 8px;
+    border-radius: 16px; padding: 8px; display: flex; flex-direction: column; gap: 7px;
   }
   .ctrl-row { display: flex; gap: 6px; justify-content: space-between; align-items: center; }
 
@@ -144,22 +147,22 @@
   .viewer-top > * { pointer-events: auto; }
   .viewer-dock {
     background: var(--panel-solid); border-top: 1px solid var(--border);
-    padding: 10px 10px max(12px, env(safe-area-inset-bottom));
-    display: flex; flex-direction: column; gap: 8px;
+    padding: 9px 10px max(12px, env(safe-area-inset-bottom));
+    display: flex; flex-direction: column; gap: 7px;
   }
   .scroll-row { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
   .scroll-row button { flex-shrink: 0; }
   #measure-banner {
-    position: absolute; top: 64px; left: 50%; transform: translateX(-50%);
-    background: rgba(15, 23, 42, 0.9); border: 1px solid var(--accent);
+    position: absolute; top: 62px; left: 50%; transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.92); border: 1px solid var(--accent);
     padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 700;
     display: none; white-space: nowrap; z-index: 5;
   }
   #toast {
-    position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
-    background: rgba(15, 23, 42, 0.95); border: 1px solid var(--border);
+    position: fixed; top: 64px; left: 50%; transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.96); border: 1px solid var(--border);
     color: #fff; padding: 8px 14px; border-radius: 10px; font-size: 12px; font-weight: 600;
-    z-index: 100; display: none; max-width: 90%; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    z-index: 100; display: none; max-width: 92%; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.45);
   }
 </style>
 </head>
@@ -172,77 +175,76 @@
   <div class="card">
     <div class="header-title">
       <span>SpatialRoom 3D</span>
-      <span class="badge">AIなし・純幾何スキャン</span>
+      <span class="badge">v2 非AI純幾何エンジン</span>
     </div>
-    <p style="margin:8px 0 0; font-size:12px; color:var(--muted); line-height:1.5;">
-      WebXR (ARCore 6DoF + Depth + Raw Camera) とジャイロ・幾何学アルゴリズム（TSDF空間統合・Surface Nets・Taubin平滑化・RANSAC平面補正）のみで部屋を高精度に3Dモデル化します。
+    <p style="margin:6px 0 0; font-size:12px; color:var(--muted); line-height:1.5;">
+      色オーバーフロー完全修正・複雑形状の面伸び防止（厳格エッジカット＋強Carving）・<b>順序スキャン（床→天井→壁→家具）</b>対応版。
     </p>
   </div>
 
   <div class="card">
-    <div style="font-size:13px; font-weight:700; margin-bottom:6px;">端末・ブラウザ環境診断</div>
+    <div style="font-size:13px; font-weight:700; margin-bottom:4px;">端末環境診断</div>
     <div class="diag-row"><span>セキュアコンテキスト (HTTPS / localhost)</span><span id="diag-https" class="status-pill pill-warn">確認中</span></div>
     <div class="diag-row"><span>WebXR AR (Android Chrome + ARCore)</span><span id="diag-webxr" class="status-pill pill-warn">確認中</span></div>
-    <div class="diag-row"><span>ジャイロセンサー (DeviceOrientation)</span><span id="diag-gyro" class="status-pill pill-warn">待機中</span></div>
-    <div class="diag-row"><span>リアルタイム姿勢角 (Pitch / Roll / Yaw)</span><span id="diag-gyro-val" style="font-family:monospace; font-size:11px; color:#cbd5e1;">--</span></div>
+    <div class="diag-row"><span>ジャイロセンサー</span><span id="diag-gyro" class="status-pill pill-warn">待機中</span></div>
+    <div class="diag-row"><span>姿勢角 (Pitch / Roll / Yaw)</span><span id="diag-gyro-val" style="font-family:monospace; font-size:11px; color:#cbd5e1;">--</span></div>
     <div id="https-warning" style="display:none; margin-top:8px; padding:8px 10px; border-radius:8px; background:rgba(239,68,68,0.14); border:1px solid rgba(239,68,68,0.4); font-size:11px; line-height:1.5; color:#fca5a5;">
-      ※ <code>file://</code> または非HTTPSではWebXR・カメラ・ジャイロがブラウザによりブロックされます。PCから <code>adb reverse tcp:8080 tcp:8080</code> で <code>http://localhost:8080/</code> を開くか、HTTPSサーバーに配置してアクセスしてください。
+      ※ <code>http://localhost</code> または <code>HTTPS</code> で開く必要があります（<code>adb reverse tcp:8080 tcp:8080</code> 等を使用してください）。
     </div>
   </div>
 
   <div class="card">
-    <div style="font-size:13px; font-weight:700;">スキャン精度・アルゴリズム設定</div>
+    <div style="font-size:13px; font-weight:700;">スキャン設定</div>
     <div class="setting-grid">
       <div class="setting-item">
-        <label>ボクセル解像度 (精度)</label>
+        <label>ボクセル解像度</label>
         <select id="opt-voxel">
-          <option value="0.025">2.5 cm (超精密・小範囲)</option>
+          <option value="0.025">2.5 cm (精密・複雑形状向け)</option>
           <option value="0.035" selected>3.5 cm (部屋標準・推奨)</option>
           <option value="0.050">5.0 cm (広域・高速)</option>
         </select>
       </div>
       <div class="setting-item">
-        <label>最大有効深度</label>
-        <select id="opt-max-depth">
-          <option value="2.5">2.5 m (近距離高精度)</option>
-          <option value="3.8" selected>3.8 m (一般部屋推奨)</option>
-          <option value="5.5">5.5 m (広い部屋)</option>
+        <label>スキャン方式</label>
+        <select id="opt-workflow">
+          <option value="guided" selected>順序スキャン (床→天井→壁→家具)</option>
+          <option value="free">フリースキャン (いきなり開始)</option>
         </select>
       </div>
       <div class="setting-item">
-        <label>キーフレーム間隔 (視差ゲート)</label>
+        <label>フリー時 最大深度</label>
+        <select id="opt-max-depth">
+          <option value="2.2">2.2 m (複雑形状・突き抜け防止)</option>
+          <option value="3.5" selected>3.5 m (一般部屋)</option>
+          <option value="4.8">4.8 m (広い部屋)</option>
+        </select>
+      </div>
+      <div class="setting-item">
+        <label>キーフレーム間隔</label>
         <select id="opt-kf-dist">
           <option value="0.03">3 cm / 4° (高密度)</option>
           <option value="0.05" selected>5 cm / 6° (バランス)</option>
           <option value="0.08">8 cm / 9° (軽快)</option>
         </select>
       </div>
-      <div class="setting-item">
-        <label>エッジ境界ノイズ除去</label>
-        <select id="opt-edge">
-          <option value="0.04">厳格 (4%勾配カット)</option>
-          <option value="0.06" selected>標準 (6%勾配カット)</option>
-          <option value="0.12">緩め (12%勾配カット)</option>
-        </select>
-      </div>
     </div>
     <div class="toggle-row">
       <div>
         <div style="font-weight:600;">実カメラ色焼き付け (Camera Access)</div>
-        <div style="font-size:11px; color:var(--muted);">オフにすると深度/重みのみで高速・安全動作</div>
+        <div style="font-size:11px; color:var(--muted);">実際の壁や家具の色を正しく平均統合</div>
       </div>
       <input id="opt-color" type="checkbox" checked style="width:20px; height:20px; accent-color:var(--accent);" />
     </div>
     <div class="toggle-row">
       <div>
-        <div style="font-weight:600;">Free-space ゴースト削り (Carving)</div>
-        <div style="font-size:11px; color:var(--muted);">手前空間の再観測で浮遊ノイズを自動消去</div>
+        <div style="font-weight:600;">強Carving＋急斜面カット（突き抜け防止）</div>
+        <div style="font-size:11px; color:var(--muted);">古い偽の面やカーテン伸びを強力に削り取る</div>
       </div>
       <input id="opt-carve" type="checkbox" checked style="width:20px; height:20px; accent-color:var(--accent);" />
     </div>
   </div>
 
-  <div style="display:flex; flex-direction:column; gap:10px;">
+  <div style="display:flex; flex-direction:column; gap:9px;">
     <button id="btn-start-webxr" class="btn-primary" style="padding:14px; font-size:15px;">
       📷 AR 3Dスキャンを開始 (WebXR 高精度)
     </button>
@@ -252,13 +254,6 @@
     <button id="btn-demo-room" style="padding:11px;">
       🧊 サンプル部屋データで3Dスタジオを試す
     </button>
-  </div>
-
-  <div class="card" style="font-size:11px; color:var(--muted); line-height:1.6;">
-    <b>高精度スキャンのコツ：</b><br>
-    1. <b>横移動（カニ歩き）</b>すると視差が増え、単眼Depthの精度が劇的に上がります。<br>
-    2. 回転はゆっくり（40°/秒以下）行い、同じ壁を別角度から2〜3回撫でるとTSDFが固まります。<br>
-    3. 真っ白で特徴点がない壁は、AR画面下部の「📐CAD枠」で四隅をタップして補完できます。
   </div>
 </div>
 
@@ -272,7 +267,7 @@
     <div class="hud-bar hud-Interactive">
       <div style="display:flex; align-items:center;">
         <span id="quality-dot" class="quality-dot" style="background:#94a3b8;"></span>
-        <span id="quality-text" style="font-weight:700;">待機中</span>
+        <span id="quality-text" style="font-weight:700;">準備中</span>
       </div>
       <div class="hud-stats">
         <span id="stat-kf">KF:0</span>
@@ -280,9 +275,20 @@
         <span id="stat-mode">INIT</span>
       </div>
     </div>
+
+    <!-- 順序スキャン ガイドカード -->
+    <div id="step-card" class="step-card hud-Interactive" style="display:none;">
+      <div class="step-head">
+        <span id="step-title">STEP 1/4：床の高さ合わせ</span>
+        <span id="step-bounds" style="font-size:10px; color:#94a3b8; font-weight:600;">床:-- 天井:--</span>
+      </div>
+      <div id="step-desc" class="step-desc"></div>
+      <div id="step-actions" class="step-actions"></div>
+    </div>
+
     <div id="fallback-height-bar" class="hud-bar hud-Interactive" style="display:none; font-size:11px;">
-      <span>カメラ高さ(m): <input id="fb-cam-height" type="number" value="1.35" step="0.05" min="0.5" max="2.5" style="width:58px; padding:3px 6px; background:#1e293b; color:#fff; border:1px solid var(--border); border-radius:6px;"></span>
-      <span>位置調整: <button id="fb-step-fwd" class="btn-sm">+0.5m前進</button> <button id="fb-step-reset" class="btn-sm">原点</button></span>
+      <span>カメラ高(m): <input id="fb-cam-height" type="number" value="1.35" step="0.05" min="0.5" max="2.5" style="width:58px; padding:3px 6px; background:#1e293b; color:#fff; border:1px solid var(--border); border-radius:6px;"></span>
+      <span><button id="fb-step-fwd" class="btn-sm">+0.5m前進</button> <button id="fb-step-reset" class="btn-sm">原点</button></span>
     </div>
   </div>
 
@@ -296,22 +302,23 @@
       <span style="font-size:11px; color:var(--muted); white-space:nowrap;">CAD枠:</span>
       <button id="btn-cad-point" class="btn-sm btn-primary">＋コーナー打点</button>
       <button id="btn-cad-plane" class="btn-sm btn-success">面を確定</button>
-      <button id="btn-cad-room" class="btn-sm btn-warn">床→壁立上(2.4m)</button>
-      <button id="btn-cad-undo" class="btn-sm">1点戻す</button>
+      <button id="btn-cad-room" class="btn-sm btn-warn">床→壁立上</button>
+      <button id="btn-cad-undo" class="btn-sm">戻す</button>
       <span id="cad-count" style="font-size:11px; color:#cbd5e1; white-space:nowrap;">点:0</span>
     </div>
 
     <div class="ctrl-dock hud-Interactive">
       <div class="ctrl-row">
-        <button id="btn-scan-toggle" class="btn-primary" style="flex:1.4;">▶ スキャン開始</button>
-        <button id="btn-oneshot" class="btn-sm" title="静止状態で強制1フレーム統合">📸 1枚取込</button>
-        <button id="btn-overlay-mode" class="btn-sm">🎨 表示:シアン</button>
+        <button id="btn-scan-toggle" class="btn-primary" style="flex:1.25;">▶ スキャン開始</button>
+        <button id="btn-erase-ray" class="btn-sm btn-warn" title="中央の狙った場所の面を削り直す">🧹 狙い消し</button>
+        <button id="btn-overlay-mode" class="btn-sm">🎨 カメラ色</button>
         <button id="btn-cad-toggle" class="btn-sm">📐 CAD</button>
       </div>
       <div class="ctrl-row">
-        <button id="btn-ar-cancel" class="btn-sm" style="flex:0.7;">戻る</button>
-        <button id="btn-ar-clear" class="btn-sm btn-danger" style="flex:0.7;">リセット</button>
-        <button id="btn-finish-mesh" class="btn-success" style="flex:1.6;">✅ 完了・3Dモデル化</button>
+        <button id="btn-ar-cancel" class="btn-sm" style="flex:0.65;">戻る</button>
+        <button id="btn-ar-clear" class="btn-sm btn-danger" style="flex:0.75;">リセット</button>
+        <button id="btn-cam-rot" class="btn-sm" style="flex:0.8;" title="カメラ色がズレる機種用の向き補正">🔄 色向:自動</button>
+        <button id="btn-finish-mesh" class="btn-success" style="flex:1.45;">✅ 完了・3D化</button>
       </div>
     </div>
   </div>
@@ -338,7 +345,8 @@
       <button id="btn-view-mode" class="btn-sm btn-active">表示: カラーメッシュ</button>
       <button id="btn-taubin" class="btn-sm">✨ Taubin平滑化</button>
       <button id="btn-ransac" class="btn-sm btn-primary">📏 RANSAC平面補正</button>
-      <button id="btn-clean-islands" class="btn-sm">🧹 ノイズ除去</button>
+      <button id="btn-color-smooth" class="btn-sm">🎨 色ノイズ均し</button>
+      <button id="btn-clean-islands" class="btn-sm">🧹 浮遊片除去</button>
       <button id="btn-mesh-reset" class="btn-sm">↩ 元メッシュ</button>
     </div>
     <div class="scroll-row">
@@ -355,7 +363,6 @@
 (() => {
   'use strict';
 
-  // ==================== ユーティリティ・トースト ====================
   const $ = id => document.getElementById(id);
   let toastTimer = null;
   function showToast(msg, ms = 2600) {
@@ -376,7 +383,7 @@
     $('fallback-height-bar').style.display = (name === 'fallback') ? 'flex' : 'none';
   }
 
-  // ==================== 3D 数学ライブラリ (Float32 列優先 4x4) ====================
+  // ==================== 3D 数学ライブラリ ====================
   const Mat4 = {
     identity(out = new Float32Array(16)) {
       out.fill(0); out[0] = out[5] = out[10] = out[15] = 1; return out;
@@ -455,48 +462,32 @@
 
   // ==================== ジャイロセンサー管理 ====================
   const GyroState = {
-    available: false,
-    alpha: 0, beta: 0, gamma: 0,
-    lastTime: 0,
-    quat: [0, 0, 0, 1],
-    angularSpeedDeg: 0,
-    prevQuat: [0, 0, 0, 1],
-    screenAngle: 0
+    available: false, alpha: 0, beta: 0, gamma: 0,
+    quat: [0, 0, 0, 1], prevQuat: [0, 0, 0, 1], lastTime: 0, angularSpeedDeg: 0
   };
 
   function computeGyroQuat(alphaDeg, betaDeg, gammaDeg, orientDeg) {
-    const a = alphaDeg * Math.PI / 180;
-    const b = betaDeg * Math.PI / 180;
-    const g = gammaDeg * Math.PI / 180;
-    const o = orientDeg * Math.PI / 180;
+    const a = alphaDeg * Math.PI / 180, b = betaDeg * Math.PI / 180;
+    const g = gammaDeg * Math.PI / 180, o = orientDeg * Math.PI / 180;
     const c1 = Math.cos(b/2), c2 = Math.cos(a/2), c3 = Math.cos(-g/2);
     const s1 = Math.sin(b/2), s2 = Math.sin(a/2), s3 = Math.sin(-g/2);
-    let qx = s1*c2*c3 + c1*s2*s3;
-    let qy = c1*s2*c3 - s1*c2*s3;
-    let qz = c1*c2*s3 - s1*s2*c3;
-    let qw = c1*c2*c3 + s1*s2*s3;
-    // q * q1 (-90deg around X)
+    const qx = s1*c2*c3 + c1*s2*s3, qy = c1*s2*c3 - s1*c2*s3;
+    const qz = c1*c2*s3 - s1*s2*c3, qw = c1*c2*c3 + s1*s2*s3;
     const sq = Math.SQRT1_2;
     const r1x = qx*sq - qw*sq, r1y = qy*sq + qz*sq, r1z = qz*sq - qy*sq, r1w = qw*sq + qx*sq;
-    // q * q0 (-orient around Z)
     const sz = Math.sin(-o/2), cz = Math.cos(-o/2);
     return [
-      r1w*0 + r1x*cz + r1y*sz - r1z*0,
-      r1w*0 - r1x*sz + r1y*cz + r1z*0,
-      r1w*sz + r1x*0 - r1y*0 + r1z*cz,
-      r1w*cz - r1x*0 - r1y*0 - r1z*sz
+      r1x*cz + r1y*sz, r1y*cz - r1x*sz,
+      r1w*sz + r1z*cz, r1w*cz - r1z*sz
     ];
   }
 
   function handleDeviceOrientation(e) {
     if (e.alpha == null || e.beta == null || e.gamma == null) return;
     GyroState.available = true;
-    GyroState.alpha = e.alpha;
-    GyroState.beta = e.beta;
-    GyroState.gamma = e.gamma;
+    GyroState.alpha = e.alpha; GyroState.beta = e.beta; GyroState.gamma = e.gamma;
     const orient = (screen.orientation && typeof screen.orientation.angle === 'number')
       ? screen.orientation.angle : (window.orientation || 0);
-    GyroState.screenAngle = orient;
     const nq = computeGyroQuat(e.alpha, e.beta, e.gamma, orient);
     const now = performance.now();
     if (GyroState.lastTime > 0) {
@@ -526,8 +517,8 @@
     }
   }
 
-  // ==================== チャンク化 3D TSDF ボクセルエンジン ====================
-  const CS = 16; // 1チャンク 16x16x16 = 4096 ボクセル
+  // ==================== チャンク化 3D TSDF ボクセルエンジン (色オーバーフロー完全対策版) ====================
+  const CS = 16;
   const CSIZE3 = CS * CS * CS;
   const CHUNK_OFFSET = 1024;
   const VOXEL_OFFSET = 8192;
@@ -542,22 +533,28 @@
   class TSDFVolume {
     constructor(voxelSize = 0.035) {
       this.voxelSize = voxelSize;
-      this.trunc = voxelSize * 2.6;
-      this.maxWeight = 40.0;
-      this.maxChunks = 750;
+      this.trunc = voxelSize * 1.8; // タイトな切断帯で薄い板や隙間を守る
+      this.maxWeight = 18.0;        // 過剰な固着を防ぎ再観測で修正しやすくする
+      this.maxColorWeight = 14.0;
+      this.maxChunks = 800;
       this.chunks = new Map();
-      this.cadPlanes = []; // { pts: [[x,y,z]...], color: [r,g,b], normal: [nx,ny,nz] }
-      this.cadPending = []; // 現在の打点中の点列
+      this.cadPlanes = [];
+      this.cadPending = [];
+      // 順序スキャン用キャリブレーション境界 (WebXR生座標Y基準)
+      this.floorY = null;
+      this.ceilingY = null;
     }
 
     reset(voxelSize) {
       if (voxelSize) {
         this.voxelSize = voxelSize;
-        this.trunc = voxelSize * 2.6;
+        this.trunc = voxelSize * 1.8;
       }
       this.chunks.clear();
       this.cadPlanes = [];
       this.cadPending = [];
+      this.floorY = null;
+      this.ceilingY = null;
     }
 
     getOrCreateChunk(cx, cy, cz) {
@@ -569,17 +566,13 @@
         cx, cy, cz,
         tsdf: new Float32Array(CSIZE3).fill(1.0),
         weight: new Float32Array(CSIZE3),
+        cw: new Float32Array(CSIZE3), // 色専用の重み配列 (Carving汚染とオーバーフロー根絶)
         r: new Uint8Array(CSIZE3),
         g: new Uint8Array(CSIZE3),
-        b: new Uint8Array(CSIZE3),
-        dirty: true
+        b: new Uint8Array(CSIZE3)
       };
       this.chunks.set(k, ch);
       return ch;
-    }
-
-    getChunk(cx, cy, cz) {
-      return this.chunks.get(chunkKey(cx, cy, cz)) || null;
     }
 
     getVoxel(vx, vy, vz) {
@@ -598,26 +591,30 @@
       const lx = vx - cx * CS, ly = vy - cy * CS, lz = vz - cz * CS;
       const idx = (lx * CS + ly) * CS + lz;
 
+      // 修正点1: 必ず (wOld + wNew) の実総和で割ってから上限キャップする！
       const wOld = ch.weight[idx];
-      const wSum = Math.min(this.maxWeight, wOld + wNew);
+      const wTotal = wOld + wNew;
       const val = Math.max(-1.0, Math.min(1.0, sdfVal / this.trunc));
-      ch.tsdf[idx] = (ch.tsdf[idx] * wOld + val * wNew) / wSum;
-      ch.weight[idx] = wSum;
+      ch.tsdf[idx] = Math.max(-1.0, Math.min(1.0, (ch.tsdf[idx] * wOld + val * wNew) / wTotal));
+      ch.weight[idx] = Math.min(this.maxWeight, wTotal);
 
-      if (hasColor && Math.abs(sdfVal) < this.trunc * 0.85) {
-        if (wOld === 0) {
+      // 修正点2: 色専用重み cwOld で正しく移動平均し、0..255 に厳密クランプ！
+      if (hasColor && Math.abs(sdfVal) < this.trunc * 0.8) {
+        const cwOld = ch.cw[idx];
+        if (cwOld <= 0) {
           ch.r[idx] = cr; ch.g[idx] = cg; ch.b[idx] = cb;
+          ch.cw[idx] = Math.min(this.maxColorWeight, wNew);
         } else {
-          const cwOld = wOld;
-          ch.r[idx] = (ch.r[idx] * cwOld + cr * wNew) / wSum;
-          ch.g[idx] = (ch.g[idx] * cwOld + cg * wNew) / wSum;
-          ch.b[idx] = (ch.b[idx] * cwOld + cb * wNew) / wSum;
+          const cwTotal = cwOld + wNew;
+          ch.r[idx] = Math.max(0, Math.min(255, Math.round((ch.r[idx] * cwOld + cr * wNew) / cwTotal)));
+          ch.g[idx] = Math.max(0, Math.min(255, Math.round((ch.g[idx] * cwOld + cg * wNew) / cwTotal)));
+          ch.b[idx] = Math.max(0, Math.min(255, Math.round((ch.b[idx] * cwOld + cb * wNew) / cwTotal)));
+          ch.cw[idx] = Math.min(this.maxColorWeight, cwTotal);
         }
       }
-      ch.dirty = true;
     }
 
-    // 既存チャンクのみに対する手前空間（Free-space）カービング：浮遊ノイズを消す
+    // 強Free-space Carving: 元の面が誤って残るのを防ぎ空気(+1)へ戻す
     carveVoxelIfExists(vx, vy, vz, wCarve) {
       const cx = Math.floor(vx / CS), cy = Math.floor(vy / CS), cz = Math.floor(vz / CS);
       const ch = this.chunks.get(chunkKey(cx, cy, cz));
@@ -625,19 +622,54 @@
       const lx = vx - cx * CS, ly = vy - cy * CS, lz = vz - cz * CS;
       const idx = (lx * CS + ly) * CS + lz;
       const wOld = ch.weight[idx];
-      if (wOld <= 0 || ch.tsdf[idx] >= 0.95) return;
-      const wSum = Math.min(this.maxWeight, wOld + wCarve);
-      ch.tsdf[idx] = (ch.tsdf[idx] * wOld + 1.0 * wCarve) / wSum;
-      ch.weight[idx] = wSum;
-      ch.dirty = true;
+      if (wOld <= 0) return;
+      if (ch.tsdf[idx] >= 0.96) return;
+      const wTotal = wOld + wCarve;
+      ch.tsdf[idx] = Math.min(1.0, (ch.tsdf[idx] * wOld + 1.0 * wCarve) / wTotal);
+      ch.weight[idx] = Math.min(this.maxWeight, wTotal);
     }
 
-    // プレビュー点群データを構築（表面ボクセル抽出）
-    buildPreviewPoints(mode /* 'cyan'|'rgb'|'weight' */) {
-      const pos = [];
-      const col = [];
+    // 狙ったレイ円錐内の既存ボクセルを消去（🧹 狙い消しツール用）
+    eraseAlongRay(camPos, rayDir, maxDist = 3.2, coneRadiusPerMeter = 0.085) {
       const vs = this.voxelSize;
-      const half = vs * 0.5;
+      let erasedCount = 0;
+      for (const ch of this.chunks.values()) {
+        const bx = ch.cx * CS * vs, by = ch.cy * CS * vs, bz = ch.cz * CS * vs;
+        const cMidX = bx + CS * vs * 0.5 - camPos[0];
+        const cMidY = by + CS * vs * 0.5 - camPos[1];
+        const cMidZ = bz + CS * vs * 0.5 - camPos[2];
+        const projC = cMidX*rayDir[0] + cMidY*rayDir[1] + cMidZ*rayDir[2];
+        if (projC < -0.6 || projC > maxDist + 0.6) continue;
+
+        for (let lx = 0; lx < CS; lx++) {
+          for (let ly = 0; ly < CS; ly++) {
+            const base = (lx * CS + ly) * CS;
+            for (let lz = 0; lz < CS; lz++) {
+              const idx = base + lz;
+              if (ch.weight[idx] <= 0) continue;
+              const dx = bx + (lx + 0.5)*vs - camPos[0];
+              const dy = by + (ly + 0.5)*vs - camPos[1];
+              const dz = bz + (lz + 0.5)*vs - camPos[2];
+              const t = dx*rayDir[0] + dy*rayDir[1] + dz*rayDir[2];
+              if (t < 0.15 || t > maxDist) continue;
+              const perpSq = (dx*dx + dy*dy + dz*dz) - t*t;
+              const rad = Math.max(0.08, t * coneRadiusPerMeter);
+              if (perpSq <= rad * rad) {
+                ch.weight[idx] = 0;
+                ch.cw[idx] = 0;
+                ch.tsdf[idx] = 1.0;
+                erasedCount++;
+              }
+            }
+          }
+        }
+      }
+      return erasedCount;
+    }
+
+    buildPreviewPoints(mode /* 'rgb'|'cyan'|'weight' */) {
+      const pos = [], col = [];
+      const vs = this.voxelSize, half = vs * 0.5;
       for (const ch of this.chunks.values()) {
         const bx = ch.cx * CS, by = ch.cy * CS, bz = ch.cz * CS;
         for (let lx = 0; lx < CS; lx++) {
@@ -649,59 +681,40 @@
               if (w <= 0) continue;
               const t = ch.tsdf[idx];
               if (t < -0.35 || t > 0.35) continue;
-              // サブサンプリングせずに高精度表示（上限14万点）
               if (pos.length >= 140000 * 3) break;
               pos.push((bx + lx) * vs + half, (by + ly) * vs + half, (bz + lz) * vs + half);
-              if (mode === 'rgb' && (ch.r[idx] | ch.g[idx] | ch.b[idx])) {
+              if (mode === 'rgb' && ch.cw[idx] > 0) {
                 col.push(ch.r[idx] / 255, ch.g[idx] / 255, ch.b[idx] / 255);
               } else if (mode === 'weight') {
-                const q = Math.min(1.0, w / 6.0);
-                // 低信頼=赤 → 中=黄 → 高信頼=緑
+                const q = Math.min(1.0, w / 5.0);
                 col.push(q < 0.5 ? 1.0 : 2.0 * (1.0 - q), q < 0.5 ? 2.0 * q : 1.0, 0.15);
               } else {
-                // シアン+高さ陰影
-                const shade = 0.65 + 0.35 * Math.sin(((by + ly) * vs) * 4.0);
+                const shade = 0.68 + 0.32 * Math.sin(((by + ly) * vs) * 4.0);
                 col.push(0.1 * shade, 0.85 * shade, 1.0 * shade);
               }
             }
           }
         }
       }
-      return {
-        positions: new Float32Array(pos),
-        colors: new Float32Array(col),
-        count: pos.length / 3
-      };
+      return { positions: new Float32Array(pos), colors: new Float32Array(col), count: pos.length / 3 };
     }
 
-    // ==================== Naive Surface Nets メッシュ抽出 ====================
+    // Naive Surface Nets メッシュ抽出（floorY で基準高さ合わせを適用）
     extractSurfaceNetsMesh() {
       const vs = this.voxelSize;
-      const corners = [
-        [0,0,0],[1,0,0],[0,1,0],[1,1,0],
-        [0,0,1],[1,0,1],[0,1,1],[1,1,1]
-      ];
-      const edges = [
-        [0,1],[2,3],[4,5],[6,7],
-        [0,2],[1,3],[4,6],[5,7],
-        [0,4],[1,5],[2,6],[3,7]
-      ];
+      const yShift = (this.floorY !== null) ? this.floorY : 0;
+      const corners = [[0,0,0],[1,0,0],[0,1,0],[1,1,0],[0,0,1],[1,0,1],[0,1,1],[1,1,1]];
+      const edges = [[0,1],[2,3],[4,5],[6,7],[0,2],[1,3],[4,6],[5,7],[0,4],[1,5],[2,6],[3,7]];
 
       const cellToVert = new Map();
-      const verts = []; // [x,y,z,...]
-      const cols = [];  // [r,g,b,...] (0..1)
-      const cTsdf = new Float32Array(8);
-      const cWeight = new Float32Array(8);
-      const cR = new Uint8Array(8);
-      const cG = new Uint8Array(8);
-      const cB = new Uint8Array(8);
+      const verts = [], cols = [];
+      const cTsdf = new Float32Array(8), cWeight = new Float32Array(8), cCW = new Float32Array(8);
+      const cR = new Uint8Array(8), cG = new Uint8Array(8), cB = new Uint8Array(8);
 
-      // 高速ルックアップ（同一チャンク内なら直接配列アクセス）
       const readCorner = (ch, lx, ly, lz, vx, vy, vz, ci) => {
         if (lx < CS && ly < CS && lz < CS) {
           const idx = (lx * CS + ly) * CS + lz;
-          cTsdf[ci] = ch.tsdf[idx];
-          cWeight[ci] = ch.weight[idx];
+          cTsdf[ci] = ch.tsdf[idx]; cWeight[ci] = ch.weight[idx]; cCW[ci] = ch.cw[idx];
           cR[ci] = ch.r[idx]; cG[ci] = ch.g[idx]; cB[ci] = ch.b[idx];
           return true;
         }
@@ -710,13 +723,11 @@
         if (!nch) return false;
         const nlx = vx - ncx * CS, nly = vy - ncy * CS, nlz = vz - ncz * CS;
         const idx = (nlx * CS + nly) * CS + nlz;
-        cTsdf[ci] = nch.tsdf[idx];
-        cWeight[ci] = nch.weight[idx];
+        cTsdf[ci] = nch.tsdf[idx]; cWeight[ci] = nch.weight[idx]; cCW[ci] = nch.cw[idx];
         cR[ci] = nch.r[idx]; cG[ci] = nch.g[idx]; cB[ci] = nch.b[idx];
         return true;
       };
 
-      // パス1：各有効セルに頂点生成
       for (const ch of this.chunks.values()) {
         const bx = ch.cx * CS, by = ch.cy * CS, bz = ch.cz * CS;
         for (let lx = 0; lx < CS; lx++) {
@@ -748,18 +759,18 @@
                 }
               }
               for (let c = 0; c < 8; c++) {
-                if (cR[c] | cG[c] | cB[c]) {
-                  const w = cWeight[c];
+                if (cCW[c] > 0) {
+                  const w = cCW[c];
                   sr += cR[c] * w; sg += cG[c] * w; sb += cB[c] * w; sw += w;
                 }
               }
               const invCnt = 1.0 / cnt;
               const vIdx = verts.length / 3;
-              verts.push((vx + sx * invCnt) * vs, (vy + sy * invCnt) * vs, (vz + sz * invCnt) * vs);
+              verts.push((vx + sx * invCnt) * vs, (vy + sy * invCnt) * vs - yShift, (vz + sz * invCnt) * vs);
               if (sw > 0) {
                 cols.push(sr / (sw * 255), sg / (sw * 255), sb / (sw * 255));
               } else {
-                cols.push(0.75, 0.82, 0.88);
+                cols.push(0.76, 0.80, 0.85);
               }
               cellToVert.set(voxelKey(vx, vy, vz), vIdx);
             }
@@ -767,7 +778,6 @@
         }
       }
 
-      // パス2：X/Y/Z の3辺を走査して四角形(2三角形)を結ぶ
       const tris = [];
       for (const ch of this.chunks.values()) {
         const bx = ch.cx * CS, by = ch.cy * CS, bz = ch.cz * CS;
@@ -776,11 +786,9 @@
             for (let lz = 0; lz < CS; lz++) {
               const vx = bx + lx, vy = by + ly, vz = bz + lz;
               const idx0 = (lx * CS + ly) * CS + lz;
-              const w0 = ch.weight[idx0];
-              if (w0 <= 0) continue;
+              if (ch.weight[idx0] <= 0) continue;
               const v0 = ch.tsdf[idx0];
 
-              // 1. X辺 (vx,vy,vz) -> (vx+1,vy,vz)
               const nxX = this.getVoxel(vx + 1, vy, vz);
               if (nxX && nxX.weight > 0 && ((v0 < 0) !== (nxX.tsdf < 0))) {
                 const c0 = cellToVert.get(voxelKey(vx, vy-1, vz-1));
@@ -792,8 +800,6 @@
                   else        tris.push(c0, c2, c1, c0, c3, c2);
                 }
               }
-
-              // 2. Y辺 (vx,vy,vz) -> (vx,vy+1,vz)
               const nxY = this.getVoxel(vx, vy + 1, vz);
               if (nxY && nxY.weight > 0 && ((v0 < 0) !== (nxY.tsdf < 0))) {
                 const c0 = cellToVert.get(voxelKey(vx-1, vy, vz-1));
@@ -805,8 +811,6 @@
                   else        tris.push(c0, c2, c1, c0, c3, c2);
                 }
               }
-
-              // 3. Z辺 (vx,vy,vz) -> (vx,vy,vz+1)
               const nxZ = this.getVoxel(vx, vy, vz + 1);
               if (nxZ && nxZ.weight > 0 && ((v0 < 0) !== (nxZ.tsdf < 0))) {
                 const c0 = cellToVert.get(voxelKey(vx-1, vy-1, vz));
@@ -823,19 +827,13 @@
         }
       }
 
-      // CAD平面があれば同じメッシュ形式または別バッファとして統合できるよう保持
-      const mesh = {
-        positions: new Float32Array(verts),
-        colors: new Float32Array(cols),
-        indices: new Uint32Array(tris),
-        normals: null
-      };
+      const mesh = { positions: new Float32Array(verts), colors: new Float32Array(cols), indices: new Uint32Array(tris), normals: null };
       computeMeshNormals(mesh);
       return mesh;
     }
   }
 
-  // ==================== 非AI 幾何学メッシュ処理 (法線 / Taubin / RANSAC / ノイズ除去) ====================
+  // ==================== 非AI 幾何学メッシュ処理 ====================
   function computeMeshNormals(mesh) {
     const pos = mesh.positions, idx = mesh.indices;
     const nVerts = pos.length / 3;
@@ -844,16 +842,13 @@
       const a = idx[i]*3, b = idx[i+1]*3, c = idx[i+2]*3;
       const e1x = pos[b]-pos[a], e1y = pos[b+1]-pos[a+1], e1z = pos[b+2]-pos[a+2];
       const e2x = pos[c]-pos[a], e2y = pos[c+1]-pos[a+1], e2z = pos[c+2]-pos[a+2];
-      const nx = e1y*e2z - e1z*e2y;
-      const ny = e1z*e2x - e1x*e2z;
-      const nz = e1x*e2y - e1y*e2x;
+      const nx = e1y*e2z - e1z*e2y, ny = e1z*e2x - e1x*e2z, nz = e1x*e2y - e1y*e2x;
       norms[a]+=nx; norms[a+1]+=ny; norms[a+2]+=nz;
       norms[b]+=nx; norms[b+1]+=ny; norms[b+2]+=nz;
       norms[c]+=nx; norms[c+1]+=ny; norms[c+2]+=nz;
     }
     for (let i = 0; i < nVerts; i++) {
-      const o = i * 3;
-      const len = Math.hypot(norms[o], norms[o+1], norms[o+2]) || 1;
+      const o = i * 3, len = Math.hypot(norms[o], norms[o+1], norms[o+2]) || 1;
       norms[o] /= len; norms[o+1] /= len; norms[o+2] /= len;
     }
     mesh.normals = norms;
@@ -869,43 +864,30 @@
       edgeCount.set(key, (edgeCount.get(key) || 0) + 1);
     };
     for (let i = 0; i < indices.length; i += 3) {
-      const a = indices[i], b = indices[i+1], c = indices[i+2];
-      addEdge(a, b); addEdge(b, c); addEdge(c, a);
+      addEdge(indices[i], indices[i+1]); addEdge(indices[i+1], indices[i+2]); addEdge(indices[i+2], indices[i]);
     }
     const isBoundary = new Uint8Array(nVerts);
     for (const [key, cnt] of edgeCount.entries()) {
-      if (cnt === 1) {
-        const a = Math.floor(key / 1000000), b = key % 1000000;
-        isBoundary[a] = 1; isBoundary[b] = 1;
-      }
+      if (cnt === 1) { isBoundary[Math.floor(key/1000000)] = 1; isBoundary[key%1000000] = 1; }
     }
     return { adj: adj.map(s => Array.from(s)), isBoundary };
   }
 
-  // 境界保護付き Taubin スムージング (収縮ゼロのノイズ除去)
   function applyTaubinSmoothing(mesh, iters = 6, lambda = 0.5, mu = -0.53) {
     const pos = new Float32Array(mesh.positions);
     const nVerts = pos.length / 3;
     if (nVerts === 0) return;
     const { adj, isBoundary } = buildAdjacency(nVerts, mesh.indices);
     const next = new Float32Array(pos.length);
-
     for (let it = 0; it < iters; it++) {
       for (const factor of [lambda, mu]) {
         for (let i = 0; i < nVerts; i++) {
-          const nb = adj[i];
-          const o = i * 3;
+          const nb = adj[i], o = i * 3;
           if (nb.length === 0) { next[o]=pos[o]; next[o+1]=pos[o+1]; next[o+2]=pos[o+2]; continue; }
           let sx = 0, sy = 0, sz = 0;
-          for (let j = 0; j < nb.length; j++) {
-            const no = nb[j] * 3;
-            sx += pos[no]; sy += pos[no+1]; sz += pos[no+2];
-          }
-          const inv = 1 / nb.length;
-          const f = isBoundary[i] ? factor * 0.25 : factor;
-          next[o]   = pos[o]   + f * (sx * inv - pos[o]);
-          next[o+1] = pos[o+1] + f * (sy * inv - pos[o+1]);
-          next[o+2] = pos[o+2] + f * (sz * inv - pos[o+2]);
+          for (let j = 0; j < nb.length; j++) { const no = nb[j]*3; sx+=pos[no]; sy+=pos[no+1]; sz+=pos[no+2]; }
+          const inv = 1 / nb.length, f = isBoundary[i] ? factor * 0.25 : factor;
+          next[o]=pos[o]+f*(sx*inv-pos[o]); next[o+1]=pos[o+1]+f*(sy*inv-pos[o+1]); next[o+2]=pos[o+2]+f*(sz*inv-pos[o+2]);
         }
         pos.set(next);
       }
@@ -914,10 +896,29 @@
     computeMeshNormals(mesh);
   }
 
-  // 3x3 対称共分散行列の最小固有ベクトル (ヤコビ法)
+  // 頂点カラーのごま塩ノイズを隣接頂点で穏やかに平均化
+  function applyColorSmoothing(mesh, iters = 2) {
+    const col = new Float32Array(mesh.colors);
+    const nVerts = col.length / 3;
+    if (nVerts === 0) return;
+    const { adj } = buildAdjacency(nVerts, mesh.indices);
+    const next = new Float32Array(col.length);
+    for (let it = 0; it < iters; it++) {
+      for (let i = 0; i < nVerts; i++) {
+        const nb = adj[i], o = i * 3;
+        if (nb.length === 0) { next[o]=col[o]; next[o+1]=col[o+1]; next[o+2]=col[o+2]; continue; }
+        let sr = col[o], sg = col[o+1], sb = col[o+2];
+        for (let j = 0; j < nb.length; j++) { const no = nb[j]*3; sr+=col[no]; sg+=col[no+1]; sb+=col[no+2]; }
+        const inv = 1 / (nb.length + 1);
+        next[o]=sr*inv; next[o+1]=sg*inv; next[o+2]=sb*inv;
+      }
+      col.set(next);
+    }
+    mesh.colors = col;
+  }
+
   function smallestEigenvector3x3(c00, c01, c02, c11, c12, c22) {
-    const a = [[c00,c01,c02],[c01,c11,c12],[c02,c12,c22]];
-    const v = [[1,0,0],[0,1,0],[0,0,1]];
+    const a = [[c00,c01,c02],[c01,c11,c12],[c02,c12,c22]], v = [[1,0,0],[0,1,0],[0,0,1]];
     for (let it = 0; it < 28; it++) {
       let p = 0, q = 1, maxV = Math.abs(a[0][1]);
       if (Math.abs(a[0][2]) > maxV) { p = 0; q = 2; maxV = Math.abs(a[0][2]); }
@@ -927,19 +928,14 @@
       const tau = (aqq - app) / (2 * apq);
       const t = tau >= 0 ? 1 / (tau + Math.sqrt(1 + tau*tau)) : -1 / (-tau + Math.sqrt(1 + tau*tau));
       const c = 1 / Math.sqrt(1 + t*t), s = t * c;
-      a[p][p] = app - t * apq; a[q][q] = aqq + t * apq;
-      a[p][q] = a[q][p] = 0;
-      for (let r = 0; r < 3; r++) {
-        if (r !== p && r !== q) {
-          const arp = a[r][p], arq = a[r][q];
-          a[r][p] = a[p][r] = c * arp - s * arq;
-          a[r][q] = a[q][r] = s * arp + c * arq;
-        }
+      a[p][p] = app - t * apq; a[q][q] = aqq + t * apq; a[p][q] = a[q][p] = 0;
+      for (let r = 0; r < 3; r++) if (r !== p && r !== q) {
+        const arp = a[r][p], arq = a[r][q];
+        a[r][p] = a[p][r] = c * arp - s * arq; a[r][q] = a[q][r] = s * arp + c * arq;
       }
       for (let r = 0; r < 3; r++) {
         const vrp = v[r][p], vrq = v[r][q];
-        v[r][p] = c * vrp - s * vrq;
-        v[r][q] = s * vrp + c * vrq;
+        v[r][p] = c * vrp - s * vrq; v[r][q] = s * vrp + c * vrq;
       }
     }
     let minIdx = 0;
@@ -949,13 +945,11 @@
     return [v[0][minIdx]/len, v[1][minIdx]/len, v[2][minIdx]/len];
   }
 
-  // 法線付きRANSAC + PCA 平面スナップ (壁・床・テーブルを平坦化)
-  function applyRansacPlaneSnap(mesh, distThresh = 0.035, cosThresh = 0.87, maxPlanes = 10, alpha = 0.88) {
+  function applyRansacPlaneSnap(mesh, distThresh = 0.04, cosThresh = 0.87, maxPlanes = 10, alpha = 0.88) {
     const pos = mesh.positions, norms = mesh.normals;
     const nVerts = pos.length / 3;
     const minInliers = Math.max(40, Math.floor(nVerts * 0.02));
     if (nVerts < minInliers) return 0;
-
     const assigned = new Uint8Array(nVerts);
     let planesFound = 0;
 
@@ -964,81 +958,57 @@
       for (let i = 0; i < nVerts; i++) if (!assigned[i]) avail.push(i);
       if (avail.length < minInliers) break;
 
-      // 高速評価用のサブサンプル
       const sampleCount = Math.min(avail.length, 1400);
       const evalIdx = new Int32Array(sampleCount);
-      for (let s = 0; s < sampleCount; s++) {
-        evalIdx[s] = avail[Math.floor((s * avail.length) / sampleCount)];
-      }
+      for (let s = 0; s < sampleCount; s++) evalIdx[s] = avail[Math.floor((s * avail.length) / sampleCount)];
 
       let bestCount = 0, bestSeed = -1;
       for (let r = 0; r < 70; r++) {
         const seed = avail[Math.floor(Math.random() * avail.length)];
         const so = seed * 3;
-        const p0x = pos[so], p0y = pos[so+1], p0z = pos[so+2];
-        const n0x = norms[so], n0y = norms[so+1], n0z = norms[so+2];
+        const p0x=pos[so], p0y=pos[so+1], p0z=pos[so+2], n0x=norms[so], n0y=norms[so+1], n0z=norms[so+2];
         if (Math.hypot(n0x, n0y, n0z) < 0.5) continue;
-
         let cnt = 0;
         for (let s = 0; s < sampleCount; s++) {
           const vo = evalIdx[s] * 3;
-          const dist = Math.abs((pos[vo]-p0x)*n0x + (pos[vo+1]-p0y)*n0y + (pos[vo+2]-p0z)*n0z);
-          if (dist < distThresh) {
-            const dot = norms[vo]*n0x + norms[vo+1]*n0y + norms[vo+2]*n0z;
-            if (dot > cosThresh) cnt++;
-          }
+          if (Math.abs((pos[vo]-p0x)*n0x + (pos[vo+1]-p0y)*n0y + (pos[vo+2]-p0z)*n0z) < distThresh &&
+              (norms[vo]*n0x + norms[vo+1]*n0y + norms[vo+2]*n0z) > cosThresh) cnt++;
         }
         if (cnt > bestCount) { bestCount = cnt; bestSeed = seed; }
       }
-
       if (bestSeed < 0 || bestCount < (minInliers * sampleCount / avail.length)) break;
 
       const so = bestSeed * 3;
-      const p0x = pos[so], p0y = pos[so+1], p0z = pos[so+2];
-      const n0x = norms[so], n0y = norms[so+1], n0z = norms[so+2];
-
-      let inliers = [];
-      let mx = 0, my = 0, mz = 0;
-      for (let k = 0; k < avail.length; k++) {
-        const i = avail[k], vo = i * 3;
-        const dist = Math.abs((pos[vo]-p0x)*n0x + (pos[vo+1]-p0y)*n0y + (pos[vo+2]-p0z)*n0z);
-        if (dist < distThresh && (norms[vo]*n0x + norms[vo+1]*n0y + norms[vo+2]*n0z) > cosThresh) {
-          inliers.push(i);
-          mx += pos[vo]; my += pos[vo+1]; mz += pos[vo+2];
+      const p0x=pos[so], p0y=pos[so+1], p0z=pos[so+2], n0x=norms[so], n0y=norms[so+1], n0z=norms[so+2];
+      let inliers = [], mx = 0, my = 0, mz = 0;
+      for (const i of avail) {
+        const vo = i * 3;
+        if (Math.abs((pos[vo]-p0x)*n0x + (pos[vo+1]-p0y)*n0y + (pos[vo+2]-p0z)*n0z) < distThresh &&
+            (norms[vo]*n0x + norms[vo+1]*n0y + norms[vo+2]*n0z) > cosThresh) {
+          inliers.push(i); mx += pos[vo]; my += pos[vo+1]; mz += pos[vo+2];
         }
       }
       if (inliers.length < minInliers) break;
       mx /= inliers.length; my /= inliers.length; mz /= inliers.length;
 
-      // PCA 共分散行列
       let c00=0, c01=0, c02=0, c11=0, c12=0, c22=0;
-      for (let k = 0; k < inliers.length; k++) {
-        const vo = inliers[k] * 3;
-        const dx = pos[vo]-mx, dy = pos[vo+1]-my, dz = pos[vo+2]-mz;
+      for (const i of inliers) {
+        const vo = i * 3, dx = pos[vo]-mx, dy = pos[vo+1]-my, dz = pos[vo+2]-mz;
         c00+=dx*dx; c01+=dx*dy; c02+=dx*dz; c11+=dy*dy; c12+=dy*dz; c22+=dz*dz;
       }
       let [nx, ny, nz] = smallestEigenvector3x3(c00, c01, c02, c11, c12, c22);
       if (nx*n0x + ny*n0y + nz*n0z < 0) { nx=-nx; ny=-ny; nz=-nz; }
 
-      // 再確定してソフトスナップ
       inliers = [];
-      for (let k = 0; k < avail.length; k++) {
-        const i = avail[k], vo = i * 3;
-        const d = Math.abs((pos[vo]-mx)*nx + (pos[vo+1]-my)*ny + (pos[vo+2]-mz)*nz);
-        if (d < distThresh && (norms[vo]*nx + norms[vo+1]*ny + norms[vo+2]*nz) > cosThresh) {
-          inliers.push(i);
-        }
+      for (const i of avail) {
+        const vo = i * 3;
+        if (Math.abs((pos[vo]-mx)*nx + (pos[vo+1]-my)*ny + (pos[vo+2]-mz)*nz) < distThresh &&
+            (norms[vo]*nx + norms[vo+1]*ny + norms[vo+2]*nz) > cosThresh) inliers.push(i);
       }
-      if (inliers.length < minInliers) {
-        for (const i of inliers) assigned[i] = 1;
-        continue;
-      }
-      for (let k = 0; k < inliers.length; k++) {
-        const i = inliers[k], vo = i * 3;
-        const proj = (pos[vo]-mx)*nx + (pos[vo+1]-my)*ny + (pos[vo+2]-mz)*nz;
-        pos[vo]   -= alpha * proj * nx;
-        pos[vo+1] -= alpha * proj * ny;
-        pos[vo+2] -= alpha * proj * nz;
+      if (inliers.length < minInliers) { for (const i of inliers) assigned[i] = 1; continue; }
+      for (const i of inliers) {
+        const vo = i * 3, proj = (pos[vo]-mx)*nx + (pos[vo+1]-my)*ny + (pos[vo+2]-mz)*nz;
+        pos[vo] -= alpha*proj*nx; pos[vo+1] -= alpha*proj*ny; pos[vo+2] -= alpha*proj*nz;
         assigned[i] = 1;
       }
       planesFound++;
@@ -1047,15 +1017,11 @@
     return planesFound;
   }
 
-  // 連結成分フィルタによる微小な孤立ノイズ片の削除
-  function removeSmallIslands(mesh, minVerts = 30) {
+  function removeSmallIslands(mesh, minVerts = 35) {
     const nVerts = mesh.positions.length / 3;
     if (nVerts === 0) return 0;
     const { adj } = buildAdjacency(nVerts, mesh.indices);
-    const comp = new Int32Array(nVerts).fill(-1);
-    const compSizes = [];
-    const queue = new Int32Array(nVerts);
-
+    const comp = new Int32Array(nVerts).fill(-1), compSizes = [], queue = new Int32Array(nVerts);
     for (let i = 0; i < nVerts; i++) {
       if (comp[i] !== -1) continue;
       const cid = compSizes.length;
@@ -1063,28 +1029,20 @@
       queue[tail++] = i; comp[i] = cid;
       while (head < tail) {
         const u = queue[head++];
-        const nb = adj[u];
-        for (let j = 0; j < nb.length; j++) {
-          const v = nb[j];
-          if (comp[v] === -1) { comp[v] = cid; queue[tail++] = v; }
-        }
+        for (const v of adj[u]) if (comp[v] === -1) { comp[v] = cid; queue[tail++] = v; }
       }
       compSizes.push(tail);
     }
-
-    const keepComp = new Uint8Array(compSizes.length);
     let maxSize = 0;
     for (const s of compSizes) if (s > maxSize) maxSize = s;
     const thresh = Math.min(minVerts, Math.floor(maxSize * 0.5));
+    const keepComp = new Uint8Array(compSizes.length);
     let removed = 0;
     for (let c = 0; c < compSizes.length; c++) {
-      if (compSizes[c] >= thresh) keepComp[c] = 1;
-      else removed++;
+      if (compSizes[c] >= thresh) keepComp[c] = 1; else removed++;
     }
     if (removed === 0) return 0;
-
-    const remap = new Int32Array(nVerts).fill(-1);
-    const newPos = [], newCol = [];
+    const remap = new Int32Array(nVerts).fill(-1), newPos = [], newCol = [];
     for (let i = 0; i < nVerts; i++) {
       if (keepComp[comp[i]]) {
         remap[i] = newPos.length / 3;
@@ -1105,8 +1063,7 @@
     return removed;
   }
 
-  // ==================== CAD 平面のメッシュ統合ヘルパー ====================
-  function buildCombinedMesh(tsdfMesh, cadPlanes) {
+  function buildCombinedMesh(tsdfMesh, cadPlanes, yShift) {
     if (!cadPlanes || cadPlanes.length === 0) return tsdfMesh;
     const pos = Array.from(tsdfMesh.positions);
     const col = Array.from(tsdfMesh.colors);
@@ -1114,26 +1071,19 @@
     for (const pl of cadPlanes) {
       if (pl.pts.length < 3) continue;
       const baseV = pos.length / 3;
-      const [cr, cg, cb] = pl.color || [0.15, 0.78, 0.72];
+      const [cr, cg, cb] = pl.color || [0.18, 0.78, 0.72];
       for (const p of pl.pts) {
-        pos.push(p[0], p[1], p[2]);
+        pos.push(p[0], p[1] - yShift, p[2]);
         col.push(cr, cg, cb);
       }
-      for (let i = 1; i < pl.pts.length - 1; i++) {
-        idx.push(baseV, baseV + i, baseV + i + 1);
-      }
+      for (let i = 1; i < pl.pts.length - 1; i++) idx.push(baseV, baseV + i, baseV + i + 1);
     }
-    const out = {
-      positions: new Float32Array(pos),
-      colors: new Float32Array(col),
-      indices: new Uint32Array(idx),
-      normals: null
-    };
+    const out = { positions: new Float32Array(pos), colors: new Float32Array(col), indices: new Uint32Array(idx), normals: null };
     computeMeshNormals(out);
     return out;
   }
 
-  // ==================== 3Dモデル エクスポート (GLB / PLY / OBJ) ====================
+  // ==================== 3D エクスポート (GLB / PLY / OBJ) ====================
   function downloadBlob(blob, filename) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1144,27 +1094,19 @@
   }
 
   function exportGLB(mesh) {
-    const nVerts = mesh.positions.length / 3;
-    const nIdx = mesh.indices.length;
+    const nVerts = mesh.positions.length / 3, nIdx = mesh.indices.length;
     if (nVerts === 0 || nIdx === 0) { showToast('出力するメッシュがありません'); return; }
-
     let min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
     for (let i = 0; i < mesh.positions.length; i += 3) {
       for (let k = 0; k < 3; k++) {
         const v = mesh.positions[i+k];
-        if (v < min[k]) min[k] = v;
-        if (v > max[k]) max[k] = v;
+        if (v < min[k]) min[k] = v; if (v > max[k]) max[k] = v;
       }
     }
-
-    const posBytes = nVerts * 12;
-    const normBytes = nVerts * 12;
-    const colBytes = nVerts * 4; // VEC4 UNSIGNED_BYTE
+    const posBytes = nVerts * 12, normBytes = nVerts * 12, colBytes = nVerts * 4;
     const useU16 = nVerts < 65536;
-    const idxRawBytes = nIdx * (useU16 ? 2 : 4);
-    const idxPaddedBytes = (idxRawBytes + 3) & ~3;
+    const idxRawBytes = nIdx * (useU16 ? 2 : 4), idxPaddedBytes = (idxRawBytes + 3) & ~3;
     const binSize = posBytes + normBytes + colBytes + idxPaddedBytes;
-
     const binBuf = new ArrayBuffer(binSize);
     new Float32Array(binBuf, 0, nVerts * 3).set(mesh.positions);
     new Float32Array(binBuf, posBytes, nVerts * 3).set(mesh.normals);
@@ -1176,28 +1118,14 @@
       colU8[i*4+3] = 255;
     }
     const idxOff = posBytes + normBytes + colBytes;
-    if (useU16) {
-      const u16 = new Uint16Array(binBuf, idxOff, nIdx);
-      for (let i = 0; i < nIdx; i++) u16[i] = mesh.indices[i];
-    } else {
-      new Uint32Array(binBuf, idxOff, nIdx).set(mesh.indices);
-    }
+    if (useU16) { const u16 = new Uint16Array(binBuf, idxOff, nIdx); for (let i = 0; i < nIdx; i++) u16[i] = mesh.indices[i]; }
+    else { new Uint32Array(binBuf, idxOff, nIdx).set(mesh.indices); }
 
     const gltf = {
-      asset: { version: "2.0", generator: "SpatialRoom3D-PureGeometry" },
-      scene: 0,
-      scenes: [{ nodes: [0] }],
-      nodes: [{ mesh: 0, name: "ScannedRoom" }],
-      materials: [{
-        pbrMetallicRoughness: { baseColorFactor: [1,1,1,1], metallicFactor: 0.05, roughnessFactor: 0.85 },
-        doubleSided: true
-      }],
-      meshes: [{
-        primitives: [{
-          attributes: { POSITION: 0, NORMAL: 1, COLOR_0: 2 },
-          indices: 3, material: 0
-        }]
-      }],
+      asset: { version: "2.0", generator: "SpatialRoom3D-v2" },
+      scene: 0, scenes: [{ nodes: [0] }], nodes: [{ mesh: 0, name: "ScannedRoom" }],
+      materials: [{ pbrMetallicRoughness: { baseColorFactor: [1,1,1,1], metallicFactor: 0.04, roughnessFactor: 0.88 }, doubleSided: true }],
+      meshes: [{ primitives: [{ attributes: { POSITION: 0, NORMAL: 1, COLOR_0: 2 }, indices: 3, material: 0 }] }],
       buffers: [{ byteLength: binSize }],
       bufferViews: [
         { buffer: 0, byteOffset: 0, byteLength: posBytes, target: 34962 },
@@ -1212,83 +1140,57 @@
         { bufferView: 3, componentType: useU16 ? 5123 : 5125, count: nIdx, type: "SCALAR" }
       ]
     };
-
     const jsonRaw = new TextEncoder().encode(JSON.stringify(gltf));
     const jsonPad = (jsonRaw.length + 3) & ~3;
     const totalLen = 12 + 8 + jsonPad + 8 + binSize;
-    const out = new ArrayBuffer(totalLen);
-    const dv = new DataView(out);
-    const u8 = new Uint8Array(out);
-
-    dv.setUint32(0, 0x46546C67, true); // glTF
-    dv.setUint32(4, 2, true);
-    dv.setUint32(8, totalLen, true);
-
-    dv.setUint32(12, jsonPad, true);
-    dv.setUint32(16, 0x4E4F534A, true); // JSON
-    u8.set(jsonRaw, 20);
-    for (let i = jsonRaw.length; i < jsonPad; i++) u8[20 + i] = 0x20;
-
-    const binChunkStart = 20 + jsonPad;
-    dv.setUint32(binChunkStart, binSize, true);
-    dv.setUint32(binChunkStart + 4, 0x004E4942, true); // BIN\0
-    u8.set(new Uint8Array(binBuf), binChunkStart + 8);
-
+    const out = new ArrayBuffer(totalLen), dv = new DataView(out), u8 = new Uint8Array(out);
+    dv.setUint32(0, 0x46546C67, true); dv.setUint32(4, 2, true); dv.setUint32(8, totalLen, true);
+    dv.setUint32(12, jsonPad, true); dv.setUint32(16, 0x4E4F534A, true);
+    u8.set(jsonRaw, 20); for (let i = jsonRaw.length; i < jsonPad; i++) u8[20 + i] = 0x20;
+    const binStart = 20 + jsonPad;
+    dv.setUint32(binStart, binSize, true); dv.setUint32(binStart + 4, 0x004E4942, true);
+    u8.set(new Uint8Array(binBuf), binStart + 8);
     downloadBlob(new Blob([out], { type: 'model/gltf-binary' }), `room_scan_${Date.now()}.glb`);
     showToast('GLBファイルを保存しました');
   }
 
   function exportPLY(mesh) {
-    const nVerts = mesh.positions.length / 3;
-    const nTris = mesh.indices.length / 3;
-    if (nVerts === 0) { showToast('出力するデータがありません'); return; }
+    const nVerts = mesh.positions.length / 3, nTris = mesh.indices.length / 3;
+    if (nVerts === 0) { showToast('データがありません'); return; }
     const header = [
-      'ply', 'format binary_little_endian 1.0',
-      `element vertex ${nVerts}`,
+      'ply', 'format binary_little_endian 1.0', `element vertex ${nVerts}`,
       'property float x', 'property float y', 'property float z',
       'property float nx', 'property float ny', 'property float nz',
       'property uchar red', 'property uchar green', 'property uchar blue',
-      `element face ${nTris}`,
-      'property list uchar int vertex_indices',
-      'end_header\n'
+      `element face ${nTris}`, 'property list uchar int vertex_indices', 'end_header\n'
     ].join('\n');
     const hdrBytes = new TextEncoder().encode(header);
-    const vertStride = 27; // 6*4 + 3*1
-    const faceStride = 13; // 1 + 3*4
-    const buf = new ArrayBuffer(hdrBytes.length + nVerts * vertStride + nTris * faceStride);
-    const u8 = new Uint8Array(buf);
+    const buf = new ArrayBuffer(hdrBytes.length + nVerts * 27 + nTris * 13);
+    const u8 = new Uint8Array(buf), dv = new DataView(buf);
     u8.set(hdrBytes, 0);
-    const dv = new DataView(buf);
     let off = hdrBytes.length;
     for (let i = 0; i < nVerts; i++) {
       const o = i * 3;
-      dv.setFloat32(off, mesh.positions[o], true);
-      dv.setFloat32(off+4, mesh.positions[o+1], true);
-      dv.setFloat32(off+8, mesh.positions[o+2], true);
-      dv.setFloat32(off+12, mesh.normals[o], true);
-      dv.setFloat32(off+16, mesh.normals[o+1], true);
-      dv.setFloat32(off+20, mesh.normals[o+2], true);
+      dv.setFloat32(off, mesh.positions[o], true); dv.setFloat32(off+4, mesh.positions[o+1], true); dv.setFloat32(off+8, mesh.positions[o+2], true);
+      dv.setFloat32(off+12, mesh.normals[o], true); dv.setFloat32(off+16, mesh.normals[o+1], true); dv.setFloat32(off+20, mesh.normals[o+2], true);
       u8[off+24] = Math.max(0, Math.min(255, Math.round(mesh.colors[o]*255)));
       u8[off+25] = Math.max(0, Math.min(255, Math.round(mesh.colors[o+1]*255)));
       u8[off+26] = Math.max(0, Math.min(255, Math.round(mesh.colors[o+2]*255)));
-      off += vertStride;
+      off += 27;
     }
     for (let i = 0; i < nTris; i++) {
-      const o = i * 3;
-      u8[off] = 3;
-      dv.setInt32(off+1, mesh.indices[o], true);
-      dv.setInt32(off+5, mesh.indices[o+1], true);
-      dv.setInt32(off+9, mesh.indices[o+2], true);
-      off += faceStride;
+      const o = i * 3; u8[off] = 3;
+      dv.setInt32(off+1, mesh.indices[o], true); dv.setInt32(off+5, mesh.indices[o+1], true); dv.setInt32(off+9, mesh.indices[o+2], true);
+      off += 13;
     }
     downloadBlob(new Blob([buf], { type: 'application/octet-stream' }), `room_scan_${Date.now()}.ply`);
-    showToast('バイナリPLYファイルを保存しました');
+    showToast('PLYファイルを保存しました');
   }
 
   function exportOBJ(mesh) {
     const nVerts = mesh.positions.length / 3;
-    if (nVerts === 0) { showToast('出力するデータがありません'); return; }
-    const lines = ['# SpatialRoom 3D - Pure Geometry Scan'];
+    if (nVerts === 0) { showToast('データがありません'); return; }
+    const lines = ['# SpatialRoom 3D v2'];
     for (let i = 0; i < nVerts; i++) {
       const o = i * 3;
       lines.push(`v ${mesh.positions[o].toFixed(4)} ${mesh.positions[o+1].toFixed(4)} ${mesh.positions[o+2].toFixed(4)} ${mesh.colors[o].toFixed(3)} ${mesh.colors[o+1].toFixed(3)} ${mesh.colors[o+2].toFixed(3)}`);
@@ -1305,65 +1207,128 @@
     showToast('OBJファイルを保存しました');
   }
 
-  // ==================== WebGL2 シェーダーヘルパー ====================
   function compileProgram(gl, vsSrc, fsSrc) {
     const load = (type, src) => {
-      const s = gl.createShader(type);
-      gl.shaderSource(s, src);
-      gl.compileShader(s);
-      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
-        console.error(gl.getShaderInfoLog(s));
-        return null;
-      }
+      const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.error(gl.getShaderInfoLog(s)); return null; }
       return s;
     };
     const p = gl.createProgram();
     gl.attachShader(p, load(gl.VERTEX_SHADER, vsSrc));
     gl.attachShader(p, load(gl.FRAGMENT_SHADER, fsSrc));
     gl.linkProgram(p);
-    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
-      console.error(gl.getProgramInfoLog(p));
-      return null;
-    }
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) { console.error(gl.getProgramInfoLog(p)); return null; }
     return p;
   }
 
-  // ==================== グローバル アプリ状態 ====================
+  // ==================== グローバル状態 & 順序スキャン状態機械 ====================
   const volume = new TSDFVolume(0.035);
-  let activeMesh = null;
-  let originalMesh = null;
-  let overlayColorMode = 'cyan'; // 'cyan' | 'rgb' | 'weight'
+  let activeMesh = null, originalMesh = null;
+  let overlayColorMode = 'rgb'; // デフォルトで正しいカメラ色が確認できるよう 'rgb' に！
+  let camColorRotMode = 0;      // 0:自動アスペクト整合, 1:90度時計, 2:90度反時計
   let scanningActive = false;
-  let forceOneShot = false;
-  let lastHitPoseMatrix = null;
-  let lastHitDist = null;
+  let eraseRayRequest = false;
+  let lastHitPoseMatrix = null, lastHitDist = null;
+  let lastDevPosY = null, liveCeilingEstY = null;
+
+  // 順序スキャン段階: 'FLOOR_CAL' | 'CEILING_CAL' | 'SHELL_SCAN' | 'DETAIL_SCAN' | 'FREE'
+  let scanPhase = 'FREE';
+
+  function updateStepUI() {
+    const card = $('step-card');
+    if (scanPhase === 'FREE') { card.style.display = 'none'; return; }
+    card.style.display = 'flex';
+
+    const fTxt = volume.floorY !== null ? `${volume.floorY.toFixed(2)}m` : '--';
+    const cTxt = (volume.floorY !== null && volume.ceilingY !== null)
+      ? `${(volume.ceilingY - volume.floorY).toFixed(2)}m` : '--';
+    $('step-bounds').textContent = `床Y:${fTxt} 天井高:${cTxt}`;
+
+    const actions = $('step-actions');
+    actions.innerHTML = '';
+    const mkBtn = (label, cls, fn) => {
+      const b = document.createElement('button');
+      b.className = `btn-sm ${cls}`; b.textContent = label;
+      b.addEventListener('click', fn);
+      actions.appendChild(b);
+      return b;
+    };
+
+    if (scanPhase === 'FLOOR_CAL') {
+      $('step-title').textContent = 'STEP 1/4：床の高さ合わせ';
+      $('step-desc').textContent = 'スマホを床に平置きして押す（最高精度）か、床にレティクルを合わせて決定してください。';
+      mkBtn('📱 床にスマホを置いて確定', 'btn-primary', () => {
+        if (lastDevPosY === null) { showToast('姿勢待機中です'); return; }
+        volume.floorY = lastDevPosY - 0.012;
+        showToast(`床を基準高さ (Y=${volume.floorY.toFixed(2)}m) にロックしました`);
+        setPhase('CEILING_CAL');
+      });
+      mkBtn('🎯 レティクルで床確定', 'btn-success', () => {
+        if (!lastHitPoseMatrix) { showToast('床を映して中央の距離が表示されてから押してください'); return; }
+        volume.floorY = lastHitPoseMatrix[13];
+        showToast(`床をレティクル位置 (Y=${volume.floorY.toFixed(2)}m) にロックしました`);
+        setPhase('CEILING_CAL');
+      });
+      mkBtn('スキップ', '', () => setPhase('CEILING_CAL'));
+    } else if (scanPhase === 'CEILING_CAL') {
+      $('step-title').textContent = 'STEP 2/4：天井の高さ合わせ';
+      $('step-desc').textContent = 'カメラを真上（天井）に向けて高さを計測してください（天井上のノイズを遮断します）。';
+      const ceilBtn = mkBtn('⬆️ 天井確定 (計測中...)', 'btn-primary', () => {
+        if (liveCeilingEstY === null) { showToast('真上の天井に少し近づくか、標準2.4mを選んでください'); return; }
+        volume.ceilingY = liveCeilingEstY;
+        const h = volume.floorY !== null ? (volume.ceilingY - volume.floorY).toFixed(2) : '?';
+        showToast(`天井高をロックしました (高さ約 ${h} m)`);
+        setPhase('SHELL_SCAN');
+      });
+      ceilBtn.id = 'btn-ceil-capture';
+      mkBtn('標準 2.40m で設定', 'btn-success', () => {
+        const baseY = volume.floorY !== null ? volume.floorY : (lastDevPosY !== null ? lastDevPosY - 1.35 : -1.35);
+        volume.floorY = baseY;
+        volume.ceilingY = baseY + 2.40;
+        showToast('床〜天井高を標準 2.40m に設定しました');
+        setPhase('SHELL_SCAN');
+      });
+      mkBtn('スキップ', '', () => setPhase('SHELL_SCAN'));
+    } else if (scanPhase === 'SHELL_SCAN') {
+      $('step-title').textContent = 'STEP 3/4：壁・部屋外周スキャン';
+      $('step-desc').textContent = '部屋をゆっくり1周見回して床と壁を取り込んでください（中央空間を掃除します）。';
+      mkBtn('次へ：家具・複雑形状スキャン →', 'btn-success', () => setPhase('DETAIL_SCAN'));
+    } else if (scanPhase === 'DETAIL_SCAN') {
+      $('step-title').textContent = 'STEP 4/4：複雑形状・精密スキャン';
+      $('step-desc').textContent = '机・棚・椅子に近づき(2.2m以内)、横移動しながら撮ると面が伸びず綺麗に抜けます。';
+      mkBtn('← 壁スキャンに戻る', '', () => setPhase('SHELL_SCAN'));
+    }
+  }
+
+  function setPhase(phase) {
+    scanPhase = phase;
+    if (phase === 'SHELL_SCAN' || phase === 'DETAIL_SCAN') {
+      scanningActive = true;
+      $('btn-scan-toggle').textContent = '⏸ 一時停止';
+      $('btn-scan-toggle').className = 'btn-warn';
+    } else if (phase === 'FLOOR_CAL' || phase === 'CEILING_CAL') {
+      scanningActive = false;
+      $('btn-scan-toggle').textContent = '▶ スキャン開始';
+      $('btn-scan-toggle').className = 'btn-primary';
+    }
+    updateStepUI();
+  }
 
   // ==================== AR WebXR エンジン ====================
   const XRApp = {
-    session: null,
-    gl: null,
-    glBinding: null,
-    refSpace: null,
-    viewerSpace: null,
-    hitTestSource: null,
-    hasDepth: false,
-    hasCameraAccess: false,
-    // シェーダー & バッファ
+    session: null, gl: null, glBinding: null, refSpace: null, viewerSpace: null, hitTestSource: null,
+    hasDepth: false, hasCameraAccess: false,
     ptProg: null, ptPosBuf: null, ptColBuf: null, ptCount: 0,
-    solidProg: null, lineBuf: null,
+    solidProg: null, lineBuf: null, cadLineBuf: null, cadPtsBuf: null,
     camDownProg: null, camFbo: null, camTexDst: null, camQuadBuf: null,
-    camW: 160, camH: 90, camPixels: null,
-    // キーフレーム制御
-    lastKfPos: null, lastKfQuat: null, lastPoseTime: 0, prevPoseQuat: null,
-    kfCount: 0,
-    cachedDepthRays: null, cachedGridW: 0, cachedGridH: 0, cachedProjSig: '',
-    cadLineBuf: null, cadPtsBuf: null,
+    camW: 160, camH: 90, camPixels: null, lastCamSig: '',
+    lastKfPos: null, lastKfQuat: null, lastPoseTime: 0, prevPoseQuat: null, kfCount: 0,
+    cachedDepthRays: null, cachedProjSig: '',
 
     initGL(canvas) {
       const gl = canvas.getContext('webgl2', { alpha: true, antialias: true, xrCompatible: true });
       if (!gl) return null;
 
-      // 点群描画シェーダー
       this.ptProg = compileProgram(gl,
         `#version 300 es
          layout(location=0) in vec3 aPos;
@@ -1374,7 +1339,7 @@
          void main() {
            vec4 vp = uView * vec4(aPos, 1.0);
            gl_Position = uProj * vp;
-           gl_PointSize = clamp(uPtSize / max(0.3, -vp.z), 2.5, 11.0);
+           gl_PointSize = clamp(uPtSize / max(0.35, -vp.z), 2.5, 10.0);
            vCol = aCol;
          }`,
         `#version 300 es
@@ -1384,20 +1349,16 @@
          void main() {
            vec2 d = gl_PointCoord - 0.5;
            if (dot(d, d) > 0.25) discard;
-           outCol = vec4(vCol, 0.88);
+           outCol = vec4(vCol, 0.85);
          }`
       );
 
-      // CAD線・レティクル用ソリッドシェーダー
       this.solidProg = compileProgram(gl,
         `#version 300 es
          layout(location=0) in vec3 aPos;
          uniform mat4 uMVP;
          uniform float uPtSize;
-         void main() {
-           gl_Position = uMVP * vec4(aPos, 1.0);
-           gl_PointSize = uPtSize;
-         }`,
+         void main() { gl_Position = uMVP * vec4(aPos, 1.0); gl_PointSize = uPtSize; }`,
         `#version 300 es
          precision mediump float;
          uniform vec4 uColor;
@@ -1405,15 +1366,22 @@
          void main() { outCol = uColor; }`
       );
 
-      // Raw Camera Texture ダウンサンプリング＆Y反転用シェーダー
+      // アスペクト比クロップ＆回転補正対応カメラ読取シェーダー
       this.camDownProg = compileProgram(gl,
         `#version 300 es
          layout(location=0) in vec2 aPos;
+         uniform vec2 uScale;
+         uniform int uRotMode;
          out vec2 vUV;
          void main() {
            gl_Position = vec4(aPos, 0.0, 1.0);
-           // cameraTextureは左下原点なので、Top-Left配列として読むためにY反転
-           vUV = vec2(aPos.x * 0.5 + 0.5, 0.5 - aPos.y * 0.5);
+           float u = aPos.x * 0.5 + 0.5;
+           float v = 0.5 - aPos.y * 0.5; // Bottom-LeftテクスチャからTop-Left配列へ反転
+           u = (u - 0.5) * uScale.x + 0.5;
+           v = (v - 0.5) * uScale.y + 0.5;
+           if (uRotMode == 1) { vUV = vec2(v, 1.0 - u); }
+           else if (uRotMode == 2) { vUV = vec2(1.0 - v, u); }
+           else { vUV = vec2(u, v); }
          }`,
         `#version 300 es
          precision mediump float;
@@ -1423,16 +1391,11 @@
          void main() { outCol = texture(uCamTex, vUV); }`
       );
 
-      this.ptPosBuf = gl.createBuffer();
-      this.ptColBuf = gl.createBuffer();
-      this.lineBuf = gl.createBuffer();
-      this.cadLineBuf = gl.createBuffer();
-      this.cadPtsBuf = gl.createBuffer();
-
+      this.ptPosBuf = gl.createBuffer(); this.ptColBuf = gl.createBuffer();
+      this.lineBuf = gl.createBuffer(); this.cadLineBuf = gl.createBuffer(); this.cadPtsBuf = gl.createBuffer();
       this.camQuadBuf = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, this.camQuadBuf);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
-
       this.setupCamFBO(gl, 160, 90);
       this.gl = gl;
       return gl;
@@ -1450,7 +1413,6 @@
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
       this.camFbo = gl.createFramebuffer();
       gl.bindFramebuffer(gl.FRAMEBUFFER, this.camFbo);
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.camTexDst, 0);
@@ -1460,21 +1422,16 @@
 
     async startSession(resumeExisting = false) {
       if (!navigator.xr) { showToast('このブラウザはWebXR非対応です'); return; }
-
       if (!resumeExisting) {
-        const vs = parseFloat($('opt-voxel').value);
-        volume.reset(vs);
-        this.kfCount = 0;
-        this.ptCount = 0;
+        volume.reset(parseFloat($('opt-voxel').value));
+        this.kfCount = 0; this.ptCount = 0;
+        const wf = $('opt-workflow').value;
+        setPhase(wf === 'guided' ? 'FLOOR_CAL' : 'FREE');
+      } else {
+        setPhase($('opt-workflow').value === 'guided' ? 'DETAIL_SCAN' : 'FREE');
       }
-      this.lastKfPos = null;
-      this.lastKfQuat = null;
-      this.lastPoseTime = 0;
-      this.prevPoseQuat = null;
-      scanningActive = false;
-      $('btn-scan-toggle').textContent = '▶ スキャン開始';
-      $('btn-scan-toggle').className = 'btn-primary';
 
+      this.lastKfPos = null; this.lastKfQuat = null; this.lastPoseTime = 0; this.prevPoseQuat = null;
       const wantColor = $('opt-color').checked;
       const overlayEl = $('xr-overlay');
       const depthCfg = {
@@ -1483,12 +1440,8 @@
         depthTypeRequest: ['raw', 'smooth'],
         matchDepthView: true
       };
-      const depthCfgLegacy = {
-        usagePreference: ['cpu-optimized'],
-        dataFormatPreference: ['luminance-alpha', 'float32']
-      };
+      const depthCfgLegacy = { usagePreference: ['cpu-optimized'], dataFormatPreference: ['luminance-alpha', 'float32'] };
 
-      // 段階的フォールバックで確実にARセッションを開始する
       const attempts = [];
       if (wantColor) {
         attempts.push({
@@ -1499,78 +1452,41 @@
       }
       attempts.push({
         requiredFeatures: ['local-floor'],
-        optionalFeatures: wantColor
-          ? ['depth-sensing', 'hit-test', 'camera-access', 'dom-overlay']
-          : ['depth-sensing', 'hit-test', 'dom-overlay'],
+        optionalFeatures: wantColor ? ['depth-sensing', 'hit-test', 'camera-access', 'dom-overlay'] : ['depth-sensing', 'hit-test', 'dom-overlay'],
         depthSensing: depthCfgLegacy, domOverlay: { root: overlayEl }
       });
       attempts.push({
-        requiredFeatures: ['local'],
-        optionalFeatures: ['depth-sensing', 'hit-test', 'dom-overlay'],
+        requiredFeatures: ['local'], optionalFeatures: ['depth-sensing', 'hit-test', 'dom-overlay'],
         depthSensing: depthCfgLegacy, domOverlay: { root: overlayEl }
-      });
-      attempts.push({
-        requiredFeatures: ['local'],
-        optionalFeatures: ['hit-test', 'dom-overlay'],
-        domOverlay: { root: overlayEl }
       });
 
       let session = null;
       for (const opt of attempts) {
-        try {
-          session = await navigator.xr.requestSession('immersive-ar', opt);
-          break;
-        } catch (err) {
-          console.warn('Session attempt failed:', err.message);
-        }
+        try { session = await navigator.xr.requestSession('immersive-ar', opt); break; } catch (_) {}
       }
-      if (!session) {
-        showToast('WebXR ARセッションを開始できませんでした。簡易ARをお試しください。', 3500);
-        return;
-      }
+      if (!session) { showToast('WebXR ARセッションを開始できませんでした', 3200); return; }
 
       this.session = session;
       session.addEventListener('end', () => this.onSessionEnded());
-
-      const canvas = $('ar-canvas');
-      const gl = this.initGL(canvas);
-      if (!gl) { session.end(); showToast('WebGL2の初期化に失敗しました'); return; }
+      const gl = this.initGL($('ar-canvas'));
+      if (!gl) { session.end(); return; }
 
       this.hasDepth = Boolean(session.depthUsage);
       this.hasCameraAccess = wantColor && Boolean(window.XRWebGLBinding);
-
-      // 重要: Chrome 147+ バグ回避のため ProjectionLayer を使わず XRWebGLLayer を使用
       if (this.hasCameraAccess) {
-        try {
-          this.glBinding = new XRWebGLBinding(session, gl);
-        } catch (e) {
-          this.glBinding = null;
-          this.hasCameraAccess = false;
-        }
-      } else {
-        this.glBinding = null;
-      }
+        try { this.glBinding = new XRWebGLBinding(session, gl); } catch (_) { this.glBinding = null; this.hasCameraAccess = false; }
+      } else { this.glBinding = null; }
 
       session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
-
-      try {
-        this.refSpace = await session.requestReferenceSpace('local-floor');
-      } catch (_) {
-        this.refSpace = await session.requestReferenceSpace('local');
-      }
+      try { this.refSpace = await session.requestReferenceSpace('local-floor'); }
+      catch (_) { this.refSpace = await session.requestReferenceSpace('local'); }
       this.viewerSpace = await session.requestReferenceSpace('viewer');
-
       this.hitTestSource = null;
       if (session.requestHitTestSource) {
-        try {
-          this.hitTestSource = await session.requestHitTestSource({ space: this.viewerSpace });
-        } catch (_) {}
+        try { this.hitTestSource = await session.requestHitTestSource({ space: this.viewerSpace }); } catch (_) {}
       }
 
-      const dLabel = this.hasDepth
-        ? `DEPTH:${(session.depthType || 'std').toUpperCase()}`
-        : 'HIT-TEST ONLY';
-      $('stat-mode').textContent = dLabel + (this.hasCameraAccess ? '+RGB' : '');
+      $('stat-mode').textContent = (this.hasDepth ? (session.depthType || 'depth').toUpperCase() : 'HIT-ONLY') + (this.hasCameraAccess ? '+RGB' : '');
       showScreen('ar');
       this.refreshPreviewPoints();
       session.requestAnimationFrame((t, f) => this.onFrame(t, f));
@@ -1578,9 +1494,7 @@
 
     onSessionEnded() {
       if (this.hitTestSource) { try { this.hitTestSource.cancel(); } catch (_) {} this.hitTestSource = null; }
-      this.session = null;
-      this.glBinding = null;
-      scanningActive = false;
+      this.session = null; this.glBinding = null; scanningActive = false;
     },
 
     refreshPreviewPoints() {
@@ -1596,7 +1510,7 @@
       $('stat-pts').textContent = `Pts:${(this.ptCount / 1000).toFixed(1)}k`;
     },
 
-    readCameraColors(view, gw, gh) {
+    readCameraColors(view, viewport, gw, gh) {
       if (!this.hasCameraAccess || !this.glBinding || !view.camera) return null;
       const gl = this.gl;
       try {
@@ -1604,8 +1518,22 @@
         if (!camTex) return null;
         if (this.camW !== gw || this.camH !== gh) this.setupCamFBO(gl, gw, gh);
 
+        // カメラとビューポートのアスペクト整合クロップ計算
+        let sx = 1.0, sy = 1.0;
+        const cw = view.camera.width || gw, ch = view.camera.height || gh;
+        const vpAsp = viewport.width / Math.max(1, viewport.height);
+        const camAsp = cw / Math.max(1, ch);
+        if ((vpAsp >= 1) === (camAsp >= 1)) {
+          if (camAsp > vpAsp * 1.04) sx = vpAsp / camAsp;
+          else if (vpAsp > camAsp * 1.04) sy = camAsp / vpAsp;
+        }
+
+        gl.disable(gl.SCISSOR_TEST);
         gl.disable(gl.DEPTH_TEST);
         gl.disable(gl.BLEND);
+        gl.colorMask(true, true, true, true);
+        gl.pixelStorei(gl.PACK_ALIGNMENT, 4);
+
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.camFbo);
         gl.viewport(0, 0, gw, gh);
         gl.useProgram(this.camDownProg);
@@ -1615,29 +1543,27 @@
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.uniform1i(gl.getUniformLocation(this.camDownProg, 'uCamTex'), 0);
+        gl.uniform2f(gl.getUniformLocation(this.camDownProg, 'uScale'), sx, sy);
+        gl.uniform1i(gl.getUniformLocation(this.camDownProg, 'uRotMode'), camColorRotMode);
         gl.bindBuffer(gl.ARRAY_BUFFER, this.camQuadBuf);
         gl.enableVertexAttribArray(0);
         gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
         if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
-          gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-          return null;
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null); return null;
         }
         gl.readPixels(0, 0, gw, gh, gl.RGBA, gl.UNSIGNED_BYTE, this.camPixels);
         gl.bindTexture(gl.TEXTURE_2D, null);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
-        // ウォーミングアップ中の真っ黒フレームを除外
         const mid = ((gh >> 1) * gw + (gw >> 1)) * 4;
         const q1 = ((gh >> 2) * gw + (gw >> 2)) * 4;
-        if ((this.camPixels[mid] + this.camPixels[mid+1] + this.camPixels[mid+2] +
-             this.camPixels[q1] + this.camPixels[q1+1] + this.camPixels[q1+2]) < 6) {
-          return null;
-        }
+        if ((this.camPixels[mid]+this.camPixels[mid+1]+this.camPixels[mid+2] +
+             this.camPixels[q1]+this.camPixels[q1+1]+this.camPixels[q1+2]) < 6) return null;
         return this.camPixels;
       } catch (e) {
-        console.warn('Camera readback disabled:', e);
+        console.warn('Camera readback error:', e);
         this.hasCameraAccess = false;
         return null;
       }
@@ -1648,29 +1574,36 @@
       if (this.cachedDepthRays && this.cachedProjSig === sig) return this.cachedDepthRays;
       const invP = Mat4.invert(projMatrix);
       if (!invP) return null;
-      const rays = new Float32Array(gw * gh * 2); // [rx, ry] at z_cam = -1
+      const rays = new Float32Array(gw * gh * 2);
       for (let gy = 0; gy < gh; gy++) {
-        const vView = (gy + 0.5) / gh;
-        const yNdc = 1.0 - 2.0 * vView;
+        const yNdc = 1.0 - 2.0 * ((gy + 0.5) / gh);
         for (let gx = 0; gx < gw; gx++) {
-          const uView = (gx + 0.5) / gw;
-          const xNdc = 2.0 * uView - 1.0;
+          const xNdc = 2.0 * ((gx + 0.5) / gw) - 1.0;
           const qx = invP[0]*xNdc + invP[4]*yNdc + invP[12];
           const qy = invP[1]*xNdc + invP[5]*yNdc + invP[13];
           const qz = invP[2]*xNdc + invP[6]*yNdc + invP[14];
           const qw = invP[3]*xNdc + invP[7]*yNdc + invP[15];
-          const cx = qx / qw, cy = qy / qw, cz = qz / qw;
-          const s = -1.0 / cz;
+          const s = -1.0 / (qz / qw);
           const o = (gy * gw + gx) * 2;
-          rays[o] = cx * s;
-          rays[o+1] = cy * s;
+          rays[o] = (qx / qw) * s; rays[o+1] = (qy / qw) * s;
         }
       }
-      this.cachedDepthRays = rays;
-      this.cachedGridW = gw;
-      this.cachedGridH = gh;
-      this.cachedProjSig = sig;
+      this.cachedDepthRays = rays; this.cachedProjSig = sig;
       return rays;
+    },
+
+    // 天井高さのリアルタイム推定 (STEP 2 用)
+    estimateCeilingHeight(frame, view) {
+      if (!this.hasDepth || !frame.getDepthInformation) return null;
+      const dInfo = frame.getDepthInformation(view);
+      if (!dInfo) return null;
+      const d = dInfo.getDepthInMeters(0.5, 0.5);
+      if (d < 0.6 || d > 4.0) return null;
+      const c2w = view.transform.matrix;
+      // カメラ中心視線 (-Z列) のY成分が十分上向き (> 0.8) なら天井までのワールドYを計算
+      const upY = -c2w[9];
+      if (upY < 0.80) return null;
+      return c2w[13] + upY * d;
     },
 
     integrateDepthFrame(frame, view, viewport) {
@@ -1679,22 +1612,19 @@
 
       const dw = depthInfo.width, dh = depthInfo.height;
       const fmt = this.session.depthDataFormat;
-      let rawArr;
-      if (fmt === 'float32') rawArr = new Float32Array(depthInfo.data, 0, dw * dh);
-      else rawArr = new Uint16Array(depthInfo.data, 0, dw * dh);
+      const rawArr = (fmt === 'float32')
+        ? new Float32Array(depthInfo.data, 0, dw * dh)
+        : new Uint16Array(depthInfo.data, 0, dw * dh);
 
       const scaleToMeters = depthInfo.rawValueToMeters;
       const uvMat = depthInfo.normDepthBufferFromNormView.matrix;
 
-      // ビューポート縦横向きに整合するグリッド解像度を決定
       const isPortrait = viewport.height > viewport.width;
       const gw = isPortrait ? Math.min(dw, dh) : Math.max(dw, dh);
       const gh = isPortrait ? Math.max(dw, dh) : Math.min(dw, dh);
-
       const rays = this.buildRayGrid(view.projectionMatrix, gw, gh);
       if (!rays) return false;
 
-      // グリッドへ深度を最近傍サンプリング（エッジ保存）
       const depthGrid = new Float32Array(gw * gh);
       for (let gy = 0; gy < gh; gy++) {
         const vView = (gy + 0.5) / gh;
@@ -1708,63 +1638,68 @@
         }
       }
 
-      // カメラ色読み取り (WebGL FBO経由)
-      const rgbPixels = this.readCameraColors(view, gw, gh);
+      const rgbPixels = this.readCameraColors(view, viewport, gw, gh);
       const hasColor = rgbPixels !== null;
 
-      const maxD = parseFloat($('opt-max-depth').value);
-      const minD = 0.25;
-      const edgeThresh = parseFloat($('opt-edge').value);
-      const doCarve = $('opt-carve').checked;
+      // ステップ・オプションに応じた厳格パラメータ
+      const isDetail = (scanPhase === 'DETAIL_SCAN');
+      const isSmoothDepth = (this.session.depthType === 'smooth');
+      const baseMaxD = parseFloat($('opt-max-depth').value);
+      const maxD = isDetail ? Math.min(baseMaxD, 2.2) : baseMaxD;
+      const minD = 0.24;
+      const strictFilter = $('opt-carve').checked;
+      // smooth深度または複雑形状ステップ時は勾配・斜め面カットを強化
+      const edgeFrac = (strictFilter || isSmoothDepth || isDetail) ? 0.038 : 0.065;
+      const minCosTheta = isDetail ? 0.45 : (isSmoothDepth ? 0.40 : 0.30);
 
       const c2w = view.transform.matrix;
       const camX = c2w[12], camY = c2w[13], camZ = c2w[14];
-      const vs = volume.voxelSize;
-      const trunc = volume.trunc;
-      const stepT = vs * 0.55;
+      const vs = volume.voxelSize, trunc = volume.trunc, stepT = vs * 0.55;
+      const yMinClip = (volume.floorY !== null) ? (volume.floorY - 0.07) : -99;
+      const yMaxClip = (volume.ceilingY !== null) ? (volume.ceilingY + 0.07) : 99;
 
-      // 境界エッジフィルタ＆法線角度による高精度TSDF統合
-      for (let gy = 1; gy < gh - 1; gy++) {
-        for (let gx = 1; gx < gw - 1; gx++) {
+      for (let gy = 2; gy < gh - 2; gy++) {
+        for (let gx = 2; gx < gw - 2; gx++) {
           const gIdx = gy * gw + gx;
           const d = depthGrid[gIdx];
           if (d < minD || d > maxD) continue;
 
-          // Flying Pixel（輪郭の深度ジャンプ）除去
-          const dL = depthGrid[gIdx - 1], dR = depthGrid[gIdx + 1];
-          const dU = depthGrid[gIdx - gw], dD = depthGrid[gIdx + gw];
-          const jump = d * edgeThresh;
-          if (dL <= 0 || dR <= 0 || dU <= 0 || dD <= 0) continue;
-          if (Math.abs(d-dL) > jump || Math.abs(d-dR) > jump || Math.abs(d-dU) > jump || Math.abs(d-dD) > jump) {
+          // 2ピクセル幅 Flying Pixel（面引き伸ばしカーテン）除去
+          const dL1 = depthGrid[gIdx - 1], dR1 = depthGrid[gIdx + 1];
+          const dU1 = depthGrid[gIdx - gw], dD1 = depthGrid[gIdx + gw];
+          const dL2 = depthGrid[gIdx - 2], dR2 = depthGrid[gIdx + 2];
+          const dU2 = depthGrid[gIdx - 2*gw], dD2 = depthGrid[gIdx + 2*gw];
+          if (dL1 <= 0 || dR1 <= 0 || dU1 <= 0 || dD1 <= 0 || dL2 <= 0 || dR2 <= 0 || dU2 <= 0 || dD2 <= 0) continue;
+
+          const jump1 = d * edgeFrac;
+          const jump2 = d * (edgeFrac * 1.65);
+          if (Math.abs(d-dL1) > jump1 || Math.abs(d-dR1) > jump1 || Math.abs(d-dU1) > jump1 || Math.abs(d-dD1) > jump1 ||
+              Math.abs(d-dL2) > jump2 || Math.abs(d-dR2) > jump2 || Math.abs(d-dU2) > jump2 || Math.abs(d-dD2) > jump2) {
             continue;
           }
 
-          // カメラ空間レイと表面法線の角度チェック
+          // 入射角（法線余弦）判定
           const rx = rays[gIdx*2], ry = rays[gIdx*2+1];
           const rxR = rays[(gIdx+1)*2], ryR = rays[(gIdx+1)*2+1];
           const rxD = rays[(gIdx+gw)*2], ryD = rays[(gIdx+gw)*2+1];
-
-          // 簡易カメラ空間法線（視線との余弦 cosTheta を算出）
-          const v1x = rxR*dR - rx*d, v1y = ryR*dR - ry*d, v1z = -(dR - d);
-          const v2x = rxD*dD - rx*d, v2y = ryD*dD - ry*d, v2z = -(dD - d);
-          // 注意: Y下向きグリッドなので (v2 x v1) または絶対値で法線方向取得
-          const ncx = v1y*v2z - v1z*v2y;
-          const ncy = v1z*v2x - v1x*v2z;
-          const ncz = v1x*v2y - v1y*v2x;
+          const v1x = rxR*dR1 - rx*d, v1y = ryR*dR1 - ry*d, v1z = -(dR1 - d);
+          const v2x = rxD*dD1 - rx*d, v2y = ryD*dD1 - ry*d, v2z = -(dD1 - d);
+          const ncx = v1y*v2z - v1z*v2y, ncy = v1z*v2x - v1x*v2z, ncz = v1x*v2y - v1y*v2x;
           const nLen = Math.hypot(ncx, ncy, ncz) || 1;
           const rayLen = Math.hypot(rx, ry, 1.0);
-          // 視線単位ベクトル (カメラから表面へ) と法線の内積の大きさ
           const cosTheta = Math.abs((rx*ncx + ry*ncy - ncz) / (rayLen * nLen));
-          if (cosTheta < 0.22) continue; // 77°以上の斜めかすめ角は除外
+          if (cosTheta < minCosTheta) continue;
 
-          // ワールド単位レイベクトル
           const wx = (c2w[0]*rx + c2w[4]*ry - c2w[8]) / rayLen;
           const wy = (c2w[1]*rx + c2w[5]*ry - c2w[9]) / rayLen;
           const wz = (c2w[2]*rx + c2w[6]*ry - c2w[10]) / rayLen;
 
           const tSurf = d * rayLen;
-          // 物理誤差 ∝ d^2 なので 1/(1+d^2) と入射角 cosTheta で重み決定
-          const weight = (0.35 + 0.65 * cosTheta) / (0.6 + 0.4 * d * d);
+          // 床・天井の境界外にあるノイズは書き込みをカット
+          const hitY = camY + wy * tSurf;
+          if (hitY < yMinClip || hitY > yMaxClip) continue;
+
+          const weight = (0.25 + 0.75 * cosTheta) / (0.5 + 0.5 * d * d);
 
           let cr = 0, cg = 0, cb = 0;
           if (hasColor) {
@@ -1772,66 +1707,38 @@
             cr = rgbPixels[pOff]; cg = rgbPixels[pOff+1]; cb = rgbPixels[pOff+2];
           }
 
+          // 全光線で強力な Free-space Carving（元の誤った面が空間を突き抜けて残るのを削り取る）
           let prevKey = -1;
-          // Free-space Carving（2本に1本で既存チャンクの手前ノイズだけ削る）
-          if (doCarve && ((gx + gy) & 1) === 0) {
-            const carveEnd = tSurf - trunc * 1.3;
-            for (let t = Math.max(0.25, tSurf - 1.5); t < carveEnd; t += vs * 1.1) {
-              const vx = Math.floor((camX + wx * t) / vs);
-              const vy = Math.floor((camY + wy * t) / vs);
-              const vz = Math.floor((camZ + wz * t) / vs);
+          if (strictFilter) {
+            const carveEnd = tSurf - trunc * 1.15;
+            const carveStart = Math.max(0.22, tSurf - 2.2);
+            for (let t = carveStart; t < carveEnd; t += vs * 0.95) {
+              const px = camX + wx*t, py = camY + wy*t, pz = camZ + wz*t;
+              const vx = Math.floor(px / vs), vy = Math.floor(py / vs), vz = Math.floor(pz / vs);
               const vk = voxelKey(vx, vy, vz);
               if (vk !== prevKey) {
-                volume.carveVoxelIfExists(vx, vy, vz, weight * 0.35);
+                volume.carveVoxelIfExists(vx, vy, vz, weight * 0.95);
                 prevKey = vk;
               }
             }
           }
 
-          // 表面帯域 TSDF 統合
+          // 表面帯域のタイトなTSDF更新（奥側は 0.65*trunc で止め薄い棚の裏が埋まらないようにする）
           prevKey = -1;
-          const tStart = Math.max(0.1, tSurf - trunc);
-          const tEnd = tSurf + trunc;
+          const tStart = Math.max(0.12, tSurf - trunc);
+          const tEnd = tSurf + trunc * 0.65;
           for (let t = tStart; t <= tEnd; t += stepT) {
-            const vx = Math.floor((camX + wx * t) / vs);
-            const vy = Math.floor((camY + wy * t) / vs);
-            const vz = Math.floor((camZ + wz * t) / vs);
+            const vx = Math.floor((camX + wx*t) / vs);
+            const vy = Math.floor((camY + wy*t) / vs);
+            const vz = Math.floor((camZ + wz*t) / vs);
             const vk = voxelKey(vx, vy, vz);
             if (vk === prevKey) continue;
             prevKey = vk;
-            // ボクセル中心の投影距離と表面距離の差 (手前が正, 奥が負)
-            const cxW = (vx + 0.5) * vs - camX;
-            const cyW = (vy + 0.5) * vs - camY;
-            const czW = (vz + 0.5) * vs - camZ;
-            const tVox = cxW*wx + cyW*wy + czW*wz;
-            const sdf = tSurf - tVox;
-            if (Math.abs(sdf) <= trunc) {
+            const cxW = (vx + 0.5)*vs - camX, cyW = (vy + 0.5)*vs - camY, czW = (vz + 0.5)*vs - camZ;
+            const sdf = tSurf - (cxW*wx + cyW*wy + czW*wz);
+            if (sdf <= trunc && sdf >= -trunc * 0.65) {
               volume.updateVoxel(vx, vy, vz, sdf, weight, cr, cg, cb, hasColor);
             }
-          }
-        }
-      }
-      return true;
-    },
-
-    // Depth非対応端末用：Hit-Testによる純幾何スキャンフォールバック
-    integrateHitTestFallback(hitMatrix, camPos) {
-      const hx = hitMatrix[12], hy = hitMatrix[13], hz = hitMatrix[14];
-      const dx = hx - camPos[0], dy = hy - camPos[1], dz = hz - camPos[2];
-      const dist = Math.hypot(dx, dy, dz);
-      if (dist < 0.25 || dist > 5.0) return false;
-      const wx = dx / dist, wy = dy / dist, wz = dz / dist;
-      const vs = volume.voxelSize, trunc = volume.trunc;
-      // ヒット点周囲の小パッチ（法線方向に直交する平面パッチ）をTSDFへ統合
-      const ny = hitMatrix[4], nx = hitMatrix[5], nz = hitMatrix[6];
-      for (let t = dist - trunc; t <= dist + trunc; t += vs * 0.5) {
-        const px = camPos[0] + wx * t, py = camPos[1] + wy * t, pz = camPos[2] + wz * t;
-        for (let ox = -1; ox <= 1; ox++) {
-          for (let oz = -1; oz <= 1; oz++) {
-            const vx = Math.floor((px + hitMatrix[0]*ox*vs + hitMatrix[8]*oz*vs) / vs);
-            const vy = Math.floor((py + hitMatrix[1]*ox*vs + hitMatrix[9]*oz*vs) / vs);
-            const vz = Math.floor((pz + hitMatrix[2]*ox*vs + hitMatrix[10]*oz*vs) / vs);
-            volume.updateVoxel(vx, vy, vz, dist - t, 1.0 / (1 + dist*dist), 140, 210, 230, true);
           }
         }
       }
@@ -1847,9 +1754,9 @@
       const layer = session.renderState.baseLayer;
       const gl = this.gl;
 
-      // Hit-test 更新（CAD打点や距離計に使う）
-      lastHitPoseMatrix = null;
-      lastHitDist = null;
+      lastHitPoseMatrix = null; lastHitDist = null;
+      if (pose) lastDevPosY = pose.transform.position.y;
+
       if (this.hitTestSource && pose) {
         const hits = frame.getHitTestResults(this.hitTestSource);
         if (hits.length > 0) {
@@ -1857,73 +1764,79 @@
           if (hp) {
             lastHitPoseMatrix = hp.transform.matrix;
             const p0 = pose.transform.position;
-            lastHitDist = Math.hypot(
-              lastHitPoseMatrix[12] - p0.x,
-              lastHitPoseMatrix[13] - p0.y,
-              lastHitPoseMatrix[14] - p0.z
-            );
+            lastHitDist = Math.hypot(lastHitPoseMatrix[12]-p0.x, lastHitPoseMatrix[13]-p0.y, lastHitPoseMatrix[14]-p0.z);
             $('reticle-dist').textContent = `${lastHitDist.toFixed(2)} m`;
           }
         }
       }
       if (lastHitDist === null) $('reticle-dist').textContent = '-- m';
 
-      // 角速度・キーフレームゲート判定
-      let integrated = false;
-      if (pose && pose.views.length > 0) {
-        const view = pose.views[0];
-        const vp = layer.getViewport(view);
-        const pos = [pose.transform.position.x, pose.transform.position.y, pose.transform.position.z];
-        const ori = pose.transform.orientation;
-        const quat = [ori.x, ori.y, ori.z, ori.w];
-
-        let angVel = 0;
-        if (this.lastPoseTime > 0 && this.prevPoseQuat) {
-          const dt = Math.max(0.008, (time - this.lastPoseTime) / 1000);
-          angVel = quatAngleDeg(this.prevPoseQuat, quat) / dt;
-        }
-        this.prevPoseQuat = quat;
-        this.lastPoseTime = time;
-
-        // 品質インジケータ更新
-        const qDot = $('quality-dot'), qTxt = $('quality-text');
-        if (!scanningActive && !forceOneShot) {
-          qDot.style.background = '#94a3b8'; qTxt.textContent = '一時停止中';
-        } else if (angVel > 55) {
-          qDot.style.background = '#ef4444'; qTxt.textContent = `速すぎます (${angVel.toFixed(0)}°/s)`;
-        } else {
-          const kfDistThresh = parseFloat($('opt-kf-dist').value);
-          const kfAngleThresh = kfDistThresh * 120; // 0.05m -> 6°
-          let movedEnough = !this.lastKfPos;
-          if (this.lastKfPos) {
-            const dMove = Math.hypot(pos[0]-this.lastKfPos[0], pos[1]-this.lastKfPos[1], pos[2]-this.lastKfPos[2]);
-            const dRot = quatAngleDeg(this.lastKfQuat, quat);
-            movedEnough = (dMove >= kfDistThresh || dRot >= kfAngleThresh);
-          }
-
-          if (forceOneShot || movedEnough) {
-            if (this.hasDepth) {
-              integrated = this.integrateDepthFrame(frame, view, vp);
-            } else if (lastHitPoseMatrix) {
-              integrated = this.integrateHitTestFallback(lastHitPoseMatrix, pos);
-            }
-            if (integrated) {
-              this.lastKfPos = pos;
-              this.lastKfQuat = quat;
-              this.kfCount++;
-              forceOneShot = false;
-              this.refreshPreviewPoints();
-              qDot.style.background = '#10b981'; qTxt.textContent = '高精度統合中';
-            } else {
-              qDot.style.background = '#f59e0b'; qTxt.textContent = '深度待機中...';
-            }
+      // ステップ2（天井合わせ）中のライブ天井高さ計測
+      if (scanPhase === 'CEILING_CAL' && pose && pose.views.length > 0) {
+        const cEst = this.estimateCeilingHeight(frame, pose.views[0]);
+        liveCeilingEstY = cEst;
+        const btn = $('btn-ceil-capture');
+        if (btn) {
+          if (cEst !== null) {
+            const hRel = (volume.floorY !== null) ? (cEst - volume.floorY).toFixed(2) : cEst.toFixed(2);
+            btn.textContent = `⬆️ 天井確定 (現在 ${hRel}m)`;
           } else {
-            qDot.style.background = '#06b6d4'; qTxt.textContent = 'ゆっくり移動してください';
+            btn.textContent = '⬆️ 天井を真上に向けてください';
           }
         }
       }
 
-      // 画面へのARオーバーレイ描画
+      // 狙い消し（🧹）ボタン押下時の処理
+      if (eraseRayRequest && pose) {
+        eraseRayRequest = false;
+        const m = pose.transform.matrix;
+        const cPos = [m[12], m[13], m[14]];
+        const rDir = [-m[8], -m[9], -m[10]];
+        const nErased = volume.eraseAlongRay(cPos, rDir, 3.0, 0.09);
+        this.refreshPreviewPoints();
+        showToast(nErased > 0 ? `狙った箇所の ${nErased} ボクセルを消去しました` : '照準の先に消去対象がありませんでした');
+      }
+
+      if (pose && pose.views.length > 0) {
+        const view = pose.views[0], vp = layer.getViewport(view);
+        const pos = [pose.transform.position.x, pose.transform.position.y, pose.transform.position.z];
+        const ori = pose.transform.orientation, quat = [ori.x, ori.y, ori.z, ori.w];
+
+        let angVel = 0;
+        if (this.lastPoseTime > 0 && this.prevPoseQuat) {
+          angVel = quatAngleDeg(this.prevPoseQuat, quat) / Math.max(0.008, (time - this.lastPoseTime) / 1000);
+        }
+        this.prevPoseQuat = quat; this.lastPoseTime = time;
+
+        const qDot = $('quality-dot'), qTxt = $('quality-text');
+        if (!scanningActive) {
+          qDot.style.background = '#94a3b8'; qTxt.textContent = '一時停止中';
+        } else if (angVel > 50) {
+          qDot.style.background = '#ef4444'; qTxt.textContent = `速すぎます (${angVel.toFixed(0)}°/s)`;
+        } else {
+          const kfDistThresh = parseFloat($('opt-kf-dist').value);
+          const kfAngleThresh = kfDistThresh * 120;
+          let movedEnough = !this.lastKfPos;
+          if (this.lastKfPos) {
+            const dMove = Math.hypot(pos[0]-this.lastKfPos[0], pos[1]-this.lastKfPos[1], pos[2]-this.lastKfPos[2]);
+            movedEnough = (dMove >= kfDistThresh || quatAngleDeg(this.lastKfQuat, quat) >= kfAngleThresh);
+          }
+          if (movedEnough) {
+            const ok = this.hasDepth ? this.integrateDepthFrame(frame, view, vp) : false;
+            if (ok) {
+              this.lastKfPos = pos; this.lastKfQuat = quat; this.kfCount++;
+              this.refreshPreviewPoints();
+              qDot.style.background = '#10b981'; qTxt.textContent = (scanPhase === 'DETAIL_SCAN') ? '精密スキャン統合中' : '高精度統合中';
+            } else {
+              qDot.style.background = '#f59e0b'; qTxt.textContent = '深度取得待機...';
+            }
+          } else {
+            qDot.style.background = '#06b6d4'; qTxt.textContent = '横へゆっくり移動中';
+          }
+        }
+      }
+
+      // AR オーバーレイ描画
       gl.bindFramebuffer(gl.FRAMEBUFFER, layer.framebuffer);
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -1937,35 +1850,28 @@
         const vp = layer.getViewport(view);
         gl.viewport(vp.x, vp.y, vp.width, vp.height);
 
-        // 1. 統合済みTSDFプレビュー点群
         if (this.ptCount > 0) {
           gl.useProgram(this.ptProg);
           gl.uniformMatrix4fv(gl.getUniformLocation(this.ptProg, 'uProj'), false, view.projectionMatrix);
           gl.uniformMatrix4fv(gl.getUniformLocation(this.ptProg, 'uView'), false, view.transform.inverse.matrix);
-          gl.uniform1f(gl.getUniformLocation(this.ptProg, 'uPtSize'), Math.min(vp.width, vp.height) * 0.012);
-
+          gl.uniform1f(gl.getUniformLocation(this.ptProg, 'uPtSize'), Math.min(vp.width, vp.height) * 0.011);
           gl.bindBuffer(gl.ARRAY_BUFFER, this.ptPosBuf);
-          gl.enableVertexAttribArray(0);
-          gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+          gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
           gl.bindBuffer(gl.ARRAY_BUFFER, this.ptColBuf);
-          gl.enableVertexAttribArray(1);
-          gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
+          gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
           gl.drawArrays(gl.POINTS, 0, this.ptCount);
           gl.disableVertexAttribArray(1);
         }
 
-        // 2. Hit-Testレティクル（床/壁に沿うリング）とCAD打点プレビュー
         const mvp = Mat4.mul(view.projectionMatrix, view.transform.inverse.matrix);
         gl.useProgram(this.solidProg);
         gl.uniformMatrix4fv(gl.getUniformLocation(this.solidProg, 'uMVP'), false, mvp);
         gl.uniform1f(gl.getUniformLocation(this.solidProg, 'uPtSize'), 14.0);
 
         if (lastHitPoseMatrix) {
-          const ring = new Float32Array(25 * 3);
-          const r = 0.06;
+          const ring = new Float32Array(25 * 3), r = 0.055;
           for (let i = 0; i <= 24; i++) {
-            const a = (i / 24) * Math.PI * 2;
-            const lx = Math.cos(a) * r, lz = Math.sin(a) * r;
+            const a = (i / 24) * Math.PI * 2, lx = Math.cos(a) * r, lz = Math.sin(a) * r;
             ring[i*3]   = lastHitPoseMatrix[0]*lx + lastHitPoseMatrix[8]*lz  + lastHitPoseMatrix[12];
             ring[i*3+1] = lastHitPoseMatrix[1]*lx + lastHitPoseMatrix[9]*lz  + lastHitPoseMatrix[13];
             ring[i*3+2] = lastHitPoseMatrix[2]*lx + lastHitPoseMatrix[10]*lz + lastHitPoseMatrix[14];
@@ -1973,89 +1879,73 @@
           gl.uniform4f(gl.getUniformLocation(this.solidProg, 'uColor'), 0.2, 0.95, 0.85, 0.95);
           gl.bindBuffer(gl.ARRAY_BUFFER, this.lineBuf);
           gl.bufferData(gl.ARRAY_BUFFER, ring, gl.DYNAMIC_DRAW);
-          gl.enableVertexAttribArray(0);
-          gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+          gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
           gl.drawArrays(gl.LINE_STRIP, 0, 25);
         }
 
-        // CAD 打点中ライン
+        // ロック済み床基準グリッド線を薄く表示
+        if (volume.floorY !== null) {
+          const fg = [], fy = volume.floorY;
+          for (let i = -2; i <= 2; i++) { fg.push(i, fy, -2, i, fy, 2, -2, fy, i, 2, fy, i); }
+          gl.uniform4f(gl.getUniformLocation(this.solidProg, 'uColor'), 0.1, 0.85, 0.5, 0.35);
+          gl.bindBuffer(gl.ARRAY_BUFFER, this.lineBuf);
+          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(fg), gl.DYNAMIC_DRAW);
+          gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+          gl.drawArrays(gl.LINES, 0, fg.length / 3);
+        }
+
         if (volume.cadPending.length > 0) {
-          const arr = new Float32Array(volume.cadPending.flat());
           gl.uniform4f(gl.getUniformLocation(this.solidProg, 'uColor'), 1.0, 0.78, 0.1, 1.0);
           gl.bindBuffer(gl.ARRAY_BUFFER, this.cadPtsBuf);
-          gl.bufferData(gl.ARRAY_BUFFER, arr, gl.DYNAMIC_DRAW);
-          gl.enableVertexAttribArray(0);
-          gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(volume.cadPending.flat()), gl.DYNAMIC_DRAW);
+          gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
           gl.drawArrays(gl.POINTS, 0, volume.cadPending.length);
           if (volume.cadPending.length >= 2) gl.drawArrays(gl.LINE_STRIP, 0, volume.cadPending.length);
         }
 
-        // 確定済みCAD平面枠
         for (const pl of volume.cadPlanes) {
           const loop = [...pl.pts, pl.pts[0]];
-          const arr = new Float32Array(loop.flat());
           gl.uniform4f(gl.getUniformLocation(this.solidProg, 'uColor'), 0.1, 0.9, 0.5, 0.9);
           gl.bindBuffer(gl.ARRAY_BUFFER, this.cadLineBuf);
-          gl.bufferData(gl.ARRAY_BUFFER, arr, gl.DYNAMIC_DRAW);
-          gl.enableVertexAttribArray(0);
-          gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(loop.flat()), gl.DYNAMIC_DRAW);
+          gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
           gl.drawArrays(gl.LINE_STRIP, 0, loop.length);
         }
       }
     }
   };
 
-  // ==================== ジャイロ + カメラ フォールバックAR (WebXR非対応時) ====================
+  // ==================== ジャイロ + カメラ フォールバックAR ====================
   const FallbackAR = {
-    active: false,
-    stream: null,
-    gl: null,
-    prog: null,
-    buf: null,
-    rafId: null,
-    camPos: [0, 1.35, 0],
-    lastHit: null,
+    active: false, stream: null, gl: null, prog: null, buf: null, rafId: null, camPos: [0, 1.35, 0],
 
     async start(resumeExisting = false) {
-      if (!resumeExisting) {
-        volume.reset(parseFloat($('opt-voxel').value));
-      }
+      if (!resumeExisting) volume.reset(parseFloat($('opt-voxel').value));
       this.camPos = [0, parseFloat($('fb-cam-height').value) || 1.35, 0];
       try {
         this.stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
-          audio: false
+          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false
         });
-      } catch (e) {
-        showToast('カメラの起動が許可されませんでした', 3000);
-        return;
-      }
+      } catch (_) { showToast('カメラの起動が許可されませんでした', 3000); return; }
       const video = $('fallback-video');
-      video.srcObject = this.stream;
-      await video.play();
+      video.srcObject = this.stream; await video.play();
 
-      const canvas = $('fallback-gl-canvas');
-      const gl = canvas.getContext('webgl2', { alpha: true, antialias: true });
+      const gl = $('fallback-gl-canvas').getContext('webgl2', { alpha: true, antialias: true });
       this.gl = gl;
       this.prog = compileProgram(gl,
         `#version 300 es
-         layout(location=0) in vec3 aPos;
-         uniform mat4 uMVP;
-         uniform float uPtSize;
+         layout(location=0) in vec3 aPos; uniform mat4 uMVP; uniform float uPtSize;
          void main() { gl_Position = uMVP * vec4(aPos, 1.0); gl_PointSize = uPtSize; }`,
         `#version 300 es
-         precision mediump float;
-         uniform vec4 uCol;
-         out vec4 outCol;
+         precision mediump float; uniform vec4 uCol; out vec4 outCol;
          void main() { outCol = uCol; }`
       );
       this.buf = gl.createBuffer();
-
-      this.active = true;
-      scanningActive = false;
+      this.active = true; scanningActive = false;
+      setPhase('FREE');
       $('stat-mode').textContent = 'GYRO-CAD';
       $('quality-dot').style.background = '#10b981';
-      $('quality-text').textContent = 'ジャイロ幾何モード (CAD打点)';
+      $('quality-text').textContent = 'ジャイロ幾何CADモード';
       $('cad-strip').classList.add('open');
       showScreen('fallback');
       this.loop();
@@ -2068,23 +1958,6 @@
       $('fallback-video').srcObject = null;
     },
 
-    getRayAndHit() {
-      this.camPos[1] = parseFloat($('fb-cam-height').value) || 1.35;
-      const c2w = Mat4.fromQuatPos(GyroState.quat, this.camPos);
-      // カメラ前方は -Z 列
-      const fx = -c2w[8], fy = -c2w[9], fz = -c2w[10];
-      // 床平面 (Y=0) と レイの交差計算
-      let hit = null, dist = null;
-      if (fy < -0.05) {
-        const t = -this.camPos[1] / fy;
-        if (t > 0.2 && t < 12.0) {
-          hit = [this.camPos[0] + fx * t, 0, this.camPos[2] + fz * t];
-          dist = t;
-        }
-      }
-      return { c2w, hit, dist };
-    },
-
     loop() {
       if (!this.active) return;
       this.rafId = requestAnimationFrame(() => this.loop());
@@ -2092,51 +1965,42 @@
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       const w = Math.floor(canvas.clientWidth * dpr), h = Math.floor(canvas.clientHeight * dpr);
       if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
-
       const gl = this.gl;
-      gl.viewport(0, 0, w, h);
-      gl.clearColor(0, 0, 0, 0);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.viewport(0, 0, w, h); gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-      const { c2w, hit, dist } = this.getRayAndHit();
-      this.lastHit = hit;
-      if (hit) {
-        lastHitPoseMatrix = new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, hit[0],hit[1],hit[2],1]);
-        $('reticle-dist').textContent = `床 ${dist.toFixed(2)} m`;
-      } else {
-        lastHitPoseMatrix = null;
-        $('reticle-dist').textContent = '床を下に向けて打点';
+      this.camPos[1] = parseFloat($('fb-cam-height').value) || 1.35;
+      const c2w = Mat4.fromQuatPos(GyroState.quat, this.camPos);
+      const fx = -c2w[8], fy = -c2w[9], fz = -c2w[10];
+      lastHitPoseMatrix = null;
+      if (fy < -0.05) {
+        const t = -this.camPos[1] / fy;
+        if (t > 0.2 && t < 12.0) {
+          const hx = this.camPos[0]+fx*t, hz = this.camPos[2]+fz*t;
+          lastHitPoseMatrix = new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, hx,0,hz,1]);
+          $('reticle-dist').textContent = `床 ${t.toFixed(2)} m`;
+        }
       }
+      if (!lastHitPoseMatrix) $('reticle-dist').textContent = '床に向けて打点';
 
-      const proj = Mat4.perspective(58 * Math.PI / 180, w / Math.max(1, h), 0.05, 30);
-      const view = Mat4.invert(c2w);
-      const mvp = Mat4.mul(proj, view);
-
+      const mvp = Mat4.mul(Mat4.perspective(58*Math.PI/180, w/Math.max(1,h), 0.05, 30), Mat4.invert(c2w));
       gl.useProgram(this.prog);
       gl.uniformMatrix4fv(gl.getUniformLocation(this.prog, 'uMVP'), false, mvp);
       gl.uniform1f(gl.getUniformLocation(this.prog, 'uPtSize'), 14.0);
       gl.bindBuffer(gl.ARRAY_BUFFER, this.buf);
-      gl.enableVertexAttribArray(0);
-      gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+      gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
 
-      // 1m床グリッド表示
       const grid = [];
-      for (let i = -5; i <= 5; i++) {
-        grid.push(i, 0, -5, i, 0, 5, -5, 0, i, 5, 0, i);
-      }
+      for (let i = -5; i <= 5; i++) grid.push(i,0,-5, i,0,5, -5,0,i, 5,0,i);
       gl.uniform4f(gl.getUniformLocation(this.prog, 'uCol'), 0.2, 0.7, 0.9, 0.35);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(grid), gl.DYNAMIC_DRAW);
       gl.drawArrays(gl.LINES, 0, grid.length / 3);
 
-      // 打点中の点・線
       if (volume.cadPending.length > 0) {
-        const arr = new Float32Array(volume.cadPending.flat());
         gl.uniform4f(gl.getUniformLocation(this.prog, 'uCol'), 1.0, 0.8, 0.1, 1.0);
-        gl.bufferData(gl.ARRAY_BUFFER, arr, gl.DYNAMIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(volume.cadPending.flat()), gl.DYNAMIC_DRAW);
         gl.drawArrays(gl.POINTS, 0, volume.cadPending.length);
         if (volume.cadPending.length >= 2) gl.drawArrays(gl.LINE_STRIP, 0, volume.cadPending.length);
       }
-      // 確定CAD壁/床
       for (const pl of volume.cadPlanes) {
         const loop = [...pl.pts, pl.pts[0]];
         gl.uniform4f(gl.getUniformLocation(this.prog, 'uCol'), 0.1, 0.95, 0.55, 0.95);
@@ -2146,18 +2010,13 @@
     }
   };
 
-  // ==================== 3D ビューワー (独立 WebGL2 コンテキスト) ====================
+  // ==================== 3D ビューワー ====================
   const Viewer3D = {
-    gl: null,
-    meshProg: null, lineProg: null,
+    gl: null, meshProg: null, lineProg: null,
     posBuf: null, normBuf: null, colBuf: null, idxBuf: null,
-    gridBuf: null, gridCount: 0,
-    measureBuf: null,
-    renderMode: 0, // 0: カラー, 1: 陰影粘土, 2: 法線, 3: ワイヤーフレーム風
-    yaw: 0.65, pitch: 0.45, dist: 4.5, target: [0, 0.9, 0],
-    measureMode: false,
-    measurePts: [],
-    rafId: null,
+    gridPosBuf: null, gridColBuf: null, gridCount: 0, measureBuf: null, mColBuf: null,
+    renderMode: 0, yaw: 0.65, pitch: 0.45, dist: 4.5, target: [0, 0.9, 0],
+    measureMode: false, measurePts: [], rafId: null,
 
     init() {
       if (this.gl) return;
@@ -2167,102 +2026,59 @@
 
       this.meshProg = compileProgram(gl,
         `#version 300 es
-         layout(location=0) in vec3 aPos;
-         layout(location=1) in vec3 aNorm;
-         layout(location=2) in vec3 aCol;
-         uniform mat4 uProj, uView;
-         out vec3 vPos, vNorm, vCol;
-         void main() {
-           vPos = aPos; vNorm = aNorm; vCol = aCol;
-           gl_Position = uProj * uView * vec4(aPos, 1.0);
-         }`,
+         layout(location=0) in vec3 aPos; layout(location=1) in vec3 aNorm; layout(location=2) in vec3 aCol;
+         uniform mat4 uProj, uView; out vec3 vPos, vNorm, vCol;
+         void main() { vPos = aPos; vNorm = aNorm; vCol = aCol; gl_Position = uProj * uView * vec4(aPos, 1.0); }`,
         `#version 300 es
-         precision highp float;
-         in vec3 vPos, vNorm, vCol;
-         uniform vec3 uCamPos;
-         uniform int uMode;
-         out vec4 outCol;
+         precision highp float; in vec3 vPos, vNorm, vCol; uniform vec3 uCamPos; uniform int uMode; out vec4 outCol;
          void main() {
-           vec3 N = normalize(vNorm);
-           if (!gl_FrontFacing) N = -N;
-           vec3 V = normalize(uCamPos - vPos);
-           vec3 L1 = normalize(vec3(0.45, 0.85, 0.35));
-           vec3 L2 = normalize(uCamPos - vPos);
-           float hemi = 0.5 + 0.5 * N.y;
-           float diff1 = max(dot(N, L1), 0.0);
-           float diff2 = max(dot(N, L2), 0.0);
-           float light = 0.25 + 0.25 * hemi + 0.35 * diff1 + 0.30 * diff2;
-           vec3 base = vCol;
-           if (uMode == 1) base = vec3(0.80, 0.84, 0.88);
+           vec3 N = normalize(vNorm); if (!gl_FrontFacing) N = -N;
+           vec3 L1 = normalize(vec3(0.45, 0.85, 0.35)), L2 = normalize(uCamPos - vPos);
+           float light = 0.28 + 0.24 * (0.5 + 0.5 * N.y) + 0.32 * max(dot(N, L1), 0.0) + 0.28 * max(dot(N, L2), 0.0);
+           vec3 base = (uMode == 1) ? vec3(0.82, 0.85, 0.89) : vCol;
            if (uMode == 2) { outCol = vec4(N * 0.5 + 0.5, 1.0); return; }
            outCol = vec4(base * light, 1.0);
          }`
       );
-
       this.lineProg = compileProgram(gl,
         `#version 300 es
-         layout(location=0) in vec3 aPos;
-         layout(location=1) in vec3 aCol;
-         uniform mat4 uMVP;
-         uniform float uPtSize;
-         out vec3 vCol;
-         void main() {
-           gl_Position = uMVP * vec4(aPos, 1.0);
-           gl_PointSize = uPtSize;
-           vCol = aCol;
-         }`,
+         layout(location=0) in vec3 aPos; layout(location=1) in vec3 aCol; uniform mat4 uMVP; uniform float uPtSize; out vec3 vCol;
+         void main() { gl_Position = uMVP * vec4(aPos, 1.0); gl_PointSize = uPtSize; vCol = aCol; }`,
         `#version 300 es
-         precision mediump float;
-         in vec3 vCol;
-         out vec4 outCol;
+         precision mediump float; in vec3 vCol; out vec4 outCol;
          void main() { outCol = vec4(vCol, 1.0); }`
       );
 
-      this.posBuf = gl.createBuffer();
-      this.normBuf = gl.createBuffer();
-      this.colBuf = gl.createBuffer();
-      this.idxBuf = gl.createBuffer();
-      this.measureBuf = gl.createBuffer();
+      this.posBuf = gl.createBuffer(); this.normBuf = gl.createBuffer();
+      this.colBuf = gl.createBuffer(); this.idxBuf = gl.createBuffer();
+      this.measureBuf = gl.createBuffer(); this.mColBuf = gl.createBuffer();
 
-      // 1m メートル基準グリッド + RGB原点軸
       const gPos = [], gCol = [];
       for (let i = -8; i <= 8; i++) {
-        const isMain = (i % 2 === 0);
-        const c = isMain ? 0.26 : 0.14;
-        gPos.push(i*0.5, 0, -4, i*0.5, 0, 4); gCol.push(c,c,c+0.05, c,c,c+0.05);
-        gPos.push(-4, 0, i*0.5, 4, 0, i*0.5); gCol.push(c,c,c+0.05, c,c,c+0.05);
+        const c = (i % 2 === 0) ? 0.26 : 0.14;
+        gPos.push(i*0.5,0,-4, i*0.5,0,4, -4,0,i*0.5, 4,0,i*0.5);
+        gCol.push(c,c,c+0.05, c,c,c+0.05, c,c,c+0.05, c,c,c+0.05);
       }
-      // XYZ 軸 (各0.6m)
-      gPos.push(0,0,0, 0.6,0,0); gCol.push(1,0.2,0.2, 1,0.2,0.2);
-      gPos.push(0,0,0, 0,0.6,0); gCol.push(0.2,1,0.2, 0.2,1,0.2);
-      gPos.push(0,0,0, 0,0,0.6); gCol.push(0.2,0.5,1, 0.2,0.5,1);
+      gPos.push(0,0,0, 0.6,0,0, 0,0,0, 0,0.6,0, 0,0,0, 0,0,0.6);
+      gCol.push(1,0.2,0.2, 1,0.2,0.2, 0.2,1,0.2, 0.2,1,0.2, 0.2,0.5,1, 0.2,0.5,1);
       this.gridCount = gPos.length / 3;
-
       this.gridPosBuf = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, this.gridPosBuf);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(gPos), gl.STATIC_DRAW);
       this.gridColBuf = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, this.gridColBuf);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(gCol), gl.STATIC_DRAW);
-
       this.bindInputEvents(canvas);
     },
 
     uploadMesh(mesh) {
       this.init();
       const gl = this.gl;
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.posBuf);
-      gl.bufferData(gl.ARRAY_BUFFER, mesh.positions, gl.STATIC_DRAW);
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.normBuf);
-      gl.bufferData(gl.ARRAY_BUFFER, mesh.normals, gl.STATIC_DRAW);
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.colBuf);
-      gl.bufferData(gl.ARRAY_BUFFER, mesh.colors, gl.STATIC_DRAW);
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.idxBuf);
-      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW);
-
-      const nv = mesh.positions.length / 3;
-      const nf = mesh.indices.length / 3;
-      $('mesh-info').textContent = `頂点:${nv.toLocaleString()} / 面:${nf.toLocaleString()}`;
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.posBuf); gl.bufferData(gl.ARRAY_BUFFER, mesh.positions, gl.STATIC_DRAW);
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.normBuf); gl.bufferData(gl.ARRAY_BUFFER, mesh.normals, gl.STATIC_DRAW);
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.colBuf); gl.bufferData(gl.ARRAY_BUFFER, mesh.colors, gl.STATIC_DRAW);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.idxBuf); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW);
+      $('mesh-info').textContent = `頂点:${(mesh.positions.length/3).toLocaleString()} / 面:${(mesh.indices.length/3).toLocaleString()}`;
     },
 
     fitCamera(mesh) {
@@ -2270,155 +2086,108 @@
       let minX=Infinity, minY=Infinity, minZ=Infinity, maxX=-Infinity, maxY=-Infinity, maxZ=-Infinity;
       for (let i = 0; i < mesh.positions.length; i += 3) {
         const x=mesh.positions[i], y=mesh.positions[i+1], z=mesh.positions[i+2];
-        if (x<minX) minX=x; if (x>maxX) maxX=x;
-        if (y<minY) minY=y; if (y>maxY) maxY=y;
-        if (z<minZ) minZ=z; if (z>maxZ) maxZ=z;
+        if (x<minX) minX=x; if (x>maxX) maxX=x; if (y<minY) minY=y; if (y>maxY) maxY=y; if (z<minZ) minZ=z; if (z>maxZ) maxZ=z;
       }
       this.target = [(minX+maxX)/2, (minY+maxY)/2, (minZ+maxZ)/2];
-      const diag = Math.hypot(maxX-minX, maxY-minY, maxZ-minZ);
-      this.dist = Math.max(1.5, diag * 1.15);
+      this.dist = Math.max(1.5, Math.hypot(maxX-minX, maxY-minY, maxZ-minZ) * 1.15);
       this.yaw = 0.65; this.pitch = 0.45;
     },
 
     getCameraMatrices() {
       const canvas = $('viewer-canvas');
-      const aspect = canvas.clientWidth / Math.max(1, canvas.clientHeight);
-      const proj = Mat4.perspective(52 * Math.PI / 180, aspect, 0.04, 60.0);
-      const cp = Math.cos(this.pitch), sp = Math.sin(this.pitch);
-      const cy = Math.cos(this.yaw), sy = Math.sin(this.yaw);
-      const eye = [
-        this.target[0] + this.dist * cp * sy,
-        this.target[1] + this.dist * sp,
-        this.target[2] + this.dist * cp * cy
-      ];
-      const view = Mat4.lookAt(eye, this.target, [0, 1, 0]);
-      return { proj, view, eye };
+      const proj = Mat4.perspective(52 * Math.PI / 180, canvas.clientWidth / Math.max(1, canvas.clientHeight), 0.04, 60.0);
+      const cp = Math.cos(this.pitch), sp = Math.sin(this.pitch), cy = Math.cos(this.yaw), sy = Math.sin(this.yaw);
+      const eye = [this.target[0]+this.dist*cp*sy, this.target[1]+this.dist*sp, this.target[2]+this.dist*cp*cy];
+      return { proj, view: Mat4.lookAt(eye, this.target, [0, 1, 0]), eye };
     },
 
-    // Ray-Triangle 交差判定（2点間メジャー用）
     pickMeshPoint(clientX, clientY) {
       if (!activeMesh || activeMesh.indices.length === 0) return null;
-      const canvas = $('viewer-canvas');
-      const rect = canvas.getBoundingClientRect();
+      const rect = $('viewer-canvas').getBoundingClientRect();
       const xNdc = ((clientX - rect.left) / rect.width) * 2 - 1;
       const yNdc = 1 - ((clientY - rect.top) / rect.height) * 2;
       const { proj, view, eye } = this.getCameraMatrices();
       const invVP = Mat4.invert(Mat4.mul(proj, view));
       if (!invVP) return null;
-
-      const unproj = (zNdc) => {
-        const w = invVP[3]*xNdc + invVP[7]*yNdc + invVP[11]*zNdc + invVP[15];
-        return [
-          (invVP[0]*xNdc + invVP[4]*yNdc + invVP[8]*zNdc  + invVP[12]) / w,
-          (invVP[1]*xNdc + invVP[5]*yNdc + invVP[9]*zNdc  + invVP[13]) / w,
-          (invVP[2]*xNdc + invVP[6]*yNdc + invVP[10]*zNdc + invVP[14]) / w
-        ];
-      };
-      const pFar = unproj(1.0);
-      let dx = pFar[0]-eye[0], dy = pFar[1]-eye[1], dz = pFar[2]-eye[2];
-      const len = Math.hypot(dx, dy, dz) || 1;
-      dx /= len; dy /= len; dz /= len;
+      const w = invVP[3]*xNdc + invVP[7]*yNdc + invVP[11] + invVP[15];
+      const fx = (invVP[0]*xNdc + invVP[4]*yNdc + invVP[8] + invVP[12]) / w;
+      const fy = (invVP[1]*xNdc + invVP[5]*yNdc + invVP[9] + invVP[13]) / w;
+      const fz = (invVP[2]*xNdc + invVP[6]*yNdc + invVP[10] + invVP[14]) / w;
+      let dx = fx-eye[0], dy = fy-eye[1], dz = fz-eye[2];
+      const len = Math.hypot(dx, dy, dz) || 1; dx/=len; dy/=len; dz/=len;
 
       const pos = activeMesh.positions, idx = activeMesh.indices;
       let bestT = Infinity;
       for (let i = 0; i < idx.length; i += 3) {
-        const a = idx[i]*3, b = idx[i+1]*3, c = idx[i+2]*3;
-        const ax = pos[a], ay = pos[a+1], az = pos[a+2];
-        const e1x = pos[b]-ax, e1y = pos[b+1]-ay, e1z = pos[b+2]-az;
-        const e2x = pos[c]-ax, e2y = pos[c+1]-ay, e2z = pos[c+2]-az;
-        const hx = dy*e2z - dz*e2y, hy = dz*e2x - dx*e2z, hz = dx*e2y - dy*e2x;
+        const a=idx[i]*3, b=idx[i+1]*3, c=idx[i+2]*3;
+        const ax=pos[a], ay=pos[a+1], az=pos[a+2];
+        const e1x=pos[b]-ax, e1y=pos[b+1]-ay, e1z=pos[b+2]-az;
+        const e2x=pos[c]-ax, e2y=pos[c+1]-ay, e2z=pos[c+2]-az;
+        const hx=dy*e2z-dz*e2y, hy=dz*e2x-dx*e2z, hz=dx*e2y-dy*e2x;
         const det = e1x*hx + e1y*hy + e1z*hz;
         if (Math.abs(det) < 1e-7) continue;
-        const invD = 1 / det;
-        const sx = eye[0]-ax, sy = eye[1]-ay, sz = eye[2]-az;
-        const u = (sx*hx + sy*hy + sz*hz) * invD;
-        if (u < 0 || u > 1) continue;
-        const qx = sy*e1z - sz*e1y, qy = sz*e1x - sx*e1z, qz = sx*e1y - sy*e1x;
-        const v = (dx*qx + dy*qy + dz*qz) * invD;
-        if (v < 0 || u + v > 1) continue;
-        const t = (e2x*qx + e2y*qy + e2z*qz) * invD;
+        const invD = 1/det, sx=eye[0]-ax, sy=eye[1]-ay, sz=eye[2]-az;
+        const u = (sx*hx+sy*hy+sz*hz)*invD; if (u < 0 || u > 1) continue;
+        const qx=sy*e1z-sz*e1y, qy=sz*e1x-sx*e1z, qz=sx*e1y-sy*e1x;
+        const v = (dx*qx+dy*qy+dz*qz)*invD; if (v < 0 || u + v > 1) continue;
+        const t = (e2x*qx+e2y*qy+e2z*qz)*invD;
         if (t > 0.05 && t < bestT) bestT = t;
       }
-      if (bestT < Infinity) return [eye[0]+dx*bestT, eye[1]+dy*bestT, eye[2]+dz*bestT];
-      return null;
+      return bestT < Infinity ? [eye[0]+dx*bestT, eye[1]+dy*bestT, eye[2]+dz*bestT] : null;
     },
 
     bindInputEvents(canvas) {
-      let pointers = new Map();
-      let prevPinchDist = 0, prevMid = null, moved = 0, downTime = 0;
-
+      let pointers = new Map(), prevPinch = 0, prevMid = null, moved = 0, downTime = 0;
       canvas.addEventListener('pointerdown', e => {
         canvas.setPointerCapture(e.pointerId);
         pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
         if (pointers.size === 1) { moved = 0; downTime = performance.now(); }
         if (pointers.size === 2) {
           const pts = Array.from(pointers.values());
-          prevPinchDist = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
+          prevPinch = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
           prevMid = { x: (pts[0].x+pts[1].x)/2, y: (pts[0].y+pts[1].y)/2 };
         }
       });
-
       canvas.addEventListener('pointermove', e => {
         if (!pointers.has(e.pointerId)) return;
-        const prev = pointers.get(e.pointerId);
-        const dx = e.clientX - prev.x, dy = e.clientY - prev.y;
-        moved += Math.hypot(dx, dy);
-        pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
+        const prev = pointers.get(e.pointerId), dx = e.clientX - prev.x, dy = e.clientY - prev.y;
+        moved += Math.hypot(dx, dy); pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
         if (pointers.size === 1) {
-          if (e.buttons === 2 || e.shiftKey) {
-            this.panScreen(dx, dy);
-          } else {
-            this.yaw -= dx * 0.0065;
-            this.pitch = Math.max(-1.45, Math.min(1.45, this.pitch + dy * 0.0065));
-          }
+          if (e.buttons === 2 || e.shiftKey) this.panScreen(dx, dy);
+          else { this.yaw -= dx * 0.0065; this.pitch = Math.max(-1.45, Math.min(1.45, this.pitch + dy * 0.0065)); }
         } else if (pointers.size === 2) {
           const pts = Array.from(pointers.values());
           const d = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
           const mid = { x: (pts[0].x+pts[1].x)/2, y: (pts[0].y+pts[1].y)/2 };
-          if (prevPinchDist > 5) {
-            this.dist = Math.max(0.4, Math.min(25, this.dist * (prevPinchDist / Math.max(5, d))));
-          }
+          if (prevPinch > 5) this.dist = Math.max(0.4, Math.min(25, this.dist * (prevPinch / Math.max(5, d))));
           if (prevMid) this.panScreen(mid.x - prevMid.x, mid.y - prevMid.y);
-          prevPinchDist = d; prevMid = mid;
+          prevPinch = d; prevMid = mid;
         }
       });
-
       const onUp = e => {
-        if (pointers.size === 1 && moved < 10 && (performance.now() - downTime) < 350 && this.measureMode) {
+        if (pointers.size === 1 && moved < 10 && (performance.now()-downTime) < 350 && this.measureMode) {
           const pt = this.pickMeshPoint(e.clientX, e.clientY);
           if (pt) {
             if (this.measurePts.length >= 2) this.measurePts = [];
             this.measurePts.push(pt);
-            if (this.measurePts.length === 1) {
-              $('measure-banner').textContent = '1点目設定完了 → 2点目をタップ';
-            } else {
+            if (this.measurePts.length === 1) $('measure-banner').textContent = '1点目設定 → 2点目をタップ';
+            else {
               const a = this.measurePts[0], b = this.measurePts[1];
               const d = Math.hypot(b[0]-a[0], b[1]-a[1], b[2]-a[2]);
-              const dh = Math.hypot(b[0]-a[0], b[2]-a[2]);
-              const dv = Math.abs(b[1]-a[1]);
-              $('measure-banner').textContent = `実寸: ${(d*100).toFixed(1)} cm (${d.toFixed(3)} m) [水平:${dh.toFixed(2)}m / 高低:${dv.toFixed(2)}m]`;
+              $('measure-banner').textContent = `実寸: ${(d*100).toFixed(1)} cm (${d.toFixed(3)} m)`;
             }
-          } else {
-            showToast('モデル表面の上をタップしてください');
-          }
+          } else showToast('モデル表面の上をタップしてください');
         }
         pointers.delete(e.pointerId);
-        if (pointers.size < 2) { prevPinchDist = 0; prevMid = null; }
+        if (pointers.size < 2) { prevPinch = 0; prevMid = null; }
       };
-      canvas.addEventListener('pointerup', onUp);
-      canvas.addEventListener('pointercancel', onUp);
+      canvas.addEventListener('pointerup', onUp); canvas.addEventListener('pointercancel', onUp);
       canvas.addEventListener('contextmenu', e => e.preventDefault());
-      canvas.addEventListener('wheel', e => {
-        e.preventDefault();
-        this.dist = Math.max(0.4, Math.min(25, this.dist * (1 + e.deltaY * 0.001)));
-      }, { passive: false });
+      canvas.addEventListener('wheel', e => { e.preventDefault(); this.dist = Math.max(0.4, Math.min(25, this.dist*(1+e.deltaY*0.001))); }, { passive: false });
     },
 
     panScreen(dx, dy) {
-      const s = this.dist * 0.0014;
-      const cy = Math.cos(this.yaw), sy = Math.sin(this.yaw);
-      // 右方向と画面上方向への近似パン
+      const s = this.dist * 0.0014, cy = Math.cos(this.yaw), sy = Math.sin(this.yaw);
       this.target[0] -= (cy * dx - sy * Math.sin(this.pitch) * dy) * s;
       this.target[1] += Math.cos(this.pitch) * dy * s;
       this.target[2] -= (-sy * dx - cy * Math.sin(this.pitch) * dy) * s;
@@ -2428,86 +2197,48 @@
       this.init();
       const loop = () => {
         if (!$('viewer-screen').classList.contains('active')) { this.rafId = null; return; }
-        this.rafId = requestAnimationFrame(loop);
-        this.draw();
+        this.rafId = requestAnimationFrame(loop); this.draw();
       };
       if (!this.rafId) loop();
     },
 
     draw() {
-      const canvas = $('viewer-canvas');
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const canvas = $('viewer-canvas'), dpr = Math.min(2, window.devicePixelRatio || 1);
       const w = Math.floor(canvas.clientWidth * dpr), h = Math.floor(canvas.clientHeight * dpr);
       if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
-
       const gl = this.gl;
-      gl.viewport(0, 0, w, h);
-      gl.clearColor(0.035, 0.05, 0.085, 1.0);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      gl.enable(gl.DEPTH_TEST);
+      gl.viewport(0, 0, w, h); gl.clearColor(0.035, 0.05, 0.085, 1.0);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); gl.enable(gl.DEPTH_TEST);
 
-      const { proj, view, eye } = this.getCameraMatrices();
-      const mvp = Mat4.mul(proj, view);
-
-      // グリッド＆原点軸
+      const { proj, view, eye } = this.getCameraMatrices(), mvp = Mat4.mul(proj, view);
       gl.useProgram(this.lineProg);
       gl.uniformMatrix4fv(gl.getUniformLocation(this.lineProg, 'uMVP'), false, mvp);
       gl.uniform1f(gl.getUniformLocation(this.lineProg, 'uPtSize'), 12.0);
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.gridPosBuf);
-      gl.enableVertexAttribArray(0);
-      gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.gridColBuf);
-      gl.enableVertexAttribArray(1);
-      gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
-      gl.disableVertexAttribArray(2);
-      gl.drawArrays(gl.LINES, 0, this.gridCount);
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.gridPosBuf); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.gridColBuf); gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
+      gl.disableVertexAttribArray(2); gl.drawArrays(gl.LINES, 0, this.gridCount);
 
-      // 3Dメッシュ描画
       if (activeMesh && activeMesh.indices.length > 0) {
         gl.useProgram(this.meshProg);
         gl.uniformMatrix4fv(gl.getUniformLocation(this.meshProg, 'uProj'), false, proj);
         gl.uniformMatrix4fv(gl.getUniformLocation(this.meshProg, 'uView'), false, view);
         gl.uniform3fv(gl.getUniformLocation(this.meshProg, 'uCamPos'), eye);
         gl.uniform1i(gl.getUniformLocation(this.meshProg, 'uMode'), this.renderMode);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.posBuf);
-        gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.normBuf);
-        gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.colBuf);
-        gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 3, gl.FLOAT, false, 0, 0);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.posBuf); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.normBuf); gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.colBuf); gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 3, gl.FLOAT, false, 0, 0);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.idxBuf);
-
-        if (this.renderMode === 3) {
-          // 疑似ワイヤーフレーム (LINE_STRIP風にはできないためPOINTS+TRIANGLESブレンドまたはGL_LINES相当は省略し、頂点エッジ強調として点+面描画)
-          gl.drawElements(gl.TRIANGLES, activeMesh.indices.length, gl.UNSIGNED_INT, 0);
-          gl.useProgram(this.lineProg);
-          gl.uniformMatrix4fv(gl.getUniformLocation(this.lineProg, 'uMVP'), false, mvp);
-          gl.uniform1f(gl.getUniformLocation(this.lineProg, 'uPtSize'), 3.2);
-          gl.bindBuffer(gl.ARRAY_BUFFER, this.posBuf);
-          gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-          gl.bindBuffer(gl.ARRAY_BUFFER, this.colBuf);
-          gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
-          gl.drawElements(gl.POINTS, activeMesh.indices.length, gl.UNSIGNED_INT, 0);
-        } else {
-          gl.drawElements(gl.TRIANGLES, activeMesh.indices.length, gl.UNSIGNED_INT, 0);
-        }
+        gl.drawElements(gl.TRIANGLES, activeMesh.indices.length, gl.UNSIGNED_INT, 0);
       }
 
-      // 計測ライン描画
       if (this.measurePts.length > 0) {
-        gl.disable(gl.DEPTH_TEST);
-        gl.useProgram(this.lineProg);
+        gl.disable(gl.DEPTH_TEST); gl.useProgram(this.lineProg);
         gl.uniformMatrix4fv(gl.getUniformLocation(this.lineProg, 'uMVP'), false, mvp);
         gl.uniform1f(gl.getUniformLocation(this.lineProg, 'uPtSize'), 16.0);
-        const pts = this.measurePts.flat();
-        const cols = this.measurePts.length === 1 ? [1,0.85,0.1] : [1,0.85,0.1, 1,0.2,0.2];
         gl.bindBuffer(gl.ARRAY_BUFFER, this.measureBuf);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pts), gl.DYNAMIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.measurePts.flat()), gl.DYNAMIC_DRAW);
         gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.colBuf); // 一時上書きしないよう専用バッファでも可だが、ここでは安全にgridColBufと分けよう
-        if (!this.mColBuf) this.mColBuf = gl.createBuffer();
+        const cols = this.measurePts.length === 1 ? [1,0.85,0.1] : [1,0.85,0.1, 1,0.2,0.2];
         gl.bindBuffer(gl.ARRAY_BUFFER, this.mColBuf);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(cols), gl.DYNAMIC_DRAW);
         gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
@@ -2518,183 +2249,121 @@
     }
   };
 
-  // ==================== サンプル部屋ジェネレータ (動作確認・スタジオテスト用) ====================
   function generateDemoRoomTSDF() {
     volume.reset(0.05);
-    const vs = volume.voxelSize;
-    const minV = -26, maxV = 26;
-    const sdfBox = (x,y,z, cx,cy,cz, hx,hy,hz) => {
-      const qx = Math.abs(x-cx)-hx, qy = Math.abs(y-cy)-hy, qz = Math.abs(z-cz)-hz;
-      return Math.hypot(Math.max(qx,0), Math.max(qy,0), Math.max(qz,0)) + Math.min(Math.max(qx, Math.max(qy, qz)), 0);
+    const vs = volume.voxelSize, sdfBox = (x,y,z,cx,cy,cz,hx,hy,hz) => {
+      const qx=Math.abs(x-cx)-hx, qy=Math.abs(y-cy)-hy, qz=Math.abs(z-cz)-hz;
+      return Math.hypot(Math.max(qx,0),Math.max(qy,0),Math.max(qz,0)) + Math.min(Math.max(qx,Math.max(qy,qz)),0);
     };
-    for (let vx = minV; vx <= maxV; vx++) {
-      for (let vy = -3; vy <= 24; vy++) {
-        for (let vz = minV; vz <= maxV; vz++) {
-          const x = (vx + 0.5)*vs, y = (vy + 0.5)*vs, z = (vz + 0.5)*vs;
-          if (Math.abs(x) > 1.35 || Math.abs(z) > 1.35 || y > 1.25) continue;
-          const dFloor = y;
-          const dWallN = 1.2 - z;
-          const dWallW = x + 1.2;
-          const dDesk = sdfBox(x,y,z, -0.45, 0.36, -0.65, 0.45, 0.36, 0.28);
-          const dShelf = sdfBox(x,y,z, 0.72, 0.55, -0.85, 0.28, 0.55, 0.22);
-          const d = Math.min(dFloor, dWallN, dWallW, dDesk, dShelf);
-          if (Math.abs(d) > volume.trunc * 1.1) continue;
-          // 微小計測ノイズを模擬してRANSAC/Taubinの効果が分かるようにする
-          const noise = (Math.sin(vx*1.7 + vy*2.3 + vz*3.1)) * 0.008;
-          let r = 230, g = 228, b = 220;
-          if (d === dFloor) { r = 165; g = 128; b = 92; } // フローリング木目色
-          else if (d === dDesk) { r = 205; g = 175; b = 135; } // 机
-          else if (d === dShelf) { r = 95; g = 120; b = 145; } // 棚
-          volume.updateVoxel(vx, vy, vz, d + noise, 6.0, r, g, b, true);
-        }
-      }
+    for (let vx=-26; vx<=26; vx++) for (let vy=-3; vy<=24; vy++) for (let vz=-26; vz<=26; vz++) {
+      const x=(vx+0.5)*vs, y=(vy+0.5)*vs, z=(vz+0.5)*vs;
+      if (Math.abs(x)>1.35 || Math.abs(z)>1.35 || y>1.25) continue;
+      const dFloor=y, dWallN=1.2-z, dWallW=x+1.2;
+      const dDesk=sdfBox(x,y,z,-0.45,0.36,-0.65,0.45,0.36,0.28), dShelf=sdfBox(x,y,z,0.72,0.55,-0.85,0.28,0.55,0.22);
+      const d = Math.min(dFloor, dWallN, dWallW, dDesk, dShelf);
+      if (Math.abs(d) > volume.trunc * 1.1) continue;
+      const noise = Math.sin(vx*1.7+vy*2.3+vz*3.1)*0.007;
+      let r=230, g=228, b=220;
+      if (d===dFloor) { r=165; g=128; b=92; } else if (d===dDesk) { r=205; g=175; b=135; } else if (d===dShelf) { r=95; g=120; b=145; }
+      volume.updateVoxel(vx, vy, vz, d+noise, 8.0, r, g, b, true);
     }
   }
 
-  // ==================== メッシュ生成・スタジオ移行フロー ====================
   function finalizeAndOpenViewer() {
-    if (XRApp.session) {
-      XRApp.session.end().catch(() => {});
-    }
-    if (FallbackAR.active) {
-      FallbackAR.stop();
-    }
-
-    showToast('Surface Nets でメッシュ構築中...', 2000);
+    if (XRApp.session) XRApp.session.end().catch(() => {});
+    if (FallbackAR.active) FallbackAR.stop();
+    showToast('Surface Nets で3Dメッシュを構築中...', 2000);
     setTimeout(() => {
       const tsdfMesh = volume.extractSurfaceNetsMesh();
-      const combined = buildCombinedMesh(tsdfMesh, volume.cadPlanes);
+      const yShift = (volume.floorY !== null) ? volume.floorY : 0;
+      const combined = buildCombinedMesh(tsdfMesh, volume.cadPlanes, yShift);
       if (combined.positions.length === 0) {
         showToast('スキャンされた面がありません。もう少し動かしてから完了してください。', 3200);
-        showScreen('launcher');
-        return;
+        showScreen('launcher'); return;
       }
       originalMesh = {
-        positions: new Float32Array(combined.positions),
-        normals: new Float32Array(combined.normals),
-        colors: new Float32Array(combined.colors),
-        indices: new Uint32Array(combined.indices)
+        positions: new Float32Array(combined.positions), normals: new Float32Array(combined.normals),
+        colors: new Float32Array(combined.colors), indices: new Uint32Array(combined.indices)
       };
       activeMesh = {
-        positions: new Float32Array(combined.positions),
-        normals: new Float32Array(combined.normals),
-        colors: new Float32Array(combined.colors),
-        indices: new Uint32Array(combined.indices)
+        positions: new Float32Array(combined.positions), normals: new Float32Array(combined.normals),
+        colors: new Float32Array(combined.colors), indices: new Uint32Array(combined.indices)
       };
-      Viewer3D.measurePts = [];
-      Viewer3D.measureMode = false;
-      $('measure-banner').style.display = 'none';
-      $('btn-measure').classList.remove('btn-active');
-
+      Viewer3D.measurePts = []; Viewer3D.measureMode = false;
+      $('measure-banner').style.display = 'none'; $('btn-measure').classList.remove('btn-active');
       showScreen('viewer');
-      Viewer3D.uploadMesh(activeMesh);
-      Viewer3D.fitCamera(activeMesh);
-      Viewer3D.startRender();
+      Viewer3D.uploadMesh(activeMesh); Viewer3D.fitCamera(activeMesh); Viewer3D.startRender();
       showToast(`3Dモデル化完了！(面数: ${(activeMesh.indices.length/3).toLocaleString()})`);
     }, 30);
   }
 
-  // ==================== UI イベント配線 ====================
-  // WebXR DOM Overlay内でボタンタップがAR背景タップへ漏れないように保護
+  // ==================== イベント配線 ====================
   $('xr-overlay').addEventListener('beforexrselect', e => {
     if (e.target.closest('.hud-Interactive')) e.preventDefault();
   });
 
-  $('btn-start-webxr').addEventListener('click', async () => {
-    await initGyroListener();
-    XRApp.startSession(false);
-  });
+  $('btn-start-webxr').addEventListener('click', async () => { await initGyroListener(); XRApp.startSession(false); });
+  $('btn-start-gyro').addEventListener('click', async () => { await initGyroListener(); FallbackAR.start(false); });
+  $('btn-demo-room').addEventListener('click', () => { generateDemoRoomTSDF(); finalizeAndOpenViewer(); });
 
-  $('btn-start-gyro').addEventListener('click', async () => {
-    await initGyroListener();
-    FallbackAR.start(false);
-  });
-
-  $('btn-demo-room').addEventListener('click', () => {
-    generateDemoRoomTSDF();
-    finalizeAndOpenViewer();
-  });
-
-  // AR HUD コントロール
   $('btn-scan-toggle').addEventListener('click', () => {
     scanningActive = !scanningActive;
     const btn = $('btn-scan-toggle');
-    if (scanningActive) {
-      btn.textContent = '⏸ 一時停止';
-      btn.className = 'btn-warn';
-    } else {
-      btn.textContent = '▶ スキャン再開';
-      btn.className = 'btn-primary';
-    }
+    btn.textContent = scanningActive ? '⏸ 一時停止' : '▶ スキャン再開';
+    btn.className = scanningActive ? 'btn-warn' : 'btn-primary';
   });
 
-  $('btn-oneshot').addEventListener('click', () => {
-    forceOneShot = true;
-  });
+  $('btn-erase-ray').addEventListener('click', () => { eraseRayRequest = true; });
 
   $('btn-overlay-mode').addEventListener('click', () => {
-    const order = ['cyan', 'rgb', 'weight'];
-    const labels = { cyan: 'シアン', rgb: 'カメラ色', weight: '信頼度' };
+    const order = ['rgb', 'cyan', 'weight'];
+    const labels = { rgb: 'カメラ色', cyan: 'シアン', weight: '信頼度' };
     overlayColorMode = order[(order.indexOf(overlayColorMode) + 1) % order.length];
-    $('btn-overlay-mode').textContent = `🎨 表示:${labels[overlayColorMode]}`;
+    $('btn-overlay-mode').textContent = `🎨 ${labels[overlayColorMode]}`;
     XRApp.refreshPreviewPoints();
   });
 
-  $('btn-cad-toggle').addEventListener('click', () => {
-    $('cad-strip').classList.toggle('open');
+  $('btn-cam-rot').addEventListener('click', () => {
+    camColorRotMode = (camColorRotMode + 1) % 3;
+    const labels = ['自動', '90°右', '90°左'];
+    $('btn-cam-rot').textContent = `🔄 色向:${labels[camColorRotMode]}`;
+    showToast(`カメラ色向きを「${labels[camColorRotMode]}」に変更しました`);
   });
 
-  // CAD 打点コマンド
-  function addCadPointFromReticle() {
-    if (!lastHitPoseMatrix) { showToast('床や壁に中央レティクルを合わせてからタップしてください'); return; }
-    const p = [lastHitPoseMatrix[12], lastHitPoseMatrix[13], lastHitPoseMatrix[14]];
-    volume.cadPending.push(p);
+  $('btn-cad-toggle').addEventListener('click', () => $('cad-strip').classList.toggle('open'));
+  $('btn-cad-point').addEventListener('click', () => {
+    if (!lastHitPoseMatrix) { showToast('床や壁に中央レティクルを合わせてください'); return; }
+    volume.cadPending.push([lastHitPoseMatrix[12], lastHitPoseMatrix[13], lastHitPoseMatrix[14]]);
     $('cad-count').textContent = `点:${volume.cadPending.length}`;
-    showToast(`コーナー ${volume.cadPending.length} 点目を記録`);
-  }
-
-  $('btn-cad-point').addEventListener('click', addCadPointFromReticle);
+  });
   $('btn-cad-undo').addEventListener('click', () => {
-    volume.cadPending.pop();
-    $('cad-count').textContent = `点:${volume.cadPending.length}`;
+    volume.cadPending.pop(); $('cad-count').textContent = `点:${volume.cadPending.length}`;
   });
   $('btn-cad-plane').addEventListener('click', () => {
-    if (volume.cadPending.length < 3) { showToast('面を作るには最低3点必要です'); return; }
+    if (volume.cadPending.length < 3) { showToast('最低3点必要です'); return; }
     volume.cadPlanes.push({ pts: [...volume.cadPending], color: [0.18, 0.78, 0.72] });
-    volume.cadPending = [];
-    $('cad-count').textContent = '点:0';
-    showToast(`CAD平面を確定 (合計 ${volume.cadPlanes.length} 面)`);
+    volume.cadPending = []; $('cad-count').textContent = '点:0';
   });
   $('btn-cad-room').addEventListener('click', () => {
-    if (volume.cadPending.length < 3) { showToast('まず床のコーナーを3点以上打点してください'); return; }
-    const floorPts = [...volume.cadPending];
-    const wallH = 2.4;
-    // 床面を追加
-    volume.cadPlanes.push({ pts: floorPts, color: [0.62, 0.50, 0.38] });
-    // 各辺から高さ2.4mの壁面を自動立ち上げ
-    for (let i = 0; i < floorPts.length; i++) {
-      const a = floorPts[i], b = floorPts[(i + 1) % floorPts.length];
-      volume.cadPlanes.push({
-        pts: [a, b, [b[0], b[1] + wallH, b[2]], [a[0], a[1] + wallH, a[2]]],
-        color: [0.85, 0.86, 0.88]
-      });
+    if (volume.cadPending.length < 3) { showToast('床のコーナーを3点以上打点してください'); return; }
+    const fp = [...volume.cadPending];
+    const wallH = (volume.floorY !== null && volume.ceilingY !== null)
+      ? Math.max(1.8, volume.ceilingY - volume.floorY) : 2.4;
+    volume.cadPlanes.push({ pts: fp, color: [0.62, 0.50, 0.38] });
+    for (let i = 0; i < fp.length; i++) {
+      const a = fp[i], b = fp[(i + 1) % fp.length];
+      volume.cadPlanes.push({ pts: [a, b, [b[0], b[1]+wallH, b[2]], [a[0], a[1]+wallH, a[2]]], color: [0.85, 0.86, 0.88] });
     }
-    volume.cadPending = [];
-    $('cad-count').textContent = '点:0';
-    showToast(`床＋壁 ${floorPts.length} 面を一括生成しました`);
+    volume.cadPending = []; $('cad-count').textContent = '点:0';
+    showToast(`床＋高さ${wallH.toFixed(2)}mの壁を生成しました`);
   });
 
-  // フォールバックAR用 前進・リセット
   $('fb-step-fwd').addEventListener('click', () => {
     const c2w = Mat4.fromQuatPos(GyroState.quat, FallbackAR.camPos);
-    const fx = -c2w[8], fz = -c2w[10];
-    const len = Math.hypot(fx, fz) || 1;
-    FallbackAR.camPos[0] += (fx / len) * 0.5;
-    FallbackAR.camPos[2] += (fz / len) * 0.5;
+    const fx = -c2w[8], fz = -c2w[10], len = Math.hypot(fx, fz) || 1;
+    FallbackAR.camPos[0] += (fx/len)*0.5; FallbackAR.camPos[2] += (fz/len)*0.5;
   });
-  $('fb-step-reset').addEventListener('click', () => {
-    FallbackAR.camPos[0] = 0; FallbackAR.camPos[2] = 0;
-  });
+  $('fb-step-reset').addEventListener('click', () => { FallbackAR.camPos[0]=0; FallbackAR.camPos[2]=0; });
 
   $('btn-ar-cancel').addEventListener('click', () => {
     if (XRApp.session) XRApp.session.end().catch(() => {});
@@ -2703,102 +2372,76 @@
   });
   $('btn-ar-clear').addEventListener('click', () => {
     volume.reset(parseFloat($('opt-voxel').value));
-    XRApp.kfCount = 0;
-    XRApp.refreshPreviewPoints();
+    XRApp.kfCount = 0; XRApp.refreshPreviewPoints();
     $('cad-count').textContent = '点:0';
-    showToast('スキャンデータをリセットしました');
+    if ($('opt-workflow').value === 'guided') setPhase('FLOOR_CAL');
+    showToast('スキャンをリセットしました');
   });
   $('btn-finish-mesh').addEventListener('click', finalizeAndOpenViewer);
 
-  // 3D ビューワー ボタン群
   $('btn-back-home').addEventListener('click', () => showScreen('launcher'));
   $('btn-resume-scan').addEventListener('click', () => {
-    if (navigator.xr) XRApp.startSession(true);
-    else FallbackAR.start(true);
+    if (navigator.xr) XRApp.startSession(true); else FallbackAR.start(true);
   });
-
   $('btn-view-mode').addEventListener('click', () => {
-    const names = ['カラーメッシュ', '粘土シェーディング', '法線マップ', 'カラー+頂点強調'];
-    Viewer3D.renderMode = (Viewer3D.renderMode + 1) % 4;
+    const names = ['カラーメッシュ', '粘土シェーディング', '法線マップ'];
+    Viewer3D.renderMode = (Viewer3D.renderMode + 1) % 3;
     $('btn-view-mode').textContent = `表示: ${names[Viewer3D.renderMode]}`;
   });
-
   $('btn-taubin').addEventListener('click', () => {
     if (!activeMesh) return;
     applyTaubinSmoothing(activeMesh, 6, 0.5, -0.53);
-    Viewer3D.uploadMesh(activeMesh);
-    showToast('Taubin 平滑化を適用しました（痩せなしノイズ除去）');
+    Viewer3D.uploadMesh(activeMesh); showToast('Taubin 平滑化を適用しました');
   });
-
   $('btn-ransac').addEventListener('click', () => {
     if (!activeMesh) return;
-    const count = applyRansacPlaneSnap(activeMesh, 0.04, 0.87, 10, 0.88);
-    Viewer3D.uploadMesh(activeMesh);
-    showToast(`RANSAC幾何平面補正：${count} 個の壁・床・天板を平坦化`);
+    const c = applyRansacPlaneSnap(activeMesh, 0.04, 0.87, 10, 0.88);
+    Viewer3D.uploadMesh(activeMesh); showToast(`RANSAC幾何平面補正：${c} 個の平面を平坦化`);
   });
-
+  $('btn-color-smooth').addEventListener('click', () => {
+    if (!activeMesh) return;
+    applyColorSmoothing(activeMesh, 2);
+    Viewer3D.uploadMesh(activeMesh); showToast('頂点色ノイズを均しました');
+  });
   $('btn-clean-islands').addEventListener('click', () => {
     if (!activeMesh) return;
     const rem = removeSmallIslands(activeMesh, 35);
-    Viewer3D.uploadMesh(activeMesh);
-    showToast(rem > 0 ? `孤立浮遊ノイズ ${rem} 個を除去しました` : '除去すべき微小ノイズはありませんでした');
+    Viewer3D.uploadMesh(activeMesh); showToast(rem > 0 ? `浮遊片 ${rem} 個を除去` : '除去対象なし');
   });
-
   $('btn-mesh-reset').addEventListener('click', () => {
     if (!originalMesh) return;
     activeMesh = {
-      positions: new Float32Array(originalMesh.positions),
-      normals: new Float32Array(originalMesh.normals),
-      colors: new Float32Array(originalMesh.colors),
-      indices: new Uint32Array(originalMesh.indices)
+      positions: new Float32Array(originalMesh.positions), normals: new Float32Array(originalMesh.normals),
+      colors: new Float32Array(originalMesh.colors), indices: new Uint32Array(originalMesh.indices)
     };
-    Viewer3D.uploadMesh(activeMesh);
-    showToast('元の抽出直後メッシュに戻しました');
+    Viewer3D.uploadMesh(activeMesh); showToast('元のメッシュに戻しました');
   });
-
   $('btn-measure').addEventListener('click', () => {
-    Viewer3D.measureMode = !Viewer3D.measureMode;
-    Viewer3D.measurePts = [];
+    Viewer3D.measureMode = !Viewer3D.measureMode; Viewer3D.measurePts = [];
     $('btn-measure').classList.toggle('btn-active', Viewer3D.measureMode);
     $('measure-banner').style.display = Viewer3D.measureMode ? 'block' : 'none';
     $('measure-banner').textContent = '計測モード：3Dモデル上の2点をタップ';
   });
-
   $('btn-reset-cam').addEventListener('click', () => Viewer3D.fitCamera(activeMesh));
   $('btn-export-glb').addEventListener('click', () => activeMesh && exportGLB(activeMesh));
   $('btn-export-ply').addEventListener('click', () => activeMesh && exportPLY(activeMesh));
   $('btn-export-obj').addEventListener('click', () => activeMesh && exportOBJ(activeMesh));
 
-  // ==================== 起動時の端末環境診断 ====================
   async function runDiagnostics() {
-    const isSec = window.isSecureContext;
     const httpsPill = $('diag-https');
-    if (isSec) {
-      httpsPill.textContent = 'OK (安全)'; httpsPill.className = 'status-pill pill-ok';
-    } else {
-      httpsPill.textContent = 'NG (要HTTPS)'; httpsPill.className = 'status-pill pill-err';
-      $('https-warning').style.display = 'block';
-    }
+    if (window.isSecureContext) { httpsPill.textContent = 'OK (安全)'; httpsPill.className = 'status-pill pill-ok'; }
+    else { httpsPill.textContent = 'NG (要HTTPS)'; httpsPill.className = 'status-pill pill-err'; $('https-warning').style.display = 'block'; }
 
     const xrPill = $('diag-webxr');
     if (navigator.xr && navigator.xr.isSessionSupported) {
       try {
         const ok = await navigator.xr.isSessionSupported('immersive-ar');
-        if (ok) {
-          xrPill.textContent = '対応 (ARCore利用可)'; xrPill.className = 'status-pill pill-ok';
-        } else {
-          xrPill.textContent = '非対応 (簡易ARを使用)'; xrPill.className = 'status-pill pill-warn';
-        }
-      } catch (_) {
-        xrPill.textContent = '判定エラー'; xrPill.className = 'status-pill pill-warn';
-      }
-    } else {
-      xrPill.textContent = 'WebXRなし (簡易ARを使用)'; xrPill.className = 'status-pill pill-warn';
-    }
-
+        xrPill.textContent = ok ? '対応 (ARCore利用可)' : '非対応 (簡易ARを使用)';
+        xrPill.className = ok ? 'status-pill pill-ok' : 'status-pill pill-warn';
+      } catch (_) { xrPill.textContent = '判定エラー'; xrPill.className = 'status-pill pill-warn'; }
+    } else { xrPill.textContent = 'WebXRなし'; xrPill.className = 'status-pill pill-warn'; }
     initGyroListener();
   }
-
   runDiagnostics();
 })();
 </script>
