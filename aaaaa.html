@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>WEB-LiDAR v3.1 (安定版)</title>
+  <title>WEB-LiDAR v4 (AR × 画像AI 融合版)</title>
 
   <script type="importmap">
     {
@@ -105,7 +106,6 @@
     }
     .target-pill.visible { display: flex; }
 
-    /* Bottom Controls */
     .scanner-controls {
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
       padding: 10px 12px max(14px, env(safe-area-inset-bottom));
@@ -139,7 +139,7 @@
       border-color: var(--red); background: rgba(255, 59, 92, 0.88); color: #fff;
     }
 
-    /* Viewer View */
+    /* Viewer */
     #threeContainer {
       position: absolute; inset: 0; width: 100%; height: 100%;
       background: radial-gradient(circle at center, #0c1829 0%, #03060c 100%); touch-action: none;
@@ -151,7 +151,6 @@
       padding: 10px 12px; backdrop-filter: blur(12px);
       display: flex; flex-direction: column; gap: 8px; max-width: 700px; margin: 0 auto;
     }
-
     .style-pills { display: flex; gap: 5px; overflow-x: auto; }
     .style-pills .chip-btn { flex: 1; white-space: nowrap; text-align: center; }
 
@@ -167,7 +166,7 @@
       font-size: 11px; font-weight: 700; cursor: pointer;
     }
 
-    /* WebXR DOM Overlay */
+    /* WebXR Hybrid Overlay */
     #xrOverlay {
       position: fixed; inset: 0; z-index: 200; display: none;
       flex-direction: column; justify-content: space-between;
@@ -175,37 +174,48 @@
       pointer-events: none;
     }
     #xrOverlay.active { display: flex; }
-    #xrOverlay > * { pointer-events: auto; }
 
+    #xrHudCanvas {
+      position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1;
+      pointer-events: auto; touch-action: none;
+    }
+
+    .xr-top, .xr-bottom { position: relative; z-index: 10; pointer-events: auto; }
     .xr-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .xr-top-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 
     .xr-hud {
       background: rgba(5, 10, 20, 0.84); border: 1px solid var(--cyan); border-radius: 12px;
-      padding: 8px 11px; font-family: ui-monospace, monospace; font-size: 11px; line-height: 1.45;
+      padding: 8px 11px; font-family: ui-monospace, monospace; font-size: 10.5px; line-height: 1.45;
       color: var(--text); backdrop-filter: blur(8px);
     }
     .xr-hud strong { color: var(--cyan); }
     .xr-hud .warn { color: var(--amber); font-weight: 700; }
     .xr-hud .ok { color: var(--lime); font-weight: 700; }
 
+    #xrPreviewPip {
+      width: 72px; height: 96px; border-radius: 8px; border: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.6); object-fit: cover; display: none;
+    }
+
     .xr-crosshair {
       position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      width: 34px; height: 34px; pointer-events: none;
+      width: 30px; height: 30px; pointer-events: none; z-index: 5;
     }
     .xr-crosshair::before, .xr-crosshair::after {
       content: ""; position: absolute; background: rgba(0, 255, 157, 0.85);
     }
-    .xr-crosshair::before { left: 16px; top: 0; width: 2px; height: 34px; }
-    .xr-crosshair::after { top: 16px; left: 0; height: 2px; width: 34px; }
+    .xr-crosshair::before { left: 14px; top: 0; width: 2px; height: 30px; }
+    .xr-crosshair::after { top: 14px; left: 0; height: 2px; width: 30px; }
 
     .xr-bottom {
       display: flex; flex-direction: column; gap: 8px;
-      background: rgba(5, 10, 20, 0.86); border: 1px solid var(--border);
+      background: rgba(5, 10, 20, 0.88); border: 1px solid var(--border);
       border-radius: 14px; padding: 10px; backdrop-filter: blur(8px);
     }
     .xr-sliders { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; font-size: 11px; }
-    .xr-sliders label { flex: 1; min-width: 120px; display: flex; flex-direction: column; gap: 2px; color: var(--muted); }
-    .xr-controls { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+    .xr-sliders label { flex: 1; min-width: 115px; display: flex; flex-direction: column; gap: 2px; color: var(--muted); }
+    .xr-controls { display: flex; justify-content: center; gap: 7px; flex-wrap: wrap; }
 
     /* Boot Modal */
     .overlay-modal {
@@ -235,24 +245,8 @@
     .opt-card.selected-obj strong { color: var(--amber); }
 
     .err-box {
-      display: none;
-      background: rgba(255, 59, 92, 0.16);
-      border: 1px solid var(--red);
-      color: #ffb8c6;
-      padding: 8px 10px;
-      border-radius: 10px;
-      font-size: 11.5px;
-      line-height: 1.45;
-      word-break: break-word;
-    }
-
-    .raw-opt {
-      display: none;
-      align-items: center;
-      gap: 7px;
-      font-size: 11.5px;
-      color: var(--muted);
-      padding: 2px 4px;
+      display: none; background: rgba(255, 59, 92, 0.16); border: 1px solid var(--red);
+      color: #ffb8c6; padding: 8px 10px; border-radius: 10px; font-size: 11.5px; word-break: break-word;
     }
 
     .toast {
@@ -280,19 +274,20 @@
   <!-- Boot Modal -->
   <div class="overlay-modal" id="bootModal">
     <div class="modal-card">
-      <h1>WEB-LiDAR v3.1</h1>
+      <h1>WEB-LiDAR v4 HYBRID</h1>
       <p>
-        用途を選んで起動してください。ボタンを押すと即座にカメラ／AR画面へ進みます。
+        <strong>ARの位置追跡 (6DoF) × 画像AIの高精度深度・物体認識</strong> を合体！<br>
+        部屋の壁が宙に浮くのを抑え、認識した物体だけを切り抜いて3D化できます。
       </p>
 
       <div class="opt-grid">
         <button class="opt-card selected-obj" data-scanmode="object">
           <strong>📦 物体スキャン</strong>
-          0.15〜1.6mの小物向け。対象をロックして周囲から立体化
+          認識枠やタップ位置の物体だけを切り抜き＆立体メッシュ化
         </button>
         <button class="opt-card" data-scanmode="room">
           <strong>🏠 部屋スキャン</strong>
-          0.35〜6.5mの部屋・壁向け。遠くの誤認識を抑制
+          AR移動追跡×AI深度で壁・床・家具を綺麗に空間マッピング
         </button>
       </div>
 
@@ -309,19 +304,14 @@
 
       <div class="err-box" id="bootErrorBox"></div>
 
-      <label class="raw-opt" id="rawOptRow">
-        <input type="checkbox" id="chkPreferRaw" />
-        <span>WebXRでRAW深度を要求する（非対応機では起動しない場合あり）</span>
-      </label>
-
       <button class="btn-primary" id="btnStartWebXRDirect" style="display:none; justify-content:center; background:linear-gradient(135deg, var(--amber), #ffea70); color:#1a1000;">
-        ⚡ 本物ARスキャン (WebXR Depth) を開始
+        ⚡ AR × 画像AI ハイブリッドスキャンを開始
       </button>
       <button class="btn-primary" id="btnStartSystem" style="justify-content:center;">
-        🚀 カメラ・ジャイロ・AIを起動
+        📷 通常カメラ・ジャイロ・AIを起動
       </button>
       <button class="btn-secondary" id="btnStartImageOnly" style="width:100%;">
-        📁 画像読込のみでテスト
+        📁 画像ファイル読込のみでテスト
       </button>
     </div>
   </div>
@@ -348,7 +338,7 @@
       <div class="quick-toggles">
         <button class="chip-btn" id="btnToggleDetect">👁 物体枠 OFF</button>
         <button class="chip-btn" id="btnResetGyro">🧭 方位0°</button>
-        <button class="chip-btn xr-ready" id="btnWebXRScan" style="display:none;">⚡ 本物AR(WebXR)</button>
+        <button class="chip-btn xr-ready" id="btnWebXRScan" style="display:none;">⚡ AR×AI起動</button>
         <label class="chip-btn" style="display:inline-flex;align-items:center;">
           📁 画像読込
           <input type="file" id="fileInput" accept="image/*" hidden />
@@ -399,8 +389,8 @@
           <input type="range" id="rngPtSize" min="0.005" max="0.045" step="0.001" value="0.016" />
         </div>
         <div class="slider-item" id="xrNoiseFilterWrap">
-          <div class="slider-head"><span>ノイズ除去(確認回数)</span><span id="valMinHits">1回以上</span></div>
-          <input type="range" id="rngMinHits" min="1" max="4" step="1" value="1" />
+          <div class="slider-head"><span>密度/確認フィルタ</span><span id="valMinHits">すべて</span></div>
+          <input type="range" id="rngMinHits" min="1" max="3" step="1" value="1" />
         </div>
       </div>
 
@@ -414,11 +404,18 @@
     </div>
   </section>
 
-  <!-- WebXR AR Overlay -->
+  <!-- WebXR Hybrid Overlay -->
   <div id="xrOverlay">
+    <canvas id="xrHudCanvas"></canvas>
+
     <div class="xr-top">
-      <div class="xr-hud" id="xrStatus">WebXR 初期化中...</div>
-      <button class="mode-pill active-obj" id="btnXrSwitchMode" style="border:1px solid var(--border); padding:7px 12px;">📦 物体モード</button>
+      <div class="xr-hud" id="xrStatus">AR × AI ハイブリッド準備中...</div>
+      <div class="xr-top-right">
+        <button class="mode-pill active-obj" id="btnXrSwitchMode" style="border:1px solid var(--border); padding:7px 12px;">📦 物体モード</button>
+        <button class="chip-btn on" id="btnXrSourceMode" style="font-size:10px;">🧠 AI深度+AR融合</button>
+        <button class="chip-btn" id="btnXrClearLock" style="display:none; border-color:var(--amber); color:var(--amber); font-size:10px;">🎯 対象解除</button>
+        <canvas id="xrPreviewPip" width="72" height="96"></canvas>
+      </div>
     </div>
 
     <div class="xr-crosshair"></div>
@@ -426,36 +423,31 @@
     <div class="xr-bottom">
       <div class="xr-sliders">
         <label id="xrRadiusWrap">
-          <span>切抜半径: <strong id="valXrRadius">0.45m</strong></span>
+          <span>物体奥行幅: <strong id="valXrRadius">0.45m</strong></span>
           <input type="range" id="rngXrRadius" min="0.20" max="1.00" step="0.05" value="0.45" />
         </label>
-        <label id="xrFloorWrap">
-          <span>床/机カット: <strong id="valXrFloor">-0.25m</strong></span>
-          <input type="range" id="rngXrFloor" min="-0.60" max="0.05" step="0.02" value="-0.25" />
-        </label>
         <label id="xrMaxDistWrap" style="display:none;">
-          <span>最大測距: <strong id="valXrMaxDist">6.0m</strong></span>
+          <span>部屋最大距離: <strong id="valXrMaxDist">6.0m</strong></span>
           <input type="range" id="rngXrMaxDist" min="2.0" max="8.0" step="0.5" value="6.0" />
         </label>
         <label>
-          <span>距離倍率補正: <strong id="valXrScale">1.00x</strong></span>
-          <input type="range" id="rngXrScale" min="0.7" max="2.0" step="0.05" value="1.00" />
+          <span>距離微調整: <strong id="valXrScale">1.00x</strong></span>
+          <input type="range" id="rngXrScale" min="0.7" max="1.6" step="0.05" value="1.00" />
         </label>
       </div>
 
       <div class="xr-controls">
-        <button class="btn-secondary" id="btnXrLockTarget" style="border-color:var(--amber); color:var(--amber);">🎯 中央の物体をロック</button>
-        <button class="btn-secondary" id="btnXrSnapShot">📸 この視点だけ記録</button>
-        <button class="btn-secondary" id="btnXrToggleCapture">▶ 自動記録を開始</button>
-        <button class="btn-secondary" id="btnXrClear">🗑 リセット</button>
-        <button class="btn-primary" id="btnXrFinish">✅ 完了・3Dへ</button>
+        <button class="btn-primary" id="btnXrSnapShot" style="padding:9px 14px; font-size:12px;">📸 AI高精細スキャン</button>
+        <button class="btn-secondary" id="btnXrToggleCapture">▶ 移動で自動AIスキャン</button>
+        <button class="btn-secondary" id="btnXrClear">🗑 クリア</button>
+        <button class="btn-primary" id="btnXrFinish" style="padding:9px 14px; font-size:12px;">✅ 完了・3Dへ</button>
       </div>
     </div>
   </div>
 
   <div class="toast" id="toast"></div>
 
-  <!-- Depth AI Web Worker (Transformers 3.7.6 with sub-worker proxy disabled) -->
+  <!-- Depth AI Web Worker -->
   <script id="depthWorkerScript" type="text/plain">
     import { pipeline, RawImage, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.6';
     env.allowLocalModels = false;
@@ -536,13 +528,17 @@
     import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 
     const state = {
-      scanMode: 'object',
+      scanMode: 'object', // 'object' | 'room'
       quality: 'fast',
       aiReady: false,
+      aiLoading: false,
+      aiBackend: 'WAIT',
+      aiProgress: 0,
       useMainFallback: false,
       mainDepthPipe: null,
       mainRawImage: null,
       detector: null,
+      detectorMode: 'VIDEO',
       detectEnabled: false,
       cameraActive: false,
       isScanning: false,
@@ -567,11 +563,14 @@
       cropForeground: false,
       singleRawData: null,
       xrBuiltMesh: false,
+      xrUseHybridAI: true,
     };
 
     const video = document.getElementById('video');
     const hudCanvas = document.getElementById('hudCanvas');
     const hudCtx = hudCanvas.getContext('2d');
+    const xrHudCanvas = document.getElementById('xrHudCanvas');
+    const xrHudCtx = xrHudCanvas.getContext('2d');
     const scanLaser = document.getElementById('scanLaser');
     const bootModal = document.getElementById('bootModal');
     const bootErrorBox = document.getElementById('bootErrorBox');
@@ -590,7 +589,7 @@
     }
 
     if (window.location.protocol === 'file:') {
-      showBootError('file:// 直開きではブラウザ制限により動作しません。https:// または http://localhost で開いてください。');
+      showBootError('file:// 直開きでは動作しません。https:// または http://localhost で開いてください。');
     }
 
     // Mode Selection
@@ -615,9 +614,7 @@
       xrBtn.textContent = isObj ? '📦 物体モード' : '🏠 部屋モード';
 
       document.getElementById('xrRadiusWrap').style.display = isObj ? 'flex' : 'none';
-      document.getElementById('xrFloorWrap').style.display = isObj ? 'flex' : 'none';
       document.getElementById('xrMaxDistWrap').style.display = isObj ? 'none' : 'flex';
-      document.getElementById('btnXrLockTarget').style.display = isObj ? 'inline-block' : 'none';
 
       if (!isObj) {
         document.getElementById('rngBgCut').value = 0; document.getElementById('valBgCut').textContent = '0%';
@@ -639,7 +636,6 @@
       });
     });
 
-    // Check WebXR Support
     let webxrSupported = false;
     if (navigator.xr) {
       navigator.xr.isSessionSupported('immersive-ar').then(ok => {
@@ -647,7 +643,6 @@
         if (ok) {
           document.getElementById('btnWebXRScan').style.display = 'inline-block';
           document.getElementById('btnStartWebXRDirect').style.display = 'inline-flex';
-          document.getElementById('rawOptRow').style.display = 'flex';
         }
       }).catch(() => {});
     }
@@ -670,7 +665,7 @@
     tabViewer.addEventListener('click', () => switchTab('viewer'));
 
     // ---------------------------------------------------------
-    // Depth AI Engine (Worker + Main-Thread Automatic Fallback)
+    // Depth AI Engine & MediaPipe Detector
     // ---------------------------------------------------------
     let depthWorker = null;
     let nextJobId = 1;
@@ -678,7 +673,8 @@
 
     async function loadDepthInMainThread(quality) {
       state.useMainFallback = true;
-      document.getElementById('telWorker').textContent = 'MAIN読込中';
+      state.aiBackend = 'MAIN読込';
+      document.getElementById('telWorker').textContent = state.aiBackend;
       const { pipeline, RawImage, env } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.6');
       env.allowLocalModels = false;
       if (env.backends?.onnx?.wasm) {
@@ -687,33 +683,35 @@
       }
       state.mainRawImage = RawImage;
       const modelId = quality === 'high' ? 'onnx-community/depth-anything-v2-base' : 'onnx-community/depth-anything-v2-small';
-      const progress_callback = (info) => {
-        if (info.status === 'progress') {
-          document.getElementById('telWorker').textContent = `読込 ${Math.round(info.progress || 0)}%`;
-        }
-      };
       state.mainDepthPipe = await pipeline('depth-estimation', modelId, {
-        device: 'wasm', dtype: 'q8', progress_callback
+        device: 'wasm', dtype: 'q8',
+        progress_callback: (info) => {
+          if (info.status === 'progress') {
+            state.aiProgress = Math.round(info.progress || 0);
+            document.getElementById('telWorker').textContent = `読込 ${state.aiProgress}%`;
+          }
+        }
       });
       state.aiReady = true;
-      document.getElementById('telWorker').textContent = 'WASM-MAIN';
+      state.aiBackend = 'WASM-M';
+      document.getElementById('telWorker').textContent = state.aiBackend;
       showToast('AI準備完了！');
     }
 
     function startAIInBackground(quality) {
-      if (state.aiReady) return;
+      if (state.aiReady || state.aiLoading) return;
+      state.aiLoading = true;
       document.getElementById('telWorker').textContent = 'AI読込 0%';
 
       try {
         const workerBlob = new Blob([document.getElementById('depthWorkerScript').textContent], { type: 'application/javascript' });
         depthWorker = new Worker(URL.createObjectURL(workerBlob), { type: 'module' });
 
-        depthWorker.onerror = (err) => {
-          console.warn('Worker error, falling back to main thread:', err);
+        depthWorker.onerror = () => {
           if (!state.aiReady && !state.useMainFallback) {
             loadDepthInMainThread(quality).catch(e => {
+              state.aiBackend = 'ERR';
               document.getElementById('telWorker').textContent = 'ERR';
-              showToast('AI読込失敗: ' + e.message, 3500);
             });
           }
         };
@@ -721,9 +719,11 @@
         depthWorker.onmessage = (e) => {
           const msg = e.data;
           if (msg.type === 'progress') {
-            document.getElementById('telWorker').textContent = `AI読込 ${Math.round(msg.pct)}%`;
+            state.aiProgress = Math.round(msg.pct || 0);
+            document.getElementById('telWorker').textContent = `AI読込 ${state.aiProgress}%`;
           } else if (msg.type === 'ready') {
             state.aiReady = true;
+            state.aiBackend = msg.backend;
             document.getElementById('telWorker').textContent = msg.backend;
             showToast(`深度AI準備完了 (${msg.backend})`);
           } else if (msg.type === 'result') {
@@ -744,7 +744,6 @@
         loadDepthInMainThread(quality).catch(() => {});
       }
 
-      // Optional MediaPipe Object Detector
       initMediaPipe();
     }
 
@@ -769,24 +768,35 @@
     }
 
     async function initMediaPipe() {
+      if (state.detector) return;
       try {
         const mp = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs');
         const vision = await mp.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
         const modelUrl = 'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite';
+        const runMode = xrSession ? 'IMAGE' : 'VIDEO';
         try {
           state.detector = await mp.ObjectDetector.createFromOptions(vision, {
             baseOptions: { modelAssetPath: modelUrl, delegate: 'GPU' },
-            runningMode: 'VIDEO', scoreThreshold: 0.42, maxResults: 6
+            runningMode: runMode, scoreThreshold: 0.40, maxResults: 6
           });
         } catch (e) {
           state.detector = await mp.ObjectDetector.createFromOptions(vision, {
             baseOptions: { modelAssetPath: modelUrl, delegate: 'CPU' },
-            runningMode: 'VIDEO', scoreThreshold: 0.42, maxResults: 6
+            runningMode: runMode, scoreThreshold: 0.40, maxResults: 6
           });
         }
+        state.detectorMode = runMode;
         state.detectEnabled = true;
         const btn = document.getElementById('btnToggleDetect');
         btn.classList.add('on'); btn.textContent = '👁 物体枠 ON';
+      } catch (e) {}
+    }
+
+    async function ensureDetectorMode(mode) {
+      if (!state.detector || state.detectorMode === mode) return;
+      try {
+        await state.detector.setOptions({ runningMode: mode });
+        state.detectorMode = mode;
       } catch (e) {}
     }
 
@@ -831,7 +841,7 @@
     }
 
     // ---------------------------------------------------------
-    // Instant Boot Handlers (Zero blocking!)
+    // Boot Handlers
     // ---------------------------------------------------------
     async function startCamera() {
       try {
@@ -849,7 +859,7 @@
 
     document.getElementById('btnStartSystem').addEventListener('click', async () => {
       await requestGyroFirst();
-      bootModal.classList.add('hidden'); // Immediately enter scanner view!
+      bootModal.classList.add('hidden');
       startRuntimeLoops();
       startCamera().then(() => { if (state.gyroAvailable) setTimeout(resetGyroYaw, 300); });
       startAIInBackground(state.quality);
@@ -863,7 +873,7 @@
     });
 
     // ---------------------------------------------------------
-    // HUD & MediaPipe Loop
+    // Normal Camera HUD & Loops
     // ---------------------------------------------------------
     function getVideoCoverTransform(vw, vh, sw, sh) {
       const scale = Math.max(vw / sw, vh / sh);
@@ -889,12 +899,8 @@
       hudCtx.translate(cx, cy);
       hudCtx.rotate(rollRad);
       const py = Math.max(-130, Math.min(130, pitchDeg * 2.0));
-      hudCtx.strokeStyle = 'rgba(0, 240, 255, 0.35)';
-      hudCtx.lineWidth = 1.2;
-      hudCtx.beginPath();
-      hudCtx.moveTo(-90, py); hudCtx.lineTo(-22, py);
-      hudCtx.moveTo(22, py); hudCtx.lineTo(90, py);
-      hudCtx.stroke();
+      hudCtx.strokeStyle = 'rgba(0, 240, 255, 0.35)'; hudCtx.lineWidth = 1.2;
+      hudCtx.beginPath(); hudCtx.moveTo(-90, py); hudCtx.lineTo(-22, py); hudCtx.moveTo(22, py); hudCtx.lineTo(90, py); hudCtx.stroke();
       hudCtx.strokeStyle = state.scanMode === 'object' ? 'rgba(255, 184, 0, 0.7)' : 'rgba(0, 255, 157, 0.7)';
       hudCtx.beginPath(); hudCtx.arc(0, 0, 14, 0, Math.PI * 2); hudCtx.stroke();
       hudCtx.restore();
@@ -933,10 +939,11 @@
       state.loopsStarted = true;
       function tick() {
         const now = performance.now();
-        if (scannerView.classList.contains('active')) {
+        if (scannerView.classList.contains('active') && !xrSession) {
           drawHUD();
           if (state.cameraActive && state.detectEnabled && !state.isScanning && state.detector &&
-              video.readyState >= 2 && video.videoWidth > 0 && now - lastDetRun > 150 && video.currentTime !== lastVTime) {
+              state.detectorMode === 'VIDEO' && video.readyState >= 2 && video.videoWidth > 0 &&
+              now - lastDetRun > 150 && video.currentTime !== lastVTime) {
             lastDetRun = now; lastVTime = video.currentTime;
             lastMpTs = Math.max(lastMpTs + 1, Math.round(now));
             try {
@@ -1001,7 +1008,7 @@
     document.getElementById('btnResetGyro').addEventListener('click', resetGyroYaw);
 
     // ---------------------------------------------------------
-    // Depth Processing
+    // Depth Processing & Bilateral Filter
     // ---------------------------------------------------------
     const capCanvas = document.createElement('canvas');
     const capCtx = capCanvas.getContext('2d', { willReadFrequently: true });
@@ -1015,44 +1022,61 @@
       return { w, h, rgb: capCtx.getImageData(0, 0, w, h).data };
     }
 
-    function resampleToGrid(srcW, srcH, rgb, pw, ph, rawDepth, gw, gh) {
-      const rgbGrid = new Uint8Array(gw * gh * 3);
-      const depthGrid = new Float32Array(gw * gh);
+    function resampleRawDepth(pw, ph, rawDepth, gw, gh, normalize = true) {
+      const out = new Float32Array(gw * gh);
       let minD = Infinity, maxD = -Infinity;
-      for (let i = 0; i < rawDepth.length; i++) {
-        if (rawDepth[i] < minD) minD = rawDepth[i];
-        if (rawDepth[i] > maxD) maxD = rawDepth[i];
+      if (normalize) {
+        for (let i = 0; i < rawDepth.length; i++) {
+          if (rawDepth[i] < minD) minD = rawDepth[i];
+          if (rawDepth[i] > maxD) maxD = rawDepth[i];
+        }
       }
       const range = (maxD - minD) || 1e-6;
       for (let gy = 0; gy < gh; gy++) {
-        const sy = Math.min(srcH - 1, Math.round((gy / (gh - 1)) * (srcH - 1)));
         const fy = (gy / (gh - 1)) * (ph - 1);
         const y0 = Math.floor(fy), y1 = Math.min(ph - 1, y0 + 1), dy = fy - y0;
+        for (let gx = 0; gx < gw; gx++) {
+          const fx = (gx / (gw - 1)) * (pw - 1);
+          const x0 = Math.floor(fx), x1 = Math.min(pw - 1, x0 + 1), dx = fx - x0;
+          const val = (rawDepth[y0 * pw + x0] * (1 - dx) + rawDepth[y0 * pw + x1] * dx) * (1 - dy) +
+                      (rawDepth[y1 * pw + x0] * (1 - dx) + rawDepth[y1 * pw + x1] * dx) * dy;
+          out[gy * gw + gx] = normalize ? Math.max(0, Math.min(1, (val - minD) / range)) : val;
+        }
+      }
+      return out;
+    }
+
+    function resampleToGrid(srcW, srcH, rgb, pw, ph, rawDepth, gw, gh) {
+      const rgbGrid = new Uint8Array(gw * gh * 3);
+      for (let gy = 0; gy < gh; gy++) {
+        const sy = Math.min(srcH - 1, Math.round((gy / (gh - 1)) * (srcH - 1)));
         for (let gx = 0; gx < gw; gx++) {
           const sx = Math.min(srcW - 1, Math.round((gx / (gw - 1)) * (srcW - 1)));
           const cIdx = (sy * srcW + sx) * 4;
           const gIdx = gy * gw + gx;
           rgbGrid[gIdx * 3] = rgb[cIdx]; rgbGrid[gIdx * 3 + 1] = rgb[cIdx + 1]; rgbGrid[gIdx * 3 + 2] = rgb[cIdx + 2];
-          const fx = (gx / (gw - 1)) * (pw - 1);
-          const x0 = Math.floor(fx), x1 = Math.min(pw - 1, x0 + 1), dx = fx - x0;
-          const val = (rawDepth[y0 * pw + x0] * (1 - dx) + rawDepth[y0 * pw + x1] * dx) * (1 - dy) +
-                      (rawDepth[y1 * pw + x0] * (1 - dx) + rawDepth[y1 * pw + x1] * dx) * dy;
-          depthGrid[gIdx] = Math.max(0, Math.min(1, (val - minD) / range));
         }
       }
+      const depthGrid = resampleRawDepth(pw, ph, rawDepth, gw, gh, true);
       return { rgbGrid, depthGrid };
     }
 
-    function jointBilateralSmooth(depthIn, rgbGrid, gw, gh, passes) {
+    function jointBilateralSmooth(depthIn, rgbGrid, gw, gh, passes, isRgba = false) {
       if (passes <= 0) return depthIn;
       let cur = new Float32Array(depthIn), nxt = new Float32Array(depthIn.length);
       const invCVar = 1.0 / (2.0 * 28 * 28 * 3);
       const sW = [1.0, 0.78, 0.45];
+      const stride = isRgba ? 4 : 3;
+      // Scale depth sensitivity by range
+      let dMin = Infinity, dMax = -Infinity;
+      for (let i = 0; i < cur.length; i++) { if (cur[i] < dMin) dMin = cur[i]; if (cur[i] > dMax) dMax = cur[i]; }
+      const dScale = 180.0 / Math.max(0.05, (dMax - dMin) * (dMax - dMin));
+
       for (let p = 0; p < passes; p++) {
         for (let y = 0; y < gh; y++) {
           for (let x = 0; x < gw; x++) {
             const idx = y * gw + x;
-            const r0 = rgbGrid[idx * 3], g0 = rgbGrid[idx * 3 + 1], b0 = rgbGrid[idx * 3 + 2], d0 = cur[idx];
+            const r0 = rgbGrid[idx * stride], g0 = rgbGrid[idx * stride + 1], b0 = rgbGrid[idx * stride + 2], d0 = cur[idx];
             let sum = 0, wSum = 0;
             for (let ky = -2; ky <= 2; ky++) {
               const ny = y + ky; if (ny < 0 || ny >= gh) continue;
@@ -1060,9 +1084,9 @@
               for (let kx = -2; kx <= 2; kx++) {
                 const nx = x + kx; if (nx < 0 || nx >= gw) continue;
                 const nIdx = ny * gw + nx;
-                const dr = rgbGrid[nIdx * 3] - r0, dg = rgbGrid[nIdx * 3 + 1] - g0, db = rgbGrid[nIdx * 3 + 2] - b0;
+                const dr = rgbGrid[nIdx * stride] - r0, dg = rgbGrid[nIdx * stride + 1] - g0, db = rgbGrid[nIdx * stride + 2] - b0;
                 const dd = cur[nIdx] - d0;
-                const w = wy * sW[Math.abs(kx)] * Math.exp(-(dr * dr + dg * dg + db * db) * invCVar - dd * dd * 180.0);
+                const w = wy * sW[Math.abs(kx)] * Math.exp(-(dr * dr + dg * dg + db * db) * invCVar - dd * dd * dScale);
                 sum += cur[nIdx] * w; wSum += w;
               }
             }
@@ -1075,7 +1099,7 @@
     }
 
     // ---------------------------------------------------------
-    // Three.js Scene
+    // Three.js Scene & Point Cloud Buffer
     // ---------------------------------------------------------
     const threeContainer = document.getElementById('threeContainer');
     const scene = new THREE.Scene();
@@ -1104,20 +1128,7 @@
     const xrCloudGroup = new THREE.Group();
     scene.add(modelGroup, multiCloudGroup, xrCloudGroup);
 
-    const xrTargetMarker = new THREE.Group();
-    const markerSphere = new THREE.Mesh(
-      new THREE.SphereGeometry(0.45, 20, 14),
-      new THREE.MeshBasicMaterial({ color: 0xffb800, wireframe: true, transparent: true, opacity: 0.45 })
-    );
-    const markerDot = new THREE.Mesh(
-      new THREE.SphereGeometry(0.02, 12, 12),
-      new THREE.MeshBasicMaterial({ color: 0xffb800 })
-    );
-    xrTargetMarker.add(markerSphere, markerDot);
-    xrTargetMarker.visible = false;
-    scene.add(xrTargetMarker);
-
-    const MAX_XR_PTS = 150000;
+    const MAX_XR_PTS = 180000;
     const xrPositions = new Float32Array(MAX_XR_PTS * 3);
     const xrColors = new Float32Array(MAX_XR_PTS * 3);
     const xrHits = new Uint8Array(MAX_XR_PTS);
@@ -1189,16 +1200,16 @@
         if (x < minX) minX = x; if (y < minY) minY = y; if (z < minZ) minZ = z;
         if (x > maxX) maxX = x; if (y > maxY) maxY = y; if (z > maxZ) maxZ = z;
       }
-      if (validPts.length < 20) { showToast('有効点が足りません（確認回数を下げてください）'); return false; }
+      if (validPts.length < 20) { showToast('有効点が足りません'); return false; }
 
       const maxSpan = Math.max(maxX - minX, maxY - minY, maxZ - minZ, 0.15);
-      const cell = maxSpan / 54;
+      const cell = maxSpan / 56;
       const pad = 3 * cell;
       minX -= pad; minY -= pad; minZ -= pad; maxX += pad; maxY += pad; maxZ += pad;
 
-      const nx = Math.min(68, Math.max(12, Math.ceil((maxX - minX) / cell)));
-      const ny = Math.min(68, Math.max(12, Math.ceil((maxY - minY) / cell)));
-      const nz = Math.min(68, Math.max(12, Math.ceil((maxZ - minZ) / cell)));
+      const nx = Math.min(72, Math.max(12, Math.ceil((maxX - minX) / cell)));
+      const ny = Math.min(72, Math.max(12, Math.ceil((maxY - minY) / cell)));
+      const nz = Math.min(72, Math.max(12, Math.ceil((maxZ - minZ) / cell)));
       const totalV = nx * ny * nz;
 
       const occ = new Float32Array(totalV), colR = new Float32Array(totalV), colG = new Float32Array(totalV), colB = new Float32Array(totalV), colW = new Float32Array(totalV);
@@ -1223,9 +1234,9 @@
       }
 
       const field = new Float32Array(totalV);
-      for (let i = 0; i < totalV; i++) field[i] = Math.min(1.0, occ[i] / 1.4);
+      for (let i = 0; i < totalV; i++) field[i] = Math.min(1.0, occ[i] / 1.35);
 
-      const iso = 0.42, cellVertMap = new Int32Array(totalV).fill(-1);
+      const iso = 0.40, cellVertMap = new Int32Array(totalV).fill(-1);
       const positions = [], colors = [];
       let vertCount = 0;
       const idx3 = (x, y, z) => (z * ny + y) * nx + x;
@@ -1288,7 +1299,7 @@
         }
       }
 
-      if (indices.length === 0) { showToast('メッシュ化失敗（点を増やしてください）'); return false; }
+      if (indices.length === 0) { showToast('メッシュ化失敗'); return false; }
 
       clearGroup(modelGroup);
       const geo = new THREE.BufferGeometry();
@@ -1443,7 +1454,7 @@
     }
 
     async function runSingleScanFromSource(srcEl, srcW, srcH) {
-      if (!state.aiReady) { showToast('AIモデルをまだ読込中です。右上(AI ENGINE)が準備完了になるまでお待ちください', 3000); return; }
+      if (!state.aiReady) { showToast('AIモデル読込中です。完了まで少しお待ちください', 2800); return; }
       if (state.isScanning) return;
       state.isScanning = true;
       scanLaser.classList.add('scanning');
@@ -1490,7 +1501,7 @@
       img.src = URL.createObjectURL(f); e.target.value = '';
     });
 
-    // AI 360 Scan
+    // AI 360° Gyro Scan
     function appendAlignedMultiSlice(gw, gh, rgbGrid, smoothD, quat) {
       modelGroup.visible = false; xrCloudGroup.visible = false; multiCloudGroup.visible = true;
       const isRoom = state.scanMode === 'room';
@@ -1573,7 +1584,7 @@
       const btn = document.getElementById('btnMultiScan');
       if (next) {
         if (!state.cameraActive) { showToast('カメラが必要です'); return; }
-        if (!state.aiReady) { showToast('AIモデル読込中です。完了後に押してください'); return; }
+        if (!state.aiReady) { showToast('AIモデル読込中です'); return; }
         clearGroup(multiCloudGroup); state.multiVoxelSet.clear(); state.prevMultiData = null;
         state.lastMultiQuat = null; state.multiPointsCount = 0; resetGyroYaw();
         state.viewMode = 'multi'; state.multiScanActive = true;
@@ -1593,33 +1604,171 @@
     document.getElementById('btnMultiScan').addEventListener('click', () => toggleMultiScan());
 
     // ---------------------------------------------------------
-    // REAL WebXR AR LiDAR (Single direct requestSession!)
+    // HYBRID AR × IMAGE AI (WebXR 6DoF + HitTest + DepthAI + MediaPipe)
     // ---------------------------------------------------------
     let xrSession = null;
     let xrAutoCapture = false;
     let xrPendingSnap = false;
-    let xrLockRequested = false;
-    let xrTargetCenter = null;
     let xrHitTestSource = null;
+    let xrAiBusy = false;
+    let xrAiJobsDone = 0;
+    let xrDetections = [];
+    let xrLockedTarget = null; // { label, boxNorm, tapNorm }
+    let xrLockedWorldPos = null; // THREE.Vector3 anchor for locked object
+
+    // Robust Theil-Sen calibration: 1/Z_meters = a * d_ai + b
+    function calibrateAIDepthToMeters(aiData, pw, ph, samples, hitDist, scaleMul) {
+      // samples: [{ nx, ny, xrDistM }]
+      const pairs = [];
+      for (const s of samples) {
+        const px = Math.min(pw - 1, Math.max(0, Math.round(s.nx * (pw - 1))));
+        const py = Math.min(ph - 1, Math.max(0, Math.round(s.ny * (ph - 1))));
+        const dAi = aiData[py * pw + px];
+        if (s.xrDistM > 0.15 && s.xrDistM < 8.0 && Number.isFinite(dAi)) {
+          pairs.push({ d: dAi, invZ: 1.0 / (s.xrDistM * scaleMul) });
+        }
+      }
+
+      // Add high-weight Hit-Test center anchor if available
+      const centerAi = aiData[Math.floor(ph / 2) * pw + Math.floor(pw / 2)];
+      if (hitDist && hitDist > 0.15 && hitDist < 8.0) {
+        for (let k = 0; k < 4; k++) {
+          pairs.push({ d: centerAi, invZ: 1.0 / (hitDist * scaleMul) });
+        }
+      }
+
+      // Compute AI min/max range
+      let dMin = Infinity, dMax = -Infinity;
+      for (let i = 0; i < aiData.length; i++) {
+        if (aiData[i] < dMin) dMin = aiData[i];
+        if (aiData[i] > dMax) dMax = aiData[i];
+      }
+      const dSpan = dMax - dMin;
+
+      // Fallback if insufficient samples or flat scene
+      if (pairs.length < 6 || dSpan < 0.05) {
+        const refZ = (hitDist && hitDist > 0.15) ? hitDist * scaleMul
+          : (pairs.length > 0 ? 1.0 / pairs[0].invZ : 2.0 * scaleMul);
+        const normRef = (centerAi - dMin) / Math.max(1e-5, dSpan);
+        const a = 0.6 / Math.max(0.1, refZ * Math.max(0.15, dSpan));
+        const b = (1.0 / refZ) - a * centerAi;
+        return { a, b, dMin, dMax };
+      }
+
+      // Theil-Sen median slope (outlier-immune against bad ARCore near-blobs!)
+      const slopes = [];
+      for (let i = 0; i < pairs.length; i++) {
+        for (let j = i + 1; j < pairs.length; j++) {
+          const dd = pairs[j].d - pairs[i].d;
+          if (Math.abs(dd) > dSpan * 0.08) {
+            const s = (pairs[j].invZ - pairs[i].invZ) / dd;
+            if (s > 0.005 && s < 5.0) slopes.push(s);
+          }
+        }
+      }
+
+      let a;
+      if (slopes.length >= 4) {
+        slopes.sort((x, y) => x - y);
+        a = slopes[Math.floor(slopes.length / 2)];
+      } else {
+        // Gentle fallback slope anchored to median distance
+        const invZs = pairs.map(p => p.invZ).sort((x, y) => x - y);
+        const medInvZ = invZs[Math.floor(invZs.length / 2)];
+        a = (medInvZ * 0.8) / Math.max(0.2, dSpan);
+      }
+
+      const intercepts = pairs.map(p => p.invZ - a * p.d).sort((x, y) => x - y);
+      const b = intercepts[Math.floor(intercepts.length / 2)];
+
+      return { a, b, dMin, dMax };
+    }
+
+    function drawXROverlayHUD() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const vw = xrHudCanvas.clientWidth, vh = xrHudCanvas.clientHeight;
+      if (!vw || !vh) return;
+      if (xrHudCanvas.width !== vw * dpr || xrHudCanvas.height !== vh * dpr) {
+        xrHudCanvas.width = vw * dpr; xrHudCanvas.height = vh * dpr;
+      }
+      xrHudCtx.save();
+      xrHudCtx.scale(dpr, dpr);
+      xrHudCtx.clearRect(0, 0, vw, vh);
+
+      for (const det of xrDetections) {
+        const x1 = det.boxNorm.xmin * vw, y1 = det.boxNorm.ymin * vh;
+        const x2 = det.boxNorm.xmax * vw, y2 = det.boxNorm.ymax * vh;
+        const isLocked = xrLockedTarget && xrLockedTarget.label === det.label;
+        const col = isLocked ? '#ffb800' : '#00ff9d';
+        xrHudCtx.strokeStyle = col; xrHudCtx.lineWidth = isLocked ? 2.6 : 1.7;
+        xrHudCtx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+        const tag = `${det.label.toUpperCase()} ${Math.round(det.score * 100)}%`;
+        xrHudCtx.font = 'bold 11px ui-monospace, monospace';
+        const tw = xrHudCtx.measureText(tag).width + 10;
+        xrHudCtx.fillStyle = col; xrHudCtx.fillRect(x1, Math.max(0, y1 - 18), tw, 18);
+        xrHudCtx.fillStyle = '#031016'; xrHudCtx.fillText(tag, x1 + 5, Math.max(13, y1 - 5));
+        det._screen = { x1, y1, x2, y2 };
+      }
+
+      if (xrLockedTarget?.tapNorm && !xrLockedTarget.boxNorm) {
+        const tx = xrLockedTarget.tapNorm.x * vw, ty = xrLockedTarget.tapNorm.y * vh;
+        xrHudCtx.strokeStyle = '#ffb800'; xrHudCtx.lineWidth = 2.2;
+        xrHudCtx.beginPath(); xrHudCtx.arc(tx, ty, 22, 0, Math.PI * 2); xrHudCtx.stroke();
+      }
+      xrHudCtx.restore();
+    }
+
+    // Tap inside AR screen to lock detected object or tap point
+    xrHudCanvas.addEventListener('pointerdown', (e) => {
+      if (!xrSession) return;
+      const rect = xrHudCanvas.getBoundingClientRect();
+      const px = e.clientX - rect.left, py = e.clientY - rect.top;
+      let hit = null, minA = Infinity;
+      for (const det of xrDetections) {
+        const s = det._screen;
+        if (s && px >= s.x1 && px <= s.x2 && py >= s.y1 && py <= s.y2) {
+          const a = (s.x2 - s.x1) * (s.y2 - s.y1);
+          if (a < minA) { minA = a; hit = det; }
+        }
+      }
+      const nx = Math.max(0, Math.min(1, px / rect.width));
+      const ny = Math.max(0, Math.min(1, py / rect.height));
+      if (hit) {
+        xrLockedTarget = { label: hit.label, boxNorm: hit.boxNorm, tapNorm: { x: nx, y: ny } };
+        showToast(`🎯 ${hit.label.toUpperCase()} をロック（このままスキャンで切抜）`);
+      } else {
+        xrLockedTarget = { label: 'POINT', boxNorm: null, tapNorm: { x: nx, y: ny } };
+        showToast('🎯 タップ位置の物体を切抜ターゲットに設定');
+      }
+      xrLockedWorldPos = null; // Will anchor on next scan
+      setScanMode('object');
+      document.getElementById('btnXrClearLock').style.display = 'inline-block';
+      drawXROverlayHUD();
+    });
+
+    document.getElementById('btnXrClearLock').addEventListener('click', () => {
+      xrLockedTarget = null; xrLockedWorldPos = null;
+      document.getElementById('btnXrClearLock').style.display = 'none';
+      drawXROverlayHUD();
+      showToast('ロック解除');
+    });
 
     function startWebXRLiDAR() {
       if (!webxrSupported) {
         showBootError('WebXR immersive-ar に非対応のブラウザです。');
         return;
       }
+      // Make sure background AI is loading/ready!
+      startAIInBackground(state.quality);
 
-      const preferRaw = document.getElementById('chkPreferRaw').checked;
-      const depthOpts = {
-        usagePreference: ['cpu-optimized'],
-        dataFormatPreference: ['luminance-alpha', 'float32']
-      };
-      if (preferRaw) depthOpts.depthTypeRequest = ['raw', 'smooth'];
-
-      // MUST call requestSession synchronously inside click handler (no prior awaits!)
+      // Synchronous requestSession right inside click event
       navigator.xr.requestSession('immersive-ar', {
         requiredFeatures: ['local', 'depth-sensing'],
         optionalFeatures: ['camera-access', 'dom-overlay', 'hit-test'],
-        depthSensing: depthOpts,
+        depthSensing: {
+          usagePreference: ['cpu-optimized'],
+          dataFormatPreference: ['luminance-alpha', 'float32']
+        },
         domOverlay: { root: document.getElementById('xrOverlay') }
       }).then(onXRSessionStarted).catch(err => {
         const msg = `WebXR起動失敗: ${err.name} - ${err.message}`;
@@ -1639,18 +1788,21 @@
       multiCloudGroup.visible = false;
       xrCloudGroup.visible = true;
       gridHelper.visible = false;
-      xrTargetCenter = null;
-      xrTargetMarker.visible = false;
       xrAutoCapture = false;
       xrPendingSnap = false;
+      xrAiBusy = false;
+      xrAiJobsDone = 0;
+      xrDetections = [];
+      xrLockedTarget = null;
+      xrLockedWorldPos = null;
+      document.getElementById('btnXrClearLock').style.display = 'none';
       state.viewMode = 'xr';
       setScanMode(state.scanMode);
 
       const autoBtn = document.getElementById('btnXrToggleCapture');
       autoBtn.classList.remove('recording');
-      autoBtn.textContent = '▶ 自動記録を開始';
+      autoBtn.textContent = '▶ 移動で自動AIスキャン';
 
-      // Stop viewer loop cleanly before binding XR session
       renderer.setAnimationLoop(null);
       renderer.xr.enabled = true;
       renderer.xr.setReferenceSpaceType('local');
@@ -1668,6 +1820,9 @@
         return;
       }
 
+      // Switch MediaPipe detector to IMAGE mode for XR frame detection
+      ensureDetectorMode('IMAGE');
+
       xrHitTestSource = null;
       try {
         const viewerSpace = await xrSession.requestReferenceSpace('viewer');
@@ -1680,45 +1835,257 @@
       let glBinding = null;
       try { glBinding = new XRWebGLBinding(xrSession, gl); } catch (e) {}
 
-      const dw = 128, dh = 96;
-      const srcFbo = gl.createFramebuffer(), dstFbo = gl.createFramebuffer(), dstRb = gl.createRenderbuffer();
-      gl.bindRenderbuffer(gl.RENDERBUFFER, dstRb);
-      gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, dw, dh);
-      gl.bindFramebuffer(gl.FRAMEBUFFER, dstFbo);
-      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, dstRb);
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      const camPixels = new Uint8Array(dw * dh * 4);
+      // Offscreen FBO for grabbing AR camera texture -> upright RGBA
+      let fboW = 0, fboH = 0;
+      let srcFbo = null, dstFbo = null, dstRb = null, rawBuf = null, topDownRgba = null;
+      const mpCanvas = document.createElement('canvas');
+      const mpCtx = mpCanvas.getContext('2d');
+      const pipCanvas = document.getElementById('xrPreviewPip');
+      const pipCtx = pipCanvas.getContext('2d');
+
+      function ensureCameraFBO(camW, camH) {
+        const scale = Math.min(1, 320 / Math.max(camW, camH));
+        const dw = Math.max(64, Math.round((camW * scale) / 2) * 2);
+        const dh = Math.max(64, Math.round((camH * scale) / 2) * 2);
+        if (dw === fboW && dh === fboH) return;
+        fboW = dw; fboH = dh;
+        if (!srcFbo) srcFbo = gl.createFramebuffer();
+        if (!dstFbo) dstFbo = gl.createFramebuffer();
+        if (!dstRb) dstRb = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, dstRb);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, dw, dh);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, dstFbo);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, dstRb);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        rawBuf = new Uint8Array(dw * dh * 4);
+        topDownRgba = new Uint8ClampedArray(dw * dh * 4);
+        mpCanvas.width = dw; mpCanvas.height = dh;
+      }
+
+      function grabUprightCameraPixels(view) {
+        if (!glBinding || !view.camera) return false;
+        const camW = view.camera.width, camH = view.camera.height;
+        if (!camW || !camH) return false;
+        ensureCameraFBO(camW, camH);
+
+        const prevReadFbo = gl.getParameter(gl.READ_FRAMEBUFFER_BINDING);
+        const prevDrawFbo = gl.getParameter(gl.DRAW_FRAMEBUFFER_BINDING);
+        let ok = false;
+        try {
+          const camTex = glBinding.getCameraImage(view.camera);
+          if (camTex) {
+            gl.bindFramebuffer(gl.READ_FRAMEBUFFER, srcFbo);
+            gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, camTex, 0);
+            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, dstFbo);
+            gl.blitFramebuffer(0, 0, camW, camH, 0, 0, fboW, fboH, gl.COLOR_BUFFER_BIT, gl.LINEAR);
+            gl.bindFramebuffer(gl.READ_FRAMEBUFFER, dstFbo);
+            gl.readPixels(0, 0, fboW, fboH, gl.RGBA, gl.UNSIGNED_BYTE, rawBuf);
+            ok = true;
+          }
+        } catch (e) {} finally {
+          gl.bindFramebuffer(gl.READ_FRAMEBUFFER, prevReadFbo);
+          gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, prevDrawFbo);
+          renderer.resetState();
+        }
+        if (!ok) return false;
+
+        // Flip Y (WebGL bottom-up -> top-down image) & force opaque alpha
+        const rowBytes = fboW * 4;
+        for (let y = 0; y < fboH; y++) {
+          const srcOff = (fboH - 1 - y) * rowBytes;
+          const dstOff = y * rowBytes;
+          for (let x = 0; x < rowBytes; x += 4) {
+            topDownRgba[dstOff + x] = rawBuf[srcOff + x];
+            topDownRgba[dstOff + x + 1] = rawBuf[srcOff + x + 1];
+            topDownRgba[dstOff + x + 2] = rawBuf[srcOff + x + 2];
+            topDownRgba[dstOff + x + 3] = 255;
+          }
+        }
+        return true;
+      }
 
       const invProj = new THREE.Matrix4(), viewMat = new THREE.Matrix4();
       const rayVec = new THREE.Vector3(), worldPt = new THREE.Vector3();
       const camPos = new THREE.Vector3(), lastCapCamPos = new THREE.Vector3();
       const camQuat = new THREE.Quaternion(), lastCapCamQuat = new THREE.Quaternion();
       let hasLastCapPose = false;
-      const sessionStartTime = performance.now();
-      let lastHudUpdate = 0, lastCapTime = 0;
+      let lastHudUpdate = 0, lastDetTime = 0, lastScanTriggerTime = 0;
 
-      function getCenterDepthRobust(depthInfo) {
-        const vals = [];
-        for (let dy = -0.02; dy <= 0.021; dy += 0.01) {
-          for (let dx = -0.02; dx <= 0.021; dx += 0.01) {
-            const d = depthInfo.getDepthInMeters(0.5 + dx, 0.5 + dy);
-            if (d > 0.05 && d < 12.0) vals.push(d);
+      // Project AI depth result (latched to exact capture pose!) into XR 3D world
+      function insertHybridAISlice(aiResult, latch) {
+        const { gw, gh, rgbaCopy, capturedViewMat, capturedProjMat, depthSamples, hitDist, scaleMul, targetSnap, scanModeSnap } = latch;
+        const rawResampled = resampleRawDepth(aiResult.pw, aiResult.ph, aiResult.data, gw, gh, false);
+        const smoothAI = jointBilateralSmooth(rawResampled, rgbaCopy, gw, gh, 2, true);
+
+        const calib = calibrateAIDepthToMeters(smoothAI, gw, gh, depthSamples, hitDist, scaleMul);
+        const isObj = scanModeSnap === 'object';
+        const minDist = isObj ? 0.14 : 0.35;
+        const maxDist = isObj ? 2.2 : parseFloat(document.getElementById('rngXrMaxDist').value);
+        const objRadius = parseFloat(document.getElementById('rngXrRadius').value);
+        const voxInv = isObj ? 105 : 34; // ~0.95cm object, ~3cm room
+
+        const invP = new THREE.Matrix4().fromArray(capturedProjMat).invert();
+
+        // Compute depth in meters per pixel
+        const zGrid = new Float32Array(gw * gh);
+        for (let i = 0; i < gw * gh; i++) {
+          const invZ = calib.a * smoothAI[i] + calib.b;
+          zGrid[i] = (invZ > 0.08) ? (1.0 / invZ) : 99.0;
+        }
+
+        // If object mode with target tap/box, compute/reuse 3D anchor & foreground depth filter
+        let refObjZ = null;
+        if (isObj && targetSnap) {
+          const tx = targetSnap.tapNorm ? Math.round(targetSnap.tapNorm.x * (gw - 1))
+            : Math.round(((targetSnap.boxNorm.xmin + targetSnap.boxNorm.xmax) * 0.5) * (gw - 1));
+          const ty = targetSnap.tapNorm ? Math.round(targetSnap.tapNorm.y * (gh - 1))
+            : Math.round(((targetSnap.boxNorm.ymin + targetSnap.boxNorm.ymax) * 0.5) * (gh - 1));
+          const tz = zGrid[Math.max(0, Math.min(gh - 1, ty)) * gw + Math.max(0, Math.min(gw - 1, tx))];
+          if (tz > 0.14 && tz < 2.5) {
+            refObjZ = tz;
+            if (!xrLockedWorldPos) {
+              const nx = tx / (gw - 1), ny = ty / (gh - 1);
+              rayVec.set(2 * nx - 1, 1 - 2 * ny, -1).applyMatrix4(invP);
+              const iz = -rayVec.z;
+              if (iz > 1e-4) {
+                xrLockedWorldPos = new THREE.Vector3((rayVec.x / iz) * tz, (rayVec.y / iz) * tz, -tz).applyMatrix4(capturedViewMat);
+              }
+            }
           }
         }
-        if (vals.length === 0) return 0;
-        vals.sort((a, b) => a - b);
-        return vals[Math.floor(vals.length / 2)];
+
+        let added = 0;
+        const step = isObj ? 2 : 3;
+        for (let gy = 2; gy < gh - 2; gy += step) {
+          const ny = gy / (gh - 1);
+          for (let gx = 2; gx < gw - 2; gx += step) {
+            const nx = gx / (gw - 1);
+            const idx = gy * gw + gx;
+            const distM = zGrid[idx];
+            if (distM < minDist || distM > maxDist) continue;
+
+            // Object bounding box filter
+            if (isObj && targetSnap?.boxNorm) {
+              const pad = 0.05;
+              if (nx < targetSnap.boxNorm.xmin - pad || nx > targetSnap.boxNorm.xmax + pad ||
+                  ny < targetSnap.boxNorm.ymin - pad || ny > targetSnap.boxNorm.ymax + pad) continue;
+            }
+            if (isObj && refObjZ !== null && Math.abs(distM - refObjZ) > objRadius * 0.9) continue;
+
+            // Flying-pixel gradient filter on smooth AI depth!
+            const dl = zGrid[idx - 1], dr = zGrid[idx + 1], du = zGrid[idx - gw], dd = zGrid[idx + gw];
+            if (Math.abs(distM - dl) / distM > 0.055 || Math.abs(distM - dr) / distM > 0.055 ||
+                Math.abs(distM - du) / distM > 0.055 || Math.abs(distM - dd) / distM > 0.055) continue;
+
+            rayVec.set(2 * nx - 1, 1 - 2 * ny, -1).applyMatrix4(invP);
+            const iz = -rayVec.z;
+            if (iz <= 1e-4) continue;
+            worldPt.set((rayVec.x / iz) * distM, (rayVec.y / iz) * distM, -distM).applyMatrix4(capturedViewMat);
+
+            if (isObj && xrLockedWorldPos && worldPt.distanceTo(xrLockedWorldPos) > objRadius) continue;
+
+            const cIdx = idx * 4;
+            const cr = rgbaCopy[cIdx] / 255, cg = rgbaCopy[cIdx + 1] / 255, cb = rgbaCopy[cIdx + 2] / 255;
+
+            const vx = Math.round(worldPt.x * voxInv), vy = Math.round(worldPt.y * voxInv), vz = Math.round(worldPt.z * voxInv);
+            const key = `${vx},${vy},${vz}`;
+            const existingIdx = xrVoxelToIndex.get(key);
+
+            if (existingIdx !== undefined) {
+              const h = Math.min(254, xrHits[existingIdx] + 1);
+              xrHits[existingIdx] = h;
+              const w = 1 / h;
+              xrPositions[existingIdx * 3] += (worldPt.x - xrPositions[existingIdx * 3]) * w;
+              xrPositions[existingIdx * 3 + 1] += (worldPt.y - xrPositions[existingIdx * 3 + 1]) * w;
+              xrPositions[existingIdx * 3 + 2] += (worldPt.z - xrPositions[existingIdx * 3 + 2]) * w;
+              xrColors[existingIdx * 3] += (cr - xrColors[existingIdx * 3]) * w;
+              xrColors[existingIdx * 3 + 1] += (cg - xrColors[existingIdx * 3 + 1]) * w;
+              xrColors[existingIdx * 3 + 2] += (cb - xrColors[existingIdx * 3 + 2]) * w;
+            } else if (xrPtsCount < MAX_XR_PTS) {
+              const p = xrPtsCount++;
+              xrVoxelToIndex.set(key, p);
+              xrHits[p] = 1;
+              xrPositions[p * 3] = worldPt.x;
+              xrPositions[p * 3 + 1] = worldPt.y;
+              xrPositions[p * 3 + 2] = worldPt.z;
+              xrColors[p * 3] = cr;
+              xrColors[p * 3 + 1] = cg;
+              xrColors[p * 3 + 2] = cb;
+              added++;
+            }
+          }
+        }
+
+        if (added > 0 || xrPtsCount > 0) {
+          xrGeo.setDrawRange(0, xrPtsCount);
+          xrPosAttr.needsUpdate = true;
+          xrColAttr.needsUpdate = true;
+        }
+        xrAiJobsDone++;
+      }
+
+      // Fallback pure WebXR Depth slice if camera-access unavailable or user switches mode
+      function insertRawXRDepthSlice(depthInfo, view, hasColor, scaleMul) {
+        invProj.fromArray((depthInfo.projectionMatrix) || view.projectionMatrix).invert();
+        const isObj = state.scanMode === 'object';
+        const minDist = isObj ? 0.14 : 0.40;
+        const maxDist = isObj ? 1.6 : parseFloat(document.getElementById('rngXrMaxDist').value);
+        const colsN = 40, rowsN = 30, voxInv = isObj ? 100 : 34;
+
+        const dGrid = new Float32Array(colsN * rowsN);
+        for (let r = 0; r < rowsN; r++) {
+          const ny = (r + 0.5) / rowsN;
+          for (let c = 0; c < colsN; c++) {
+            const d = depthInfo.getDepthInMeters((c + 0.5) / colsN, ny);
+            dGrid[r * colsN + c] = (d && d > 0.05) ? d * scaleMul : 0;
+          }
+        }
+        for (let r = 1; r < rowsN - 1; r++) {
+          const ny = (r + 0.5) / rowsN;
+          for (let c = 1; c < colsN - 1; c++) {
+            const nx = (c + 0.5) / colsN, idx = r * colsN + c, distM = dGrid[idx];
+            if (distM < minDist || distM > maxDist) continue;
+            const dl = dGrid[idx - 1], dr = dGrid[idx + 1], du = dGrid[idx - colsN], dd = dGrid[idx + colsN];
+            if (!dl || !dr || !du || !dd) continue;
+            if (Math.abs(distM - dl) / distM > 0.07 || Math.abs(distM - dr) / distM > 0.07 ||
+                Math.abs(distM - du) / distM > 0.07 || Math.abs(distM - dd) / distM > 0.07) continue;
+
+            rayVec.set(2 * nx - 1, 1 - 2 * ny, -1).applyMatrix4(invProj);
+            const iz = -rayVec.z; if (iz <= 1e-4) continue;
+            worldPt.set((rayVec.x / iz) * distM, (rayVec.y / iz) * distM, -distM).applyMatrix4(viewMat);
+
+            let cr, cg, cb;
+            if (hasColor) {
+              const cx = Math.min(fboW - 1, Math.floor(nx * fboW)), cy = Math.min(fboH - 1, Math.floor(ny * fboH));
+              const pIdx = (cy * fboW + cx) * 4;
+              cr = topDownRgba[pIdx] / 255; cg = topDownRgba[pIdx + 1] / 255; cb = topDownRgba[pIdx + 2] / 255;
+            } else {
+              [cr, cg, cb] = depthToHeatColor(1 - Math.min(1, distM / maxDist));
+            }
+            const vx = Math.round(worldPt.x * voxInv), vy = Math.round(worldPt.y * voxInv), vz = Math.round(worldPt.z * voxInv);
+            const key = `${vx},${vy},${vz}`;
+            if (!xrVoxelToIndex.has(key) && xrPtsCount < MAX_XR_PTS) {
+              const p = xrPtsCount++;
+              xrVoxelToIndex.set(key, p); xrHits[p] = 1;
+              xrPositions[p * 3] = worldPt.x; xrPositions[p * 3 + 1] = worldPt.y; xrPositions[p * 3 + 2] = worldPt.z;
+              xrColors[p * 3] = cr; xrColors[p * 3 + 1] = cg; xrColors[p * 3 + 2] = cb;
+            }
+          }
+        }
+        xrGeo.setDrawRange(0, xrPtsCount);
+        xrPosAttr.needsUpdate = true; xrColAttr.needsUpdate = true;
       }
 
       xrSession.addEventListener('end', () => {
         renderer.setAnimationLoop(null);
         renderer.xr.enabled = false;
         gridHelper.visible = true;
-        xrTargetMarker.visible = false;
         document.getElementById('xrOverlay').classList.remove('active');
         document.getElementById('topbar').style.display = 'flex';
+        pipCanvas.style.display = 'none';
         xrSession = null;
         xrHitTestSource = null;
+        ensureDetectorMode('VIDEO');
 
         configureViewerPanels('xr');
         if (xrPtsCount > 0) {
@@ -1735,26 +2102,24 @@
 
           if (state.scanMode === 'object' && xrPtsCount >= 80) {
             buildSurfaceNetsMeshFromXR(1);
-            camera.position.set(0, 0.25, 0.85);
+            camera.position.set(0, 0.25, 0.9);
           } else {
-            camera.position.set(0, 0.6, 2.2);
+            camera.position.set(0, 0.5, 2.0);
           }
           controls.target.set(0, 0, 0);
           controls.update();
           onViewerResize();
           switchTab('viewer');
         } else {
-          // If user exited without scanning points, return to scanner view
           switchTab('scanner');
         }
         startViewerRenderLoop();
       });
 
       renderer.setAnimationLoop((time, frame) => {
-        // Render Three.js XR scene FIRST so XR framebuffer stays untouched during render!
         renderer.render(scene, camera);
-
         if (!frame) return;
+
         const refSpace = renderer.xr.getReferenceSpace();
         const pose = refSpace ? frame.getViewerPose(refSpace) : null;
         if (!pose || pose.views.length === 0) return;
@@ -1765,20 +2130,8 @@
         viewMat.decompose(camPos, camQuat, new THREE.Vector3());
 
         const scaleMul = parseFloat(document.getElementById('rngXrScale').value);
-        const isObjMode = state.scanMode === 'object';
-        const objRadius = parseFloat(document.getElementById('rngXrRadius').value);
-        const objFloorCut = parseFloat(document.getElementById('rngXrFloor').value);
-        const roomMaxDist = parseFloat(document.getElementById('rngXrMaxDist').value);
 
-        if (xrTargetCenter) {
-          xrTargetMarker.visible = isObjMode;
-          markerSphere.scale.setScalar(objRadius / 0.45);
-        }
-
-        if (!depthInfo) return;
-
-        const rawCenterD = getCenterDepthRobust(depthInfo) * scaleMul;
-
+        // Hit-test center distance
         let hitDist = null;
         if (xrHitTestSource) {
           const hits = frame.getHitTestResults(xrHitTestSource);
@@ -1791,157 +2144,108 @@
           }
         }
 
-        if (xrLockRequested) {
-          xrLockRequested = false;
-          const useDist = (hitDist && hitDist > 0.12 && hitDist < 2.5) ? hitDist : rawCenterD;
-          if (useDist > 0.12 && useDist < 2.5) {
-            invProj.fromArray((depthInfo.projectionMatrix) || view.projectionMatrix).invert();
-            rayVec.set(0, 0, -1).applyMatrix4(invProj);
-            const iz = -rayVec.z;
-            xrTargetCenter = new THREE.Vector3((rayVec.x / iz) * useDist, (rayVec.y / iz) * useDist, -useDist).applyMatrix4(viewMat);
-            xrTargetMarker.position.copy(xrTargetCenter);
-            xrTargetMarker.visible = true;
-            showToast(`🎯 物体ロック (${useDist.toFixed(2)}m)`);
-          } else {
-            showToast('物体にもう少し近づいてロックしてください');
-          }
+        // Center ARCore depth
+        let xrCenterD = 0;
+        if (depthInfo) {
+          xrCenterD = depthInfo.getDepthInMeters(0.5, 0.5) || 0;
         }
 
-        const movedDist = hasLastCapPose ? camPos.distanceTo(lastCapCamPos) : 999;
-        const rotatedDeg = hasLastCapPose ? THREE.MathUtils.radToDeg(camQuat.angleTo(lastCapCamQuat)) : 999;
-        const warmedUp = (time - sessionStartTime) > 650;
-        const depthTypeStr = xrSession.depthType ? xrSession.depthType.toUpperCase() : 'DEPTH';
-
+        // Update HUD status
         if (time - lastHudUpdate > 160) {
           lastHudUpdate = time;
-          const moveTip = movedDist >= 0.025 ? '<span class="ok">視差OK</span>' : '<span class="warn">横移動で精度UP</span>';
-          const lockInfo = isObjMode
-            ? (xrTargetCenter ? '<span class="ok">対象ロック中</span>' : '<span class="warn">未ロック</span>')
-            : '<span class="ok">部屋モード</span>';
-          const hitStr = hitDist ? ` | Hit:${hitDist.toFixed(2)}m` : '';
+          const aiTxt = state.aiReady
+            ? (xrAiBusy ? '<span class="warn">AI解析中...</span>' : `<span class="ok">AI準備OK(${state.aiBackend})</span>`)
+            : `<span class="warn">AI読込${state.aiProgress}%</span>`;
+          const lockTxt = xrLockedTarget ? `<span class="ok">🎯${xrLockedTarget.label}</span>` : '全体/タップで切抜';
+          const distStr = hitDist ? `${hitDist.toFixed(2)}m(Hit)` : (xrCenterD > 0 ? `${xrCenterD.toFixed(2)}m` : '--');
           document.getElementById('xrStatus').innerHTML =
-            `<strong>${depthTypeStr}</strong> 中央: <strong>${rawCenterD > 0 ? rawCenterD.toFixed(2) + 'm' : '不明'}</strong>${hitStr}<br>` +
-            `${lockInfo} | ${moveTip} | 点数: <strong>${xrPtsCount.toLocaleString()}</strong>`;
+            `${aiTxt} | 基準: <strong>${distStr}</strong><br>` +
+            `${lockTxt} | 回数:${xrAiJobsDone} | 点:<strong>${xrPtsCount.toLocaleString()}</strong>`;
         }
 
-        const shouldRecord = xrPendingSnap || (
-          xrAutoCapture && warmedUp && (time - lastCapTime > 120) && (movedDist >= 0.028 || rotatedDeg >= 8.0)
-        );
+        // Periodic MediaPipe Object Detection on AR Camera Image (~350ms)
+        const needCamRead = (time - lastDetTime > 360) || xrPendingSnap || (xrAutoCapture && !xrAiBusy);
+        let hasCamPixels = false;
+        if (needCamRead) {
+          hasCamPixels = grabUprightCameraPixels(view);
+          if (hasCamPixels) {
+            mpCtx.putImageData(new ImageData(topDownRgba, fboW, fboH), 0, 0);
+            if (pipCanvas.style.display !== 'block') pipCanvas.style.display = 'block';
+            pipCtx.drawImage(mpCanvas, 0, 0, pipCanvas.width, pipCanvas.height);
 
-        if (shouldRecord && xrPtsCount < MAX_XR_PTS - 1500) {
+            if (time - lastDetTime > 360 && state.detector && state.detectorMode === 'IMAGE') {
+              lastDetTime = time;
+              try {
+                const res = state.detector.detect(mpCanvas);
+                xrDetections = (res.detections || []).map(d => {
+                  const cat = d.categories?.[0] || { categoryName: 'object', score: 0.5 };
+                  const b = d.boundingBox;
+                  return {
+                    label: cat.categoryName, score: cat.score,
+                    boxNorm: {
+                      xmin: Math.max(0, b.originX / fboW), ymin: Math.max(0, b.originY / fboH),
+                      xmax: Math.min(1, (b.originX + b.width) / fboW), ymax: Math.min(1, (b.originY + b.height) / fboH)
+                    }
+                  };
+                });
+                drawXROverlayHUD();
+              } catch (e) {}
+            }
+          }
+        }
+
+        // Check if we should trigger Hybrid AI Scan (or Raw Depth fallback)
+        const movedDist = hasLastCapPose ? camPos.distanceTo(lastCapCamPos) : 999;
+        const rotatedDeg = hasLastCapPose ? THREE.MathUtils.radToDeg(camQuat.angleTo(lastCapCamQuat)) : 999;
+        const motionReady = movedDist >= 0.10 || rotatedDeg >= 14.0;
+        const triggerScan = xrPendingSnap || (xrAutoCapture && !xrAiBusy && motionReady && (time - lastScanTriggerTime > 450));
+
+        if (triggerScan) {
           xrPendingSnap = false;
-          lastCapTime = time;
-          lastCapCamPos.copy(camPos);
-          lastCapCamQuat.copy(camQuat);
-          hasLastCapPose = true;
-
-          // Safely read camera image while preserving current GL framebuffer binding
-          let hasColor = false;
-          if (glBinding && view.camera) {
-            const prevReadFbo = gl.getParameter(gl.READ_FRAMEBUFFER_BINDING);
-            const prevDrawFbo = gl.getParameter(gl.DRAW_FRAMEBUFFER_BINDING);
-            try {
-              const camTex = glBinding.getCameraImage(view.camera);
-              if (camTex) {
-                gl.bindFramebuffer(gl.READ_FRAMEBUFFER, srcFbo);
-                gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, camTex, 0);
-                gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, dstFbo);
-                gl.blitFramebuffer(0, 0, view.camera.width, view.camera.height, 0, 0, dw, dh, gl.COLOR_BUFFER_BIT, gl.LINEAR);
-                gl.bindFramebuffer(gl.READ_FRAMEBUFFER, dstFbo);
-                gl.readPixels(0, 0, dw, dh, gl.RGBA, gl.UNSIGNED_BYTE, camPixels);
-                hasColor = true;
+          if (!state.xrUseHybridAI || !hasCamPixels || !state.aiReady) {
+            if (depthInfo) {
+              if (!state.aiReady && state.xrUseHybridAI) {
+                showToast(`AI準備中のため暫定AR深度で記録 (AI ${state.aiProgress}%)`, 1500);
               }
-            } catch (e) {} finally {
-              gl.bindFramebuffer(gl.READ_FRAMEBUFFER, prevReadFbo);
-              gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, prevDrawFbo);
-              renderer.resetState();
+              insertRawXRDepthSlice(depthInfo, view, hasCamPixels, scaleMul);
+              lastCapCamPos.copy(camPos); lastCapCamQuat.copy(camQuat); hasLastCapPose = true;
             }
-          }
+          } else if (!xrAiBusy) {
+            xrAiBusy = true;
+            lastScanTriggerTime = time;
+            lastCapCamPos.copy(camPos); lastCapCamQuat.copy(camQuat); hasLastCapPose = true;
 
-          invProj.fromArray((depthInfo.projectionMatrix) || view.projectionMatrix).invert();
-          const minDist = isObjMode ? 0.14 : 0.35;
-          const maxDist = isObjMode ? (xrTargetCenter ? 2.4 : 1.55) : roomMaxDist;
-          const colsN = isObjMode ? 52 : 42, rowsN = isObjMode ? 40 : 32;
-          const voxInv = isObjMode ? 110 : 33;
-
-          const dGrid = new Float32Array(colsN * rowsN);
-          for (let r = 0; r < rowsN; r++) {
-            const ny = (r + 0.5) / rowsN;
-            for (let c = 0; c < colsN; c++) {
-              const nx = (c + 0.5) / colsN;
-              const d = depthInfo.getDepthInMeters(nx, ny);
-              dGrid[r * colsN + c] = (d && d > 0.05) ? d * scaleMul : 0;
-            }
-          }
-
-          let added = 0;
-          for (let r = 1; r < rowsN - 1; r++) {
-            const ny = (r + 0.5) / rowsN;
-            for (let c = 1; c < colsN - 1; c++) {
-              const nx = (c + 0.5) / colsN;
-              const idx = r * colsN + c;
-              const distM = dGrid[idx];
-              if (distM < minDist || distM > maxDist) continue;
-
-              const dl = dGrid[idx - 1], dr = dGrid[idx + 1], du = dGrid[idx - colsN], dd = dGrid[idx + colsN];
-              if (!dl || !dr || !du || !dd) continue;
-              const maxRelJump = isObjMode ? 0.08 : 0.11;
-              if (Math.abs(distM - dl) / distM > maxRelJump || Math.abs(distM - dr) / distM > maxRelJump ||
-                  Math.abs(distM - du) / distM > maxRelJump || Math.abs(distM - dd) / distM > maxRelJump) continue;
-
-              rayVec.set(2 * nx - 1, 1 - 2 * ny, -1).applyMatrix4(invProj);
-              const invZ = -rayVec.z;
-              if (invZ <= 1e-4) continue;
-              worldPt.set((rayVec.x / invZ) * distM, (rayVec.y / invZ) * distM, -distM).applyMatrix4(viewMat);
-
-              if (isObjMode && xrTargetCenter) {
-                if (worldPt.distanceTo(xrTargetCenter) > objRadius) continue;
-                if (worldPt.y < xrTargetCenter.y + objFloorCut) continue;
-              }
-
-              let cr, cg, cb;
-              if (hasColor) {
-                const cx = Math.min(dw - 1, Math.floor(nx * dw));
-                const cy = Math.min(dh - 1, Math.floor((1 - ny) * dh));
-                const pIdx = (cy * dw + cx) * 4;
-                cr = camPixels[pIdx] / 255; cg = camPixels[pIdx + 1] / 255; cb = camPixels[pIdx + 2] / 255;
-              } else {
-                [cr, cg, cb] = depthToHeatColor(1 - Math.min(1, distM / maxDist));
-              }
-
-              const vx = Math.round(worldPt.x * voxInv), vy = Math.round(worldPt.y * voxInv), vz = Math.round(worldPt.z * voxInv);
-              const key = `${vx},${vy},${vz}`;
-              const existingIdx = xrVoxelToIndex.get(key);
-
-              if (existingIdx !== undefined) {
-                const h = Math.min(254, xrHits[existingIdx] + 1);
-                xrHits[existingIdx] = h;
-                const w = 1 / h;
-                xrPositions[existingIdx * 3] += (worldPt.x - xrPositions[existingIdx * 3]) * w;
-                xrPositions[existingIdx * 3 + 1] += (worldPt.y - xrPositions[existingIdx * 3 + 1]) * w;
-                xrPositions[existingIdx * 3 + 2] += (worldPt.z - xrPositions[existingIdx * 3 + 2]) * w;
-                xrColors[existingIdx * 3] += (cr - xrColors[existingIdx * 3]) * w;
-                xrColors[existingIdx * 3 + 1] += (cg - xrColors[existingIdx * 3 + 1]) * w;
-                xrColors[existingIdx * 3 + 2] += (cb - xrColors[existingIdx * 3 + 2]) * w;
-              } else if (xrPtsCount < MAX_XR_PTS) {
-                const p = xrPtsCount++;
-                xrVoxelToIndex.set(key, p);
-                xrHits[p] = 1;
-                xrPositions[p * 3] = worldPt.x;
-                xrPositions[p * 3 + 1] = worldPt.y;
-                xrPositions[p * 3 + 2] = worldPt.z;
-                xrColors[p * 3] = cr;
-                xrColors[p * 3 + 1] = cg;
-                xrColors[p * 3 + 2] = cb;
-                added++;
+            // Collect 7x7 ARCore depth samples for scale calibration (excluding sharp depth jumps)
+            const depthSamples = [];
+            if (depthInfo) {
+              for (let sy = 1; sy <= 7; sy++) {
+                for (let sx = 1; sx <= 7; sx++) {
+                  const nx = sx / 8, ny = sy / 8;
+                  const d = depthInfo.getDepthInMeters(nx, ny);
+                  if (d > 0.20 && d < 6.5) depthSamples.push({ nx, ny, xrDistM: d });
+                }
               }
             }
-          }
 
-          if (added > 0 || xrPtsCount > 0) {
-            xrGeo.setDrawRange(0, xrPtsCount);
-            xrPosAttr.needsUpdate = true;
-            xrColAttr.needsUpdate = true;
+            // Latch exact pose, projection matrix, and RGBA snapshot!
+            const latch = {
+              gw: fboW, gh: fboH,
+              rgbaCopy: new Uint8ClampedArray(topDownRgba),
+              capturedViewMat: viewMat.clone(),
+              capturedProjMat: new Float32Array((depthInfo?.projectionMatrix) || view.projectionMatrix),
+              depthSamples,
+              hitDist,
+              scaleMul,
+              targetSnap: xrLockedTarget ? JSON.parse(JSON.stringify(xrLockedTarget)) : null,
+              scanModeSnap: state.scanMode
+            };
+
+            inferDepth(latch.rgbaCopy, fboW, fboH)
+              .then(aiRes => {
+                if (xrSession) insertHybridAISlice(aiRes, latch);
+              })
+              .catch(err => console.warn('Hybrid AI depth err:', err))
+              .finally(() => { xrAiBusy = false; });
           }
         }
       });
@@ -1952,25 +2256,28 @@
     document.getElementById('btnXrSwitchMode').addEventListener('click', () => {
       setScanMode(state.scanMode === 'object' ? 'room' : 'object');
     });
-    document.getElementById('btnXrLockTarget').addEventListener('click', () => { xrLockRequested = true; });
+    document.getElementById('btnXrSourceMode').addEventListener('click', (e) => {
+      state.xrUseHybridAI = !state.xrUseHybridAI;
+      e.target.classList.toggle('on', state.xrUseHybridAI);
+      e.target.textContent = state.xrUseHybridAI ? '🧠 AI深度+AR融合' : '⚡ 高速AR深度のみ';
+    });
     document.getElementById('btnXrSnapShot').addEventListener('click', () => { xrPendingSnap = true; });
     document.getElementById('btnXrToggleCapture').addEventListener('click', (e) => {
       xrAutoCapture = !xrAutoCapture;
       e.target.classList.toggle('recording', xrAutoCapture);
-      e.target.textContent = xrAutoCapture ? '⏺ 自動記録中' : '▶ 自動記録を開始';
+      e.target.textContent = xrAutoCapture ? '⏺ 自動AIスキャン中' : '▶ 移動で自動AIスキャン';
     });
     document.getElementById('btnXrClear').addEventListener('click', () => {
-      resetXRCloudData(); xrTargetCenter = null; xrTargetMarker.visible = false;
-      showToast('点群をリセットしました');
+      resetXRCloudData(); xrLockedWorldPos = null; xrAiJobsDone = 0;
+      showToast('点群をクリアしました');
     });
     document.getElementById('btnXrFinish').addEventListener('click', () => {
       if (xrSession) xrSession.end();
     });
 
-    ['rngXrRadius', 'rngXrFloor', 'rngXrMaxDist', 'rngXrScale'].forEach(id => {
+    ['rngXrRadius', 'rngXrMaxDist', 'rngXrScale'].forEach(id => {
       document.getElementById(id).addEventListener('input', () => {
         document.getElementById('valXrRadius').textContent = document.getElementById('rngXrRadius').value + 'm';
-        document.getElementById('valXrFloor').textContent = document.getElementById('rngXrFloor').value + 'm';
         document.getElementById('valXrMaxDist').textContent = document.getElementById('rngXrMaxDist').value + 'm';
         document.getElementById('valXrScale').textContent = parseFloat(document.getElementById('rngXrScale').value).toFixed(2) + 'x';
       });
@@ -2014,7 +2321,7 @@
 
     document.getElementById('rngMinHits').addEventListener('input', (e) => {
       const mh = parseInt(e.target.value, 10);
-      document.getElementById('valMinHits').textContent = `${mh}回以上`;
+      document.getElementById('valMinHits').textContent = mh === 1 ? 'すべて' : `${mh}回以上`;
       if (state.viewMode === 'xr' && state.xrBuiltMesh) buildSurfaceNetsMeshFromXR(mh);
     });
 
@@ -2069,7 +2376,7 @@
       const exporter = new GLTFExporter();
       const glb = await exporter.parseAsync(grp, { binary: true });
       if (temp) clearGroup(grp);
-      downloadBlob(new Blob([glb], { type: 'model/gltf-binary' }), `lidar-${state.scanMode}-${Date.now()}.glb`);
+      downloadBlob(new Blob([glb], { type: 'model/gltf-binary' }), `lidar-hybrid-${state.scanMode}-${Date.now()}.glb`);
       showToast('GLBを保存しました！');
     });
 
@@ -2104,7 +2411,7 @@
         ...(faces.length ? [`element face ${faces.length}`, 'property list uchar int vertex_indices'] : []),
         'end_header'
       ].join('\n');
-      downloadBlob(new Blob([hdr + '\n' + verts.join('\n') + (faces.length ? '\n' + faces.join('\n') : '')], { type: 'text/plain' }), `lidar-${state.scanMode}-${Date.now()}.ply`);
+      downloadBlob(new Blob([hdr + '\n' + verts.join('\n') + (faces.length ? '\n' + faces.join('\n') : '')], { type: 'text/plain' }), `lidar-hybrid-${state.scanMode}-${Date.now()}.ply`);
       showToast('PLYを保存しました！');
     });
 
