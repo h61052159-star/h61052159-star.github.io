@@ -1,1054 +1,1319 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>リアルタイム怒り度チェッカー</title>
-  <style>
-    :root {
-      --bg: #0f172a;
-      --card: #1e293b;
-      --border: #334155;
-      --text: #f8fafc;
-      --muted: #94a3b8;
-      --accent: #38bdf8;
-      --low: #22c55e;
-      --mid: #eab308;
-      --high: #f97316;
-      --rage: #ef4444;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>EAR TUNE - ギター耳チューニングゲーム</title>
+<style>
+  :root {
+    --bg: #14110f;
+    --panel: #1f1a17;
+    --panel-border: #382e27;
+    --gold: #d9a05b;
+    --gold-bright: #f5c378;
+    --text: #f3ece4;
+    --muted: #a39587;
+    --good: #4ade80;
+    --warn: #fbbf24;
+    --bad: #f87171;
+  }
 
-    * { box-sizing: border-box; }
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
 
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.5;
-      padding: 20px;
-    }
+  body {
+    margin: 0;
+    padding: 12px;
+    background: radial-gradient(circle at top, #261e19 0%, var(--bg) 70%);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
 
-    .container {
-      max-width: 960px;
-      margin: 0 auto;
-    }
+  .app {
+    width: 100%;
+    max-width: 520px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
 
-    header {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+  }
 
-    h1 {
-      margin: 0;
-      font-size: 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+  .title-wrap h1 {
+    margin: 0;
+    font-size: 1.05rem;
+    letter-spacing: 0.04em;
+    color: var(--gold-bright);
+  }
 
-    .controls {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
+  .title-wrap p {
+    margin: 2px 0 0;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
 
-    button {
-      border: none;
-      border-radius: 8px;
-      padding: 10px 18px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.1s, opacity 0.2s;
-    }
+  .header-actions {
+    display: flex;
+    gap: 6px;
+  }
 
-    button:active { transform: scale(0.97); }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    transition: transform 0.08s, background 0.15s, opacity 0.15s;
+  }
 
-    .btn-start { background: var(--accent); color: #0f172a; }
-    .btn-stop { background: #ef4444; color: white; }
-    .btn-demo { background: #475569; color: white; }
+  button:active {
+    transform: scale(0.95);
+  }
 
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
+  .btn-secondary {
+    background: #2f2722;
+    color: var(--text);
+    border: 1px solid #473b33;
+    padding: 7px 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
 
-    @media (max-width: 768px) {
-      .grid { grid-template-columns: 1fr; }
-    }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--gold), #b87c38);
+    color: #1a120b;
+    padding: 7px 12px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    box-shadow: 0 2px 8px rgba(217, 160, 91, 0.3);
+  }
 
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 18px;
-    }
+  .controls-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 8px 10px;
+  }
 
-    .card.full { grid-column: 1 / -1; }
+  .mode-tabs {
+    display: flex;
+    gap: 4px;
+    background: #14110f;
+    padding: 3px;
+    border-radius: 8px;
+    flex: 1 1 auto;
+  }
 
-    .card-title {
-      font-size: 0.9rem;
-      color: var(--muted);
-      margin: 0 0 12px 0;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+  .mode-btn {
+    flex: 1;
+    background: transparent;
+    color: var(--muted);
+    padding: 5px 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
 
-    /* メインメーター */
-    .meter-wrap {
-      display: flex;
-      align-items: center;
-      gap: 24px;
-      flex-wrap: wrap;
-    }
+  .mode-btn.active {
+    background: #332a24;
+    color: var(--gold-bright);
+  }
 
-    .score-circle {
-      width: 150px;
-      height: 150px;
-      border-radius: 50%;
-      background: conic-gradient(var(--low) 0deg, var(--border) 0deg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      flex-shrink: 0;
-      transition: background 0.15s ease;
-    }
+  .toggles-row {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+  }
 
-    .score-circle-inner {
-      width: 120px;
-      height: 120px;
-      border-radius: 50%;
-      background: var(--card);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
+  .toggle-pill {
+    background: #2a221d;
+    color: var(--muted);
+    border: 1px solid #3f342c;
+    padding: 5px 9px;
+    font-size: 0.72rem;
+    border-radius: 20px;
+  }
 
-    .score-value {
-      font-size: 2.3rem;
-      font-weight: 800;
-      line-height: 1;
-    }
+  .toggle-pill.active {
+    background: #3d3025;
+    color: var(--gold-bright);
+    border-color: var(--gold);
+  }
 
-    .score-unit {
-      font-size: 0.75rem;
-      color: var(--muted);
-      margin-top: 4px;
-    }
+  .ref-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: #1b1714;
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 0.78rem;
+  }
 
-    .status-info {
-      flex: 1;
-      min-width: 220px;
-    }
+  .ref-info {
+    color: var(--muted);
+    line-height: 1.3;
+  }
 
-    .status-label {
-      font-size: 1.5rem;
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
+  .ref-info strong {
+    color: var(--text);
+  }
 
-    .status-desc {
-      color: var(--muted);
-      font-size: 0.92rem;
-      margin-bottom: 12px;
-    }
+  .ref-buttons {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
 
-    .peak-badge {
-      display: inline-block;
-      background: rgba(255, 255, 255, 0.07);
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 0.85rem;
-    }
+  .btn-ref {
+    background: #2b3847;
+    color: #bae6fd;
+    border: 1px solid #3d5269;
+    padding: 7px 11px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    border-radius: 8px;
+  }
 
-    /* 内訳バー */
-    .factor { margin-bottom: 12px; }
-    .factor:last-child { margin-bottom: 0; }
+  .btn-ref.playing {
+    background: #0284c7;
+    color: #fff;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+  }
 
-    .factor-head {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.88rem;
-      margin-bottom: 4px;
-    }
+  .guitar-stage {
+    position: relative;
+    width: 100%;
+    background: linear-gradient(180deg, #1b1613 0%, #110d0b 100%);
+    border: 1px solid var(--panel-border);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.6);
+  }
 
-    .bar-bg {
-      height: 10px;
-      background: #0f172a;
-      border-radius: 999px;
-      overflow: hidden;
-    }
+  svg#guitarSvg {
+    display: block;
+    width: 100%;
+    height: auto;
+    touch-action: none;
+  }
 
-    .bar-fill {
-      height: 100%;
-      width: 0%;
-      background: var(--accent);
-      border-radius: 999px;
-      transition: width 0.12s ease, background-color 0.2s ease;
-    }
+  /* Peg Overlay Controls */
+  .peg-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
 
-    /* 波形キャンバス */
-    canvas {
-      width: 100%;
-      height: 120px;
-      background: #0b1120;
-      border-radius: 10px;
-      display: block;
-    }
+  .peg-unit {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    pointer-events: auto;
+  }
 
-    .audio-stats {
-      display: flex;
-      gap: 16px;
-      margin-top: 10px;
-      font-size: 0.82rem;
-      color: var(--muted);
-      flex-wrap: wrap;
-    }
+  .peg-unit.left {
+    flex-direction: row;
+  }
 
-    /* 発話ログ */
-    .transcript-box {
-      background: #0b1120;
-      border-radius: 10px;
-      padding: 12px;
-      min-height: 110px;
-      max-height: 220px;
-      overflow-y: auto;
-      font-size: 0.95rem;
-    }
+  .peg-unit.right {
+    flex-direction: row-reverse;
+  }
 
-    .transcript-interim {
-      color: var(--muted);
-      font-style: italic;
-    }
+  .peg-step-col {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
 
-    .log-entry {
-      margin-bottom: 8px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-    }
+  .peg-step-btn {
+    width: 26px;
+    height: 22px;
+    border-radius: 6px;
+    background: #2b231e;
+    border: 1px solid #4a3d34;
+    color: var(--text);
+    font-size: 0.85rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+  }
 
-    .tag-angry {
-      background: rgba(239, 68, 68, 0.28);
-      color: #fca5a5;
-      padding: 1px 5px;
-      border-radius: 4px;
-      font-weight: 600;
-      margin: 0 1px;
-    }
+  .peg-step-btn:hover {
+    background: #3b3029;
+  }
 
-    /* 設定スライダー */
-    .settings-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-      font-size: 0.88rem;
-    }
+  .peg-knob {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #e7e5e4, #a8a29e 60%, #57534e 100%);
+    border: 2px solid #292524;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.6), inset 0 1px 2px rgba(255,255,255,0.6);
+    cursor: ns-resize;
+    touch-action: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-    input[type="range"] {
-      accent-color: var(--accent);
-    }
+  .peg-knob.selected {
+    box-shadow: 0 0 0 2px var(--gold-bright), 0 4px 12px rgba(217, 160, 91, 0.45);
+  }
 
-    .note {
-      margin-top: 14px;
-      font-size: 0.8rem;
-      color: var(--muted);
-    }
-  </style>
+  .peg-wing {
+    position: absolute;
+    width: 40px;
+    height: 12px;
+    border-radius: 6px;
+    background: linear-gradient(180deg, #fafaf9 0%, #a8a29e 50%, #78716c 100%);
+    border: 1px solid #44403c;
+    pointer-events: none;
+  }
+
+  .peg-dot {
+    position: absolute;
+    top: 4px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #b45309;
+  }
+
+  .peg-label {
+    position: absolute;
+    bottom: -16px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--muted);
+    background: rgba(20, 17, 15, 0.85);
+    padding: 1px 5px;
+    border-radius: 4px;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .peg-unit.selected .peg-label {
+    color: var(--gold-bright);
+  }
+
+  .practice-badge {
+    position: absolute;
+    top: -15px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: #14110f;
+    border: 1px solid #44403c;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .footer-hint {
+    text-align: center;
+    font-size: 0.72rem;
+    color: var(--muted);
+    padding: 4px 8px;
+    line-height: 1.4;
+  }
+
+  /* Result Modal */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 8, 7, 0.82);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 100;
+  }
+
+  .modal-backdrop.open {
+    display: flex;
+  }
+
+  .modal {
+    width: 100%;
+    max-width: 420px;
+    background: #1f1a17;
+    border: 1px solid var(--gold);
+    border-radius: 16px;
+    padding: 18px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75);
+  }
+
+  .modal-header {
+    text-align: center;
+    margin-bottom: 12px;
+  }
+
+  .rank-badge {
+    display: inline-block;
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--gold-bright);
+    line-height: 1;
+  }
+
+  .score-text {
+    font-size: 0.9rem;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .result-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .result-row {
+    display: grid;
+    grid-template-columns: 44px 1fr 78px 66px;
+    align-items: center;
+    gap: 8px;
+    background: #15110f;
+    padding: 7px 10px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+  }
+
+  .meter-track {
+    height: 8px;
+    background: #2b231e;
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .meter-center {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #78716c;
+    transform: translateX(-50%);
+  }
+
+  .meter-dot {
+    position: absolute;
+    top: 1px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    transform: translateX(-50%);
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .modal-actions button {
+    flex: 1;
+    padding: 10px;
+    font-size: 0.84rem;
+  }
+</style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>🤬 リアルタイム怒り度チェッカー</h1>
-      <div class="controls">
-        <button id="startBtn" class="btn-start">🎤 マイク解析を開始</button>
-        <button id="stopBtn" class="btn-stop" disabled>⏹ 停止</button>
-        <button id="demoBtn" class="btn-demo">🧪 テキスト単体テスト</button>
-      </div>
-    </header>
 
-    <div class="grid">
-      <!-- 総合スコア -->
-      <div class="card full">
-        <div class="card-title">
-          <span>総合怒り度判定</span>
-          <span id="speechSupportBadge">音声認識: 待機中</span>
-        </div>
-        <div class="meter-wrap">
-          <div class="score-circle" id="scoreCircle">
-            <div class="score-circle-inner">
-              <div class="score-value" id="totalScore">0%</div>
-              <div class="score-unit">ANGER LEVEL</div>
-            </div>
-          </div>
-          <div class="status-info">
-            <div class="status-label" id="statusLabel">😐 待機中</div>
-            <div class="status-desc" id="statusDesc">「マイク解析を開始」を押して話しかけてください。声の大きさ・鋭さ・話速・言葉の内容から怒り度を推定します。</div>
-            <span class="peak-badge">最大記録: <strong id="peakScore">0%</strong></span>
-          </div>
-        </div>
-      </div>
+<div class="app">
+  <header>
+    <div class="title-wrap">
+      <h1>🎸 EAR TUNE</h1>
+      <p>耳だけで合わせるギターチューニング</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-secondary" id="shuffleBtn">シャッフル</button>
+      <button class="btn-primary" id="checkBtn">判定する</button>
+    </div>
+  </header>
 
-      <!-- 要素別内訳 -->
-      <div class="card">
-        <div class="card-title">怒りの構成要素</div>
-
-        <div class="factor">
-          <div class="factor-head">
-            <span>🔊 声の大きさ（音量）</span>
-            <span id="valVolume">0%</span>
-          </div>
-          <div class="bar-bg"><div class="bar-fill" id="barVolume"></div></div>
-        </div>
-
-        <div class="factor">
-          <div class="factor-head">
-            <span>⚡ 声の鋭さ・張り詰め（高周波/ピッチ）</span>
-            <span id="valTension">0%</span>
-          </div>
-          <div class="bar-bg"><div class="bar-fill" id="barTension"></div></div>
-        </div>
-
-        <div class="factor">
-          <div class="factor-head">
-            <span>💨 勢い・まくし立て（急変/話速）</span>
-            <span id="valEnergy">0%</span>
-          </div>
-          <div class="bar-bg"><div class="bar-fill" id="barEnergy"></div></div>
-        </div>
-
-        <div class="factor">
-          <div class="factor-head">
-            <span>💬 言葉の攻撃性・否定・侮辱表現</span>
-            <span id="valText">0%</span>
-          </div>
-          <div class="bar-bg"><div class="bar-fill" id="barText"></div></div>
-        </div>
-      </div>
-
-      <!-- 音声波形・音響データ -->
-      <div class="card">
-        <div class="card-title">リアルタイム音声波形</div>
-        <canvas id="waveCanvas" width="420" height="120"></canvas>
-        <div class="audio-stats">
-          <span>音量(dB相当): <strong id="statDb">-∞</strong></span>
-          <span>推定ピッチ: <strong id="statPitch">--- Hz</strong></span>
-          <span>鋭さ(重心): <strong id="statCentroid">--- Hz</strong></span>
-        </div>
-      </div>
-
-      <!-- 文字起こし＆言語分析 -->
-      <div class="card full">
-        <div class="card-title">
-          <span>喋っている内容の解析</span>
-          <button id="clearLogBtn" style="padding:4px 10px;font-size:0.75rem;background:#334155;color:#f8fafc;">履歴クリア</button>
-        </div>
-        <div class="transcript-box" id="transcriptBox">
-          <div style="color: var(--muted);">ここに認識された会話内容と、検出された攻撃的・怒り表現が表示されます。</div>
-        </div>
-      </div>
-
-      <!-- 感度設定 -->
-      <div class="card full">
-        <div class="card-title">マイク感度調整</div>
-        <div class="settings-row">
-          <label for="sensitivityRange">マイク感度倍率:</label>
-          <input type="range" id="sensitivityRange" min="0.5" max="3.0" step="0.1" value="1.2" />
-          <span id="sensitivityVal">1.2x</span>
-          <span style="color:var(--muted);">（静かな部屋で反応が鈍い場合は上げ、騒がしい環境では下げてください）</span>
-        </div>
-        <p class="note">
-          ※ マイク入力および音声認識（Web Speech API）を利用するため、Chrome / Edge 等のブラウザで <code>https://</code> または <code>localhost</code> 環境での実行を推奨します。音声データはブラウザ内のみで処理されます（Web Speech APIの標準処理を除く）。
-        </p>
-      </div>
+  <div class="controls-bar">
+    <div class="mode-tabs" id="modeTabs">
+      <button class="mode-btn active" data-mode="easy">お手本あり</button>
+      <button class="mode-btn" data-mode="fret5">5F相対法</button>
+      <button class="mode-btn" data-mode="master">A440音叉</button>
+    </div>
+    <div class="toggles-row">
+      <button class="toggle-pill" id="fineToggle">微調整モード: OFF</button>
+      <button class="toggle-pill" id="timbreToggle">音色: アコギ</button>
+      <button class="toggle-pill" id="muteBtn">🔇 消音</button>
     </div>
   </div>
 
-  <script>
-    // ====== 怒り・罵倒・攻撃表現キーワード辞書 ======
-    const ANGER_KEYWORDS = [
-  // ==========================================
-  // 1. 強い怒り・暴力・排除・脅し系 (weight: 35〜55)
-  // ==========================================
-  { word: "死ね", weight: 55 }, { word: "しね", weight: 50 }, { word: "死んで", weight: 40 },
-  { word: "死ねよ", weight: 55 }, { word: "くたばれ", weight: 52 }, { word: "くたばりやがれ", weight: 55 },
-  { word: "自殺", weight: 48 }, { word: "殺す", weight: 55 }, { word: "ころす", weight: 50 },
-  { word: "ぶっ殺す", weight: 55 }, { word: "殺すぞ", weight: 55 }, { word: "殺してやる", weight: 55 },
-  { word: "消えろ", weight: 45 }, { word: "きえろ", weight: 45 }, { word: "消え失せろ", weight: 48 },
-  { word: "失せろ", weight: 45 }, { word: "うせろ", weight: 45 }, { word: "どけ", weight: 32 },
-  { word: "引っ込め", weight: 32 }, { word: "引っ込んでろ", weight: 35 }, { word: "地獄に落ちろ", weight: 48 },
-  { word: "ぶっ飛ばす", weight: 45 }, { word: "ぶっ潰す", weight: 45 }, { word: "叩き潰す", weight: 42 },
-  { word: "殴る", weight: 35 }, { word: "殴るぞ", weight: 42 }, { word: "蹴る", weight: 32 },
-  { word: "潰す", weight: 34 }, { word: "ボコボコ", weight: 36 }, { word: "半殺し", weight: 48 },
-  { word: "表出ろ", weight: 40 }, { word: "表に出ろ", weight: 40 }, { word: "覚悟しろ", weight: 38 },
+  <div class="ref-bar">
+    <div class="ref-info" id="refInfo">
+      <strong>選択中: 6弦 (E2)</strong><br>
+      お手本と聴き比べてペグを回そう
+    </div>
+    <div class="ref-buttons">
+      <button class="btn-ref" id="playRefBtn">🔊 お手本を鳴らす</button>
+    </div>
+  </div>
 
-  // ==========================================
-  // 2. 激昂・喧嘩言葉・汚い罵倒 (weight: 30〜48)
-  // ==========================================
-  { word: "ふざけんな", weight: 42 }, { word: "ふざけるな", weight: 42 }, { word: "ざけんな", weight: 42 },
-  { word: "巫山戯るな", weight: 42 }, { word: "なめんな", weight: 42 }, { word: "なめるな", weight: 42 },
-  { word: "舐めんな", weight: 42 }, { word: "舐めるな", weight: 42 }, { word: "なめてんのか", weight: 44 },
-  { word: "舐めてんのか", weight: 44 }, { word: "いい加減にしろ", weight: 40 }, { word: "いい加減にして", weight: 32 },
-  { word: "くそったれ", weight: 48 }, { word: "クソッタレ", weight: 48 }, { word: "くそ", weight: 35 },
-  { word: "クソ", weight: 35 }, { word: "糞", weight: 35 }, { word: "ちくしょう", weight: 36 },
-  { word: "畜生", weight: 36 }, { word: "こんちくしょう", weight: 40 }, { word: "この野郎", weight: 42 },
-  { word: "野郎", weight: 30 }, { word: "馬鹿野郎", weight: 44 }, { word: "バカヤロウ", weight: 44 },
-  { word: "ばかやろう", weight: 44 }, { word: "アホんだら", weight: 40 }, { word: "ボケナス", weight: 40 },
-  { word: "てめえ", weight: 42 }, { word: "てめぇ", weight: 42 }, { word: "てめー", weight: 42 },
-  { word: "貴様", weight: 40 }, { word: "お前", weight: 20 }, { word: "おまえ", weight: 20 },
-  { word: "黙れ", weight: 38 }, { word: "だまれ", weight: 38 }, { word: "口を閉じろ", weight: 35 },
-  { word: "うるさい", weight: 30 }, { word: "うるせえ", weight: 38 }, { word: "うるせぇ", weight: 38 },
-  { word: "うるせー", weight: 38 }, { word: "うっせえ", weight: 38 }, { word: "うっせぇ", weight: 38 },
-  { word: "知らねえ", weight: 32 }, { word: "知らねぇ", weight: 32 }, { word: "知ったこっちゃない", weight: 30 },
+  <div class="guitar-stage" id="guitarStage">
+    <svg id="guitarSvg" viewBox="0 0 420 520" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="headWood" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#3b261a"/>
+          <stop offset="50%" stop-color="#271810"/>
+          <stop offset="100%" stop-color="#190f0a"/>
+        </linearGradient>
+        <linearGradient id="neckWood" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#241710"/>
+          <stop offset="50%" stop-color="#332117"/>
+          <stop offset="100%" stop-color="#241710"/>
+        </linearGradient>
+        <linearGradient id="bodyWood" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#5c351e"/>
+          <stop offset="100%" stop-color="#331c0f"/>
+        </linearGradient>
+      </defs>
 
-  // ==========================================
-  // 3. 人格否定・侮辱・見下し語 (weight: 26〜45)
-  // ==========================================
-  { word: "無能", weight: 38 }, { word: "能無し", weight: 38 }, { word: "役立たず", weight: 38 },
-  { word: "使えない", weight: 30 }, { word: "使えねえ", weight: 36 }, { word: "ゴミ", weight: 35 },
-  { word: "ごみ", weight: 26 }, { word: "ゴミクズ", weight: 45 }, { word: "粗大ゴミ", weight: 38 },
-  { word: "産業廃棄物", weight: 40 }, { word: "産廃", weight: 35 }, { word: "カス", weight: 38 },
-  { word: "かす", weight: 26 }, { word: "クズ", weight: 40 }, { word: "くず", weight: 32 },
-  { word: "人間のクズ", weight: 48 }, { word: "人間失格", weight: 44 }, { word: "人の皮を被った", weight: 40 },
-  { word: "ザコ", weight: 32 }, { word: "雑魚", weight: 32 }, { word: "底辺", weight: 34 },
-  { word: "負け犬", weight: 34 }, { word: "敗北者", weight: 32 }, { word: "落ちこぼれ", weight: 30 },
-  { word: "出来損ない", weight: 38 }, { word: "不良品", weight: 36 }, { word: "お荷物", weight: 30 },
-  { word: "足手まとい", weight: 32 }, { word: "邪魔", weight: 28 }, { word: "目障り", weight: 34 },
-  { word: "馬鹿", weight: 32 }, { word: "バカ", weight: 32 }, { word: "ばか", weight: 30 },
-  { word: "アホ", weight: 32 }, { word: "あほ", weight: 30 }, { word: "ボケ", weight: 32 },
-  { word: "間抜け", weight: 30 }, { word: "マヌケ", weight: 30 }, { word: "ドジ", weight: 22 },
-  { word: "ノロマ", weight: 28 }, { word: "グズ", weight: 30 }, { word: "たわけ", weight: 32 },
-  { word: "阿呆", weight: 32 }, { word: "低脳", weight: 42 }, { word: "脳みそ", weight: 26 },
-  { word: "単細胞", weight: 30 }, { word: "鳥頭", weight: 30 }, { word: "頭おかしい", weight: 36 },
-  { word: "頭がおかしい", weight: 36 }, { word: "頭沸いてる", weight: 38 }, { word: "脳が腐ってる", weight: 42 },
-  { word: "キモい", weight: 32 }, { word: "キモイ", weight: 32 }, { word: "気持ち悪い", weight: 28 },
-  { word: "うざい", weight: 30 }, { word: "ウザい", weight: 30 }, { word: "ウザイ", weight: 30 },
-  { word: "ブス", weight: 36 }, { word: "ブサイク", weight: 36 }, { word: "デブ", weight: 32 },
-  { word: "ハゲ", weight: 30 }, { word: "チビ", weight: 28 }, { word: "汚物", weight: 40 },
-  { word: "害虫", weight: 40 }, { word: "ゴキブリ", weight: 38 }, { word: "ダニ", weight: 34 },
-  { word: "寄生虫", weight: 38 }, { word: "疫病神", weight: 35 }, { word: "害悪", weight: 36 },
-  { word: "恥知らず", weight: 36 }, { word: "恥を知れ", weight: 38 }, { word: "生き恥", weight: 40 },
-  { word: "厚顔無恥", weight: 34 }, { word: "図々しい", weight: 28 }, { word: "厚かましい", weight: 28 },
-  { word: "卑怯", weight: 28 }, { word: "臆病", weight: 24 }, { word: "ヘタレ", weight: 28 },
-  { word: "腰抜け", weight: 30 }, { word: "惨め", weight: 28 }, { word: "みじめ", weight: 28 },
-  { word: "哀れ", weight: 26 }, { word: "滑稽", weight: 25 }, { word: "情けない", weight: 26 },
-  { word: "浅ましい", weight: 30 }, { word: "吐き気がする", weight: 34 }, { word: "反吐が出る", weight: 38 },
+      <!-- Acoustic Body top edge at bottom -->
+      <path d="M 35 435 Q 210 405 385 435 L 420 520 L 0 520 Z" fill="url(#bodyWood)" stroke="#231209" stroke-width="2"/>
+      <!-- Soundhole & Rosette -->
+      <circle cx="210" cy="488" r="66" fill="#0d0805" stroke="#c89250" stroke-width="3"/>
+      <circle cx="210" cy="488" r="72" fill="none" stroke="#8c5b2b" stroke-width="1.5" stroke-dasharray="4 3"/>
 
-  // ==========================================
-  // 4. ネットスラング・煽り・属性攻撃 (weight: 22〜40)
-  // ==========================================
-  { word: "チー牛", weight: 35 }, { word: "陰キャ", weight: 25 }, { word: "老害", weight: 36 },
-  { word: "弱者", weight: 26 }, { word: "社不", weight: 35 }, { word: "社会不適合", weight: 38 },
-  { word: "ニート", weight: 24 }, { word: "引きこもり", weight: 24 }, { word: "働け", weight: 26 },
-  { word: "クソガキ", weight: 38 }, { word: "ガキ", weight: 26 }, { word: "キッズ", weight: 22 },
-  { word: "情弱", weight: 26 }, { word: "にわか", weight: 22 }, { word: "エアプ", weight: 24 },
-  { word: "オワコン", weight: 26 }, { word: "終わってる", weight: 28 }, { word: "信者", weight: 22 },
-  { word: "顔真っ赤", weight: 28 }, { word: "発狂", weight: 32 }, { word: "効いてる", weight: 24 },
-  { word: "涙目", weight: 24 }, { word: "ブーメラン", weight: 22 }, { word: "嘘つき", weight: 28 },
-  { word: "虚言癖", weight: 32 }, { word: "詐欺師", weight: 34 }, { word: "犯罪者", weight: 32 },
+      <!-- Headstock Silhouette -->
+      <path d="M 135 235 L 116 195 L 112 36 Q 112 20 132 18 L 210 24 L 288 18 Q 308 20 308 36 L 304 195 L 285 235 Z"
+            fill="url(#headWood)" stroke="#4a3122" stroke-width="2"/>
 
-  // ==========================================
-  // 5. 否定構文・見下しフレーズ (weight: 18〜45)
-  // ==========================================
-  { word: "何もできない", weight: 32 }, { word: "何も出来ない", weight: 32 }, { word: "できもしない", weight: 28 },
-  { word: "口だけ", weight: 26 }, { word: "どうせ", weight: 18 }, { word: "価値がない", weight: 36 },
-  { word: "価値ない", weight: 36 }, { word: "存在価値", weight: 35 }, { word: "生きてる価値", weight: 46 },
-  { word: "生まれてこなきゃ", weight: 46 }, { word: "社会の役に立て", weight: 35 }, { word: "役に立て", weight: 24 },
-  { word: "親の顔が見たい", weight: 34 }, { word: "親の顔", weight: 30 }, { word: "親が泣く", weight: 30 },
-  { word: "身の程を知れ", weight: 36 }, { word: "身の程", weight: 28 }, { word: "何様", weight: 34 },
-  { word: "誰に向かって", weight: 32 }, { word: "調子に乗るな", weight: 36 }, { word: "調子乗るな", weight: 36 },
-  { word: "いい気になるな", weight: 34 }, { word: "いい気になんな", weight: 36 }, { word: "図に乗るな", weight: 34 },
-  { word: "勘違い", weight: 20 }, { word: "常識がない", weight: 28 }, { word: "非常識", weight: 26 },
-  { word: "日本語通じ", weight: 32 }, { word: "日本語が通じ", weight: 32 }, { word: "話にならない", weight: 28 },
-  { word: "話にならん", weight: 30 }, { word: "埒が明かない", weight: 24 }, { word: "時間の無駄", weight: 28 },
-  { word: "救いようがない", weight: 34 }, { word: "救えない", weight: 28 }, { word: "論外", weight: 28 },
-  { word: "問題外", weight: 26 }, { word: "期待外れ", weight: 24 }, { word: "お門違い", weight: 26 },
+      <!-- Fretboard / Neck -->
+      <polygon points="135,235 285,235 335,470 85,470" fill="url(#neckWood)" stroke="#170f0a" stroke-width="1.5"/>
 
-  // ==========================================
-  // 6. 威圧・拒絶・詰問・イライラ (weight: 14〜38)
-  // ==========================================
-  { word: "やめろ", weight: 30 }, { word: "やめろよ", weight: 32 }, { word: "帰れ", weight: 28 },
-  { word: "帰れよ", weight: 30 }, { word: "関わるな", weight: 34 }, { word: "近寄るな", weight: 34 },
-  { word: "触るな", weight: 32 }, { word: "見るな", weight: 28 }, { word: "話しかけるな", weight: 34 },
-  { word: "口を出すな", weight: 30 }, { word: "視界に入るな", weight: 38 }, { word: "顔も見たくない", weight: 36 },
-  { word: "謝れ", weight: 35 }, { word: "土下座しろ", weight: 42 }, { word: "責任取れ", weight: 34 },
-  { word: "弁償しろ", weight: 34 }, { word: "金返せ", weight: 34 }, { word: "許さない", weight: 35 },
-  { word: "許せない", weight: 35 }, { word: "絶対許さない", weight: 40 }, { word: "一生許さない", weight: 42 },
-  { word: "とぼけるな", weight: 34 }, { word: "しらばっくれるな", weight: 36 }, { word: "言い訳するな", weight: 34 },
-  { word: "言い訳すんな", weight: 36 }, { word: "言い訳", weight: 20 }, { word: "嘘つくな", weight: 34 },
-  { word: "逃げるな", weight: 30 }, { word: "逃げんな", weight: 32 }, { word: "早くしろ", weight: 32 },
-  { word: "文句あんのか", weight: 38 }, { word: "文句あるのか", weight: 34 }, { word: "逆ギレ", weight: 28 },
-  { word: "訴える", weight: 30 }, { word: "通報", weight: 26 }, { word: "晒す", weight: 30 },
-  { word: "意味わからん", weight: 28 }, { word: "意味不明", weight: 26 }, { word: "ありえない", weight: 25 },
-  { word: "あり得ない", weight: 25 }, { word: "信じられない", weight: 22 }, { word: "最悪", weight: 28 },
-  { word: "最低", weight: 28 }, { word: "ムカつく", weight: 32 }, { word: "むかつく", weight: 32 },
-  { word: "腹立つ", weight: 30 }, { word: "腹が立つ", weight: 30 }, { word: "頭に来る", weight: 28 },
-  { word: "頭にくる", weight: 28 }, { word: "イライラ", weight: 24 }, { word: "いらいら", weight: 24 },
-  { word: "ブチギレ", weight: 35 }, { word: "キレ", weight: 26 }, { word: "馬鹿にするな", weight: 36 },
-  { word: "バカにすんな", weight: 38 }, { word: "見下すな", weight: 34 }, { word: "冗談じゃない", weight: 26 },
-  { word: "何回", weight: 18 }, { word: "何度", weight: 16 }, { word: "なんで", weight: 14 },
-  { word: "おい", weight: 16 }, { word: "こら", weight: 22 }, { word: "コラ", weight: 24 },
-  { word: "オラ", weight: 26 }, { word: "おら", weight: 20 },
+      <!-- Fret wires (4F and 5F zone) -->
+      <line x1="126" y1="275" x2="294" y2="275" stroke="#a8a29e" stroke-width="2" opacity="0.7"/>
+      <line x1="118" y1="315" x2="302" y2="315" stroke="#a8a29e" stroke-width="2" opacity="0.7"/>
+      <line x1="109" y1="355" x2="311" y2="355" stroke="#a8a29e" stroke-width="2" opacity="0.7"/>
+      <line x1="100" y1="395" x2="320" y2="395" stroke="#a8a29e" stroke-width="2" opacity="0.7"/>
+      <!-- Fret inlay dot -->
+      <circle cx="210" cy="335" r="5" fill="#e7e5e4" opacity="0.35"/>
 
-  // ==========================================
-  // 7. 英語系 Fワード・Sワード・強い罵倒 (weight: 28〜55)
-  // ==========================================
-  { word: "fuck", weight: 50 }, { word: "fucking", weight: 52 }, { word: "fucker", weight: 55 },
-  { word: "motherfucker", weight: 55 }, { word: "fuck you", weight: 55 }, { word: "wtf", weight: 32 },
-  { word: "stfu", weight: 45 }, { word: "gtfo", weight: 45 }, { word: "shut the fuck up", weight: 55 },
-  { word: "shit", weight: 38 }, { word: "bullshit", weight: 42 }, { word: "piece of shit", weight: 52 },
-  { word: "bitch", weight: 48 }, { word: "son of a bitch", weight: 55 }, { word: "asshole", weight: 48 },
-  { word: "bastard", weight: 45 }, { word: "dick", weight: 40 }, { word: "dickhead", weight: 46 },
-  { word: "cunt", weight: 55 }, { word: "dumbass", weight: 42 }, { word: "idiot", weight: 36 },
-  { word: "moron", weight: 38 }, { word: "stupid", weight: 30 }, { word: "loser", weight: 34 },
-  { word: "pathetic", weight: 34 }, { word: "trash", weight: 34 }, { word: "garbage", weight: 34 },
-  { word: "scum", weight: 44 }, { word: "douchebag", weight: 42 }, { word: "jerk", weight: 32 },
-  { word: "crap", weight: 28 }, { word: "damn", weight: 28 }, { word: "go to hell", weight: 45 },
-  { word: "shut up", weight: 38 }, { word: "get lost", weight: 38 }, { word: "kill yourself", weight: 55 },
-  { word: "kys", weight: 55 },
-  // カタカナ表記
-  { word: "ファック", weight: 50 }, { word: "ファッキン", weight: 50 }, { word: "シット", weight: 35 },
-  { word: "ビッチ", weight: 45 }, { word: "アスホール", weight: 45 }, { word: "バスタード", weight: 42 },
-  { word: "シャラップ", weight: 36 }, { word: "ルーザー", weight: 32 },
+      <!-- Nut (Bone) -->
+      <rect x="133" y="229" width="154" height="8" rx="2" fill="#f5efe6" stroke="#b8ab99" stroke-width="1"/>
 
-  // ==========================================
-  // 8. 記号・語調の強さ
-  // ==========================================
-  { word: "!", weight: 10 }, { word: "！", weight: 10 },
-  { word: "?", weight: 5 }, { word: "？", weight: 5 }
-];
-    // ====== 正規表現による威圧的語尾・荒い口調・構文パターン ======
-    const ANGER_PATTERNS = [
-      { regex: /^(?:なんだ|何だ)(?:[\s、,！!]|よ|お前|てめ|これ)/g, weight: 22, label: "詰問" },
-      { regex: /(?:じゃねえ|じゃねぇ|じゃねー|てめえ|くそっ)/g, weight: 24, label: "荒い口調" },
-      { regex: /(?:んだよ|のかよ|ってんだよ|やがれ|しやがれ)/g, weight: 22, label: "威圧語尾" },
-      { regex: /[一-龠ぁ-んァ-ヶ]{1,8}(?:しろ|せよ|やめろ|だまれ|うせろ|きえろ)(?:よ|！|!|$|\s)/g, weight: 22, label: "強い命令" },
-      { regex: /(?:するな|言うな|来るな|見るな|触るな)(?:よ|！|!|$|\s)/g, weight: 24, label: "強い禁止" },
-      { regex: /(?:死|殺|自殺|消え|くたば|無能|ゴミ|カス|クズ|障害).{0,6}(?:しろ|して|やれ|せよ|だろ|だよ)/g, weight: 28, label: "攻撃的命令" },
-      { regex: /(.)\1{3,}/g, weight: 15, label: "叫び・強調" }
-    ];
+      <!-- Tuner Posts inside headstock -->
+      <g id="tunerPosts" fill="#d6d3d1" stroke="#57534e" stroke-width="2">
+        <circle cx="142" cy="55" r="7"/>
+        <circle cx="142" cy="120" r="7"/>
+        <circle cx="142" cy="185" r="7"/>
+        <circle cx="278" cy="55" r="7"/>
+        <circle cx="278" cy="120" r="7"/>
+        <circle cx="278" cy="185" r="7"/>
+      </g>
 
-    // ====== DOM要素 ======
-    const startBtn = document.getElementById("startBtn");
-    const stopBtn = document.getElementById("stopBtn");
-    const demoBtn = document.getElementById("demoBtn");
-    const clearLogBtn = document.getElementById("clearLogBtn");
-    const scoreCircle = document.getElementById("scoreCircle");
-    const totalScoreEl = document.getElementById("totalScore");
-    const statusLabelEl = document.getElementById("statusLabel");
-    const statusDescEl = document.getElementById("statusDesc");
-    const peakScoreEl = document.getElementById("peakScore");
-    const speechSupportBadge = document.getElementById("speechSupportBadge");
+      <!-- Strings (rendered dynamically) -->
+      <g id="stringsLayer"></g>
 
-    const barVolume = document.getElementById("barVolume");
-    const barTension = document.getElementById("barTension");
-    const barEnergy = document.getElementById("barEnergy");
-    const barText = document.getElementById("barText");
+      <!-- Fret press interactive buttons (4F/5F) -->
+      <g id="fretButtonsLayer"></g>
 
-    const valVolume = document.getElementById("valVolume");
-    const valTension = document.getElementById("valTension");
-    const valEnergy = document.getElementById("valEnergy");
-    const valText = document.getElementById("valText");
+      <!-- Invisible wider hit targets for plucking / strumming -->
+      <g id="hitLayer"></g>
+    </svg>
 
-    const statDb = document.getElementById("statDb");
-    const statPitch = document.getElementById("statPitch");
-    const statCentroid = document.getElementById("statCentroid");
+    <div class="peg-overlay" id="pegOverlay"></div>
+  </div>
 
-    const transcriptBox = document.getElementById("transcriptBox");
-    const waveCanvas = document.getElementById("waveCanvas");
-    const waveCtx = waveCanvas.getContext("2d");
+  <div class="footer-hint">
+    💡 弦をタップ（または横になぞってストローク）で音を鳴らし、ペグを<strong>上下にドラッグ</strong>か<strong>＋/−をタップ</strong>して回します。<br>
+    ネック上の「5F / 4F」を押すと、隣の弦との<strong>うなり</strong>を聴き比べられます！
+  </div>
+</div>
 
-    const sensitivityRange = document.getElementById("sensitivityRange");
-    const sensitivityVal = document.getElementById("sensitivityVal");
+<!-- Result Modal -->
+<div class="modal-backdrop" id="resultModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="rank-badge" id="rankBadge">S</div>
+      <div class="score-text" id="scoreText">平均誤差: 2.1 cents / 96点</div>
+    </div>
+    <div class="result-list" id="resultList"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="practiceBtn">答えを見ながら調整</button>
+      <button class="btn-primary" id="nextGameBtn">もう1回！(シャッフル)</button>
+    </div>
+  </div>
+</div>
 
-    // ====== 状態管理 ======
-    let isRunning = false;
-    let audioCtx = null;
-    let analyser = null;
-    let micStream = null;
-    let rafId = null;
-    let recognition = null;
+<script>
+(() => {
+  // ===== String Definitions (6th E2 to 1st E4) =====
+  const STRINGS = [
+    { id: 0, label: '6E', full: '6弦 (E2)', targetFreq: 82.406889, gauge: 3.3, color: '#d49a6a', post: [142, 185], nutX: 150, bridgeX: 95,  pegPos: [62, 185],  side: 'left',  compareFret: 5 },
+    { id: 1, label: '5A', full: '5弦 (A2)', targetFreq: 110.000000, gauge: 2.7, color: '#d9a477', post: [142, 120], nutX: 174, bridgeX: 141, pegPos: [62, 120],  side: 'left',  compareFret: 5 },
+    { id: 2, label: '4D', full: '4弦 (D3)', targetFreq: 146.832384, gauge: 2.2, color: '#dfaf86', post: [142, 55],  nutX: 198, bridgeX: 187, pegPos: [62, 55],   side: 'left',  compareFret: 5 },
+    { id: 3, label: '3G', full: '3弦 (G3)', targetFreq: 195.997718, gauge: 1.7, color: '#e5e7eb', post: [278, 55],  nutX: 222, bridgeX: 233, pegPos: [358, 55],  side: 'right', compareFret: 4 },
+    { id: 4, label: '2B', full: '2弦 (B3)', targetFreq: 246.941651, gauge: 1.4, color: '#f3f4f6', post: [278, 120], nutX: 246, bridgeX: 279, pegPos: [358, 120], side: 'right', compareFret: 5 },
+    { id: 5, label: '1E', full: '1弦 (E4)', targetFreq: 329.627557, gauge: 1.1, color: '#ffffff', post: [278, 185], nutX: 270, bridgeX: 325, pegPos: [358, 185], side: 'right', compareFret: 0 }
+  ];
 
-    let sensitivity = 1.2;
-    let peakScore = 0;
+  const MAX_CENTS = 220;
 
-    let smoothVolume = 0;
-    let smoothTension = 0;
-    let smoothEnergy = 0;
-    let textAngerScore = 0;
-    let speechRateScore = 0;
-    let smoothTotal = 0;
+  // ===== State =====
+  const state = {
+    mode: 'easy',        // 'easy' | 'fret5' | 'master'
+    fineMode: false,
+    timbre: 'guitar',    // 'guitar' | 'sine'
+    practicePeek: false,
+    selectedIdx: 0,
+    cents: [0, 0, 0, 0, 0, 0],
+    pegAngles: [0, 0, 0, 0, 0, 0],
+    fretted: [false, false, false, false, false, false],
+    vibAmp: [0, 0, 0, 0, 0, 0],
+    vibPhase: [0, 0, 0, 0, 0, 0],
+    lastPluckTime: [0, 0, 0, 0, 0, 0]
+  };
 
-    let prevRms = 0;
-    let attackIntensity = 0;
-    let lastSpeechTime = Date.now();
-    let interimElem = null;
+  // ===== Web Audio Engine =====
+  let audioCtx = null;
+  let masterGain = null;
+  const activeVoices = new Array(6).fill(null);
+  let refVoice = null;
 
-    sensitivityRange.addEventListener("input", (e) => {
-      sensitivity = parseFloat(e.target.value);
-      sensitivityVal.textContent = sensitivity.toFixed(1) + "x";
+  function ensureAudio() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AC();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0.7;
+
+      // Subtle warm acoustic body EQ
+      const bodyEQ = audioCtx.createBiquadFilter();
+      bodyEQ.type = 'peaking';
+      bodyEQ.frequency.value = 190;
+      bodyEQ.Q.value = 1.2;
+      bodyEQ.gain.value = 3.5;
+
+      // Soft limiter / compressor
+      const comp = audioCtx.createDynamicsCompressor();
+      comp.threshold.value = -10;
+      comp.ratio.value = 4;
+
+      masterGain.connect(bodyEQ);
+      bodyEQ.connect(comp);
+      comp.connect(audioCtx.destination);
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  function getStringFreq(idx) {
+    const s = STRINGS[idx];
+    const openFreq = s.targetFreq * Math.pow(2, state.cents[idx] / 1200);
+    const fret = state.fretted[idx] ? s.compareFret : 0;
+    return openFreq * Math.pow(2, fret / 12);
+  }
+
+  function stopVoice(voice, fadeSec = 0.03) {
+    if (!voice || !audioCtx) return;
+    const now = audioCtx.currentTime;
+    try {
+      voice.gainNode.gain.cancelScheduledValues(now);
+      voice.gainNode.gain.setValueAtTime(Math.max(voice.gainNode.gain.value, 0.0001), now);
+      voice.gainNode.gain.exponentialRampToValueAtTime(0.0001, now + fadeSec);
+      setTimeout(() => {
+        voice.oscs.forEach(o => { try { o.stop(); o.disconnect(); } catch {} });
+        try { voice.gainNode.disconnect(); } catch {}
+      }, fadeSec * 1000 + 30);
+    } catch {}
+  }
+
+  function pluckString(idx) {
+    ensureAudio();
+    const now = audioCtx.currentTime;
+    state.selectedIdx = idx;
+    state.vibAmp[idx] = 8.5;
+    state.lastPluckTime[idx] = performance.now();
+    updateSelectionUI();
+
+    if (activeVoices[idx]) {
+      stopVoice(activeVoices[idx], 0.025);
+      activeVoices[idx] = null;
+    }
+
+    const baseFreq = getStringFreq(idx);
+    const voiceGain = audioCtx.createGain();
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+
+    const oscs = [];
+    const multipliers = state.timbre === 'sine'
+      ? [1]
+      : [1, 2, 3, 4, 5, 6];
+    const harmonicAmps = state.timbre === 'sine'
+      ? [0.65]
+      : (idx <= 2 ? [0.48, 0.45, 0.30, 0.20, 0.10, 0.05] : [0.58, 0.38, 0.22, 0.12, 0.06, 0.02]);
+
+    multipliers.forEach((mult, i) => {
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(baseFreq * mult, now);
+      g.gain.value = harmonicAmps[i];
+      osc.connect(g);
+      g.connect(filter);
+      osc.start(now);
+      oscs.push({ osc, mult });
     });
 
-    clearLogBtn.addEventListener("click", () => {
-      transcriptBox.innerHTML = '<div style="color: var(--muted);">履歴をクリアしました。</div>';
-      textAngerScore = 0;
-      peakScore = 0;
-      peakScoreEl.textContent = "0%";
-      updateUI(0, 0, 0, 0, 0, null, 0, 0);
-    });
+    // Pluck brightness sweep
+    if (state.timbre === 'guitar') {
+      filter.frequency.setValueAtTime(Math.min(baseFreq * 14, 4200), now);
+      filter.frequency.exponentialRampToValueAtTime(Math.max(baseFreq * 2.8, 380), now + 0.75);
 
-    // ====== マイク＆音声解析開始 ======
-    startBtn.addEventListener("click", async () => {
-      if (isRunning) return;
-      try {
-        micStream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: false
-          }
+      // Subtle pick transient
+      const bufSize = Math.floor(audioCtx.sampleRate * 0.018);
+      const noiseBuf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+      const data = noiseBuf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufSize * 0.35));
+      }
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = noiseBuf;
+      const nFilter = audioCtx.createBiquadFilter();
+      nFilter.type = 'bandpass';
+      nFilter.frequency.value = 1800;
+      const nGain = audioCtx.createGain();
+      nGain.gain.value = 0.14;
+      noise.connect(nFilter);
+      nFilter.connect(nGain);
+      nGain.connect(masterGain);
+      noise.start(now);
+    } else {
+      filter.frequency.value = 6000;
+    }
+
+    // Sustain envelope (long enough to turn peg and listen for beats!)
+    const sustainSec = idx <= 2 ? 5.8 : 4.6;
+    voiceGain.gain.setValueAtTime(0.001, now);
+    voiceGain.gain.linearRampToValueAtTime(0.5, now + 0.008);
+    voiceGain.gain.exponentialRampToValueAtTime(0.0008, now + sustainSec);
+
+    filter.connect(voiceGain);
+    voiceGain.connect(masterGain);
+
+    const voice = {
+      oscs: oscs.map(o => o.osc),
+      pairs: oscs,
+      gainNode: voiceGain,
+      expiresAt: now + sustainSec
+    };
+    activeVoices[idx] = voice;
+
+    setTimeout(() => {
+      if (activeVoices[idx] === voice) {
+        voice.oscs.forEach(o => { try { o.stop(); o.disconnect(); } catch {} });
+        try { voice.gainNode.disconnect(); } catch {}
+        activeVoices[idx] = null;
+      }
+    }, sustainSec * 1000 + 60);
+  }
+
+  function updateRingingPitch(idx) {
+    const voice = activeVoices[idx];
+    if (!voice || !audioCtx) return;
+    const now = audioCtx.currentTime;
+    if (now >= voice.expiresAt) return;
+    const f = getStringFreq(idx);
+    voice.pairs.forEach(({ osc, mult }) => {
+      osc.frequency.setTargetAtTime(f * mult, now, 0.015);
+    });
+  }
+
+  function playReferenceTone() {
+    ensureAudio();
+    const btn = document.getElementById('playRefBtn');
+
+    if (refVoice) {
+      stopVoice(refVoice, 0.05);
+      refVoice = null;
+      btn.classList.remove('playing');
+      updateRefText();
+      return;
+    }
+
+    let freq = 440;
+    let isFork = false;
+    if (state.mode === 'easy') {
+      freq = STRINGS[state.selectedIdx].targetFreq;
+    } else if (state.mode === 'fret5') {
+      freq = STRINGS[0].targetFreq; // 6th string E2
+    } else {
+      freq = 440.0; // A440 Tuning Fork
+      isFork = true;
+    }
+
+    const now = audioCtx.currentTime;
+    const gain = audioCtx.createGain();
+    const oscs = [];
+
+    if (isFork || state.timbre === 'sine') {
+      const o = audioCtx.createOscillator();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(freq, now);
+      o.connect(gain);
+      o.start(now);
+      oscs.push(o);
+    } else {
+      [1, 2, 3, 4].forEach((m, i) => {
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(freq * m, now);
+        g.gain.value = [0.55, 0.35, 0.18, 0.08][i];
+        o.connect(g);
+        g.connect(gain);
+        o.start(now);
+        oscs.push(o);
+      });
+    }
+
+    const dur = 4.5;
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.38, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0008, now + dur);
+    gain.connect(masterGain);
+
+    refVoice = { oscs, gainNode: gain };
+    btn.classList.add('playing');
+    btn.textContent = '⏹ 基準音を止める';
+
+    setTimeout(() => {
+      if (refVoice && refVoice.gainNode === gain) {
+        oscs.forEach(o => { try { o.stop(); o.disconnect(); } catch {} });
+        try { gain.disconnect(); } catch {}
+        refVoice = null;
+        btn.classList.remove('playing');
+        updateRefText();
+      }
+    }, dur * 1000 + 50);
+  }
+
+  function muteAll() {
+    for (let i = 0; i < 6; i++) {
+      if (activeVoices[i]) {
+        stopVoice(activeVoices[i], 0.04);
+        activeVoices[i] = null;
+      }
+      state.vibAmp[i] = 0;
+    }
+    if (refVoice) {
+      stopVoice(refVoice, 0.04);
+      refVoice = null;
+      document.getElementById('playRefBtn').classList.remove('playing');
+      updateRefText();
+    }
+  }
+
+  // ===== Pitch / Peg Adjustment =====
+  function adjustCents(idx, deltaCents) {
+    const next = Math.max(-MAX_CENTS, Math.min(MAX_CENTS, state.cents[idx] + deltaCents));
+    const applied = next - state.cents[idx];
+    state.cents[idx] = next;
+    // Rotate peg visually (~3 degrees per cent)
+    const dir = STRINGS[idx].side === 'left' ? -1 : 1;
+    state.pegAngles[idx] += applied * 3.0 * dir;
+    updatePegVisual(idx);
+    updateRingingPitch(idx);
+  }
+
+  // ===== Build SVG & Interactive Pegs =====
+  const stringsLayer = document.getElementById('stringsLayer');
+  const fretButtonsLayer = document.getElementById('fretButtonsLayer');
+  const hitLayer = document.getElementById('hitLayer');
+  const pegOverlay = document.getElementById('pegOverlay');
+
+  const stringPathEls = [];
+  const pegKnobEls = [];
+  const pegWingEls = [];
+  const pegUnitEls = [];
+  const pegBadgeEls = [];
+  const fretCircleEls = [];
+
+  function initBoard() {
+    stringsLayer.innerHTML = '';
+    fretButtonsLayer.innerHTML = '';
+    hitLayer.innerHTML = '';
+    pegOverlay.innerHTML = '';
+
+    let isStrumming = false;
+
+    window.addEventListener('pointerup', () => { isStrumming = false; });
+    window.addEventListener('pointercancel', () => { isStrumming = false; });
+
+    STRINGS.forEach((s, idx) => {
+      // 1. Headstock segment (post to nut)
+      const headLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      headLine.setAttribute('x1', s.post[0]);
+      headLine.setAttribute('y1', s.post[1]);
+      headLine.setAttribute('x2', s.nutX);
+      headLine.setAttribute('y2', 233);
+      headLine.setAttribute('stroke', s.color);
+      headLine.setAttribute('stroke-width', s.gauge);
+      headLine.setAttribute('stroke-linecap', 'round');
+      stringsLayer.appendChild(headLine);
+
+      // 2. Neck/Body vibrating segment (nut to bottom)
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', `M ${s.nutX} 233 Q ${(s.nutX + s.bridgeX) / 2} 376 ${s.bridgeX} 520`);
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', s.color);
+      path.setAttribute('stroke-width', s.gauge);
+      stringsLayer.appendChild(path);
+      stringPathEls[idx] = path;
+
+      // 3. Fret comparison button (5F or 4F on 3G)
+      if (s.compareFret > 0) {
+        const fretY = s.compareFret === 5 ? 335 : 295;
+        const t = (fretY - 233) / (520 - 233);
+        const fretX = s.nutX + (s.bridgeX - s.nutX) * t;
+
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.style.cursor = 'pointer';
+
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', fretX);
+        circle.setAttribute('cy', fretY);
+        circle.setAttribute('r', 12);
+        circle.setAttribute('fill', '#261e19');
+        circle.setAttribute('stroke', '#78716c');
+        circle.setAttribute('stroke-width', '1.5');
+
+        const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        txt.setAttribute('x', fretX);
+        txt.setAttribute('y', fretY + 3.5);
+        txt.setAttribute('text-anchor', 'middle');
+        txt.setAttribute('font-size', '9');
+        txt.setAttribute('font-weight', 'bold');
+        txt.setAttribute('fill', '#d6d3d1');
+        txt.textContent = s.compareFret + 'F';
+
+        g.appendChild(circle);
+        g.appendChild(txt);
+        g.addEventListener('pointerdown', (e) => {
+          e.stopPropagation();
+          state.fretted[idx] = !state.fretted[idx];
+          updateFretVisual(idx);
+          updateRingingPitch(idx);
+          pluckString(idx);
         });
-
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const source = audioCtx.createMediaStreamSource(micStream);
-
-        analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 2048;
-        analyser.smoothingTimeConstant = 0.5;
-        source.connect(analyser);
-
-        isRunning = true;
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
-        peakScore = 0;
-        peakScoreEl.textContent = "0%";
-        transcriptBox.innerHTML = "";
-
-        startSpeechRecognition();
-        loopAudioAnalysis();
-      } catch (err) {
-        alert("マイクの起動に失敗しました: " + err.message + "\nブラウザのマイク権限を許可してください。");
+        fretButtonsLayer.appendChild(g);
+        fretCircleEls[idx] = { circle, txt };
       }
+
+      // 4. Hit area for plucking / strumming (lower pluck zone y=360..520)
+      const hitPoly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      const halfW = 22;
+      const topX = s.nutX + (s.bridgeX - s.nutX) * ((360 - 233) / (520 - 233));
+      hitPoly.setAttribute('points', `${topX - 15},355 ${topX + 15},355 ${s.bridgeX + halfW},520 ${s.bridgeX - halfW},520`);
+      hitPoly.setAttribute('fill', 'transparent');
+      hitPoly.style.cursor = 'pointer';
+
+      hitPoly.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        isStrumming = true;
+        pluckString(idx);
+      });
+      hitPoly.addEventListener('pointerenter', () => {
+        if (isStrumming && performance.now() - state.lastPluckTime[idx] > 110) {
+          pluckString(idx);
+        }
+      });
+      hitLayer.appendChild(hitPoly);
+
+      // 5. Peg Overlay Unit
+      const unit = document.createElement('div');
+      unit.className = `peg-unit ${s.side}`;
+      unit.style.left = `${(s.pegPos[0] / 420) * 100}%`;
+      unit.style.top = `${(s.pegPos[1] / 520) * 100}%`;
+
+      const stepCol = document.createElement('div');
+      stepCol.className = 'peg-step-col';
+
+      const plusBtn = document.createElement('button');
+      plusBtn.className = 'peg-step-btn';
+      plusBtn.textContent = '＋';
+      plusBtn.title = '締める (音を高く)';
+
+      const minusBtn = document.createElement('button');
+      minusBtn.className = 'peg-step-btn';
+      minusBtn.textContent = '−';
+      minusBtn.title = 'ゆるめる (音を低く)';
+
+      attachHoldAction(plusBtn, idx, +1);
+      attachHoldAction(minusBtn, idx, -1);
+      stepCol.appendChild(plusBtn);
+      stepCol.appendChild(minusBtn);
+
+      const knob = document.createElement('div');
+      knob.className = 'peg-knob';
+
+      const wing = document.createElement('div');
+      wing.className = 'peg-wing';
+      const dot = document.createElement('div');
+      dot.className = 'peg-dot';
+      wing.appendChild(dot);
+
+      const lbl = document.createElement('div');
+      lbl.className = 'peg-label';
+      lbl.textContent = s.label;
+
+      const badge = document.createElement('div');
+      badge.className = 'practice-badge';
+      badge.style.display = 'none';
+
+      knob.appendChild(wing);
+      knob.appendChild(lbl);
+      knob.appendChild(badge);
+
+      // Drag / Wheel on Peg Knob
+      let dragging = false;
+      let lastY = 0;
+
+      knob.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        knob.setPointerCapture(e.pointerId);
+        dragging = true;
+        lastY = e.clientY;
+        state.selectedIdx = idx;
+        updateSelectionUI();
+        ensureAudio();
+      });
+
+      knob.addEventListener('pointermove', (e) => {
+        if (!dragging) return;
+        const dy = lastY - e.clientY;
+        lastY = e.clientY;
+        if (dy !== 0) {
+          const sens = state.fineMode ? 0.22 : 0.75;
+          adjustCents(idx, dy * sens);
+        }
+      });
+
+      const endDrag = (e) => {
+        if (dragging) {
+          dragging = false;
+          try { knob.releasePointerCapture(e.pointerId); } catch {}
+        }
+      };
+      knob.addEventListener('pointerup', endDrag);
+      knob.addEventListener('pointercancel', endDrag);
+
+      knob.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        state.selectedIdx = idx;
+        updateSelectionUI();
+        const sens = state.fineMode ? 0.4 : 2.0;
+        adjustCents(idx, (e.deltaY < 0 ? 1 : -1) * sens);
+      }, { passive: false });
+
+      unit.appendChild(stepCol);
+      unit.appendChild(knob);
+      pegOverlay.appendChild(unit);
+
+      pegUnitEls[idx] = unit;
+      pegKnobEls[idx] = knob;
+      pegWingEls[idx] = wing;
+      pegBadgeEls[idx] = badge;
     });
 
-    stopBtn.addEventListener("click", stopAll);
+    // Enable mobile touch-move strumming across hitLayer
+    const svgEl = document.getElementById('guitarSvg');
+    svgEl.addEventListener('touchmove', (e) => {
+      if (!isStrumming || !e.touches.length) return;
+      const touch = e.touches[0];
+      const rect = svgEl.getBoundingClientRect();
+      const svgX = ((touch.clientX - rect.left) / rect.width) * 420;
+      const svgY = ((touch.clientY - rect.top) / rect.height) * 520;
+      if (svgY < 350) return;
 
-    function stopAll() {
-      isRunning = false;
-      startBtn.disabled = false;
-      stopBtn.disabled = true;
-
-      if (rafId) cancelAnimationFrame(rafId);
-      if (recognition) {
-        try { recognition.stop(); } catch (e) {}
-        recognition = null;
-      }
-      if (micStream) {
-        micStream.getTracks().forEach(t => t.stop());
-        micStream = null;
-      }
-      if (audioCtx) {
-        audioCtx.close();
-        audioCtx = null;
-      }
-      speechSupportBadge.textContent = "音声認識: 停止中";
-    }
-
-    // ====== Web Speech API ======
-    function startSpeechRecognition() {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        speechSupportBadge.textContent = "音声認識: 非対応ブラウザ（音響のみで判定）";
-        return;
-      }
-
-      speechSupportBadge.textContent = "音声認識: 稼働中 (ja-JP)";
-      recognition = new SpeechRecognition();
-      recognition.lang = "ja-JP";
-      recognition.continuous = true;
-      recognition.interimResults = true;
-
-      recognition.onresult = (event) => {
-        let interimText = "";
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const res = event.results[i];
-          const text = res[0].transcript.trim();
-          if (!text) continue;
-
-          if (res.isFinal) {
-            removeInterim();
-            analyzeAndLogText(text);
-          } else {
-            interimText += text;
-            const quick = analyzeTextDetail(text).score;
-            if (quick > textAngerScore) {
-              textAngerScore = Math.min(100, textAngerScore * 0.35 + quick * 0.75);
-            }
-          }
+      STRINGS.forEach((s, idx) => {
+        const t = (svgY - 233) / (520 - 233);
+        const sx = s.nutX + (s.bridgeX - s.nutX) * t;
+        if (Math.abs(svgX - sx) < 18 && performance.now() - state.lastPluckTime[idx] > 120) {
+          pluckString(idx);
         }
+      });
+    }, { passive: true });
+  }
 
-        if (interimText) {
-          showInterim(interimText);
-          const now = Date.now();
-          const dt = Math.max(0.5, (now - lastSpeechTime) / 1000);
-          const cps = interimText.length / dt;
-          if (interimText.length > 4) {
-            speechRateScore = Math.min(100, Math.max(speechRateScore, (cps - 3) * 14));
-          }
-        }
-      };
+  function attachHoldAction(btn, idx, sign) {
+    let timer = null;
+    let interval = null;
 
-      recognition.onerror = (e) => {
-        if (e.error === "not-allowed") {
-          speechSupportBadge.textContent = "音声認識: 権限エラー";
-        }
-      };
+    const step = () => {
+      state.selectedIdx = idx;
+      updateSelectionUI();
+      const amount = state.fineMode ? 0.25 : 1.5;
+      adjustCents(idx, sign * amount);
+    };
 
-      recognition.onend = () => {
-        if (isRunning) {
-          try { recognition.start(); } catch (e) {}
-        }
-      };
+    const stop = () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+      timer = null;
+      interval = null;
+    };
 
-      try {
-        recognition.start();
-      } catch (e) {}
-    }
-
-    function showInterim(text) {
-      if (!interimElem) {
-        interimElem = document.createElement("div");
-        interimElem.className = "transcript-interim";
-        transcriptBox.appendChild(interimElem);
-      }
-      interimElem.textContent = "認識中: " + text;
-      transcriptBox.scrollTop = transcriptBox.scrollHeight;
-    }
-
-    function removeInterim() {
-      if (interimElem) {
-        interimElem.remove();
-        interimElem = null;
-      }
-    }
-
-    // ====== テキスト詳細解析（キーワード＋正規表現＋安全ハイライト） ======
-    function analyzeTextDetail(text) {
-      let score = 0;
-      const spans = [];
-
-      // 1. キーワード検索（出現回数も考慮し、最大2回まで加算）
-      for (const item of ANGER_KEYWORDS) {
-        let idx = text.indexOf(item.word);
-        let count = 0;
-        while (idx !== -1) {
-          spans.push([idx, idx + item.word.length]);
-          if (count < 2) {
-            score += count === 0 ? item.weight : Math.round(item.weight * 0.5);
-          }
-          count++;
-          idx = text.indexOf(item.word, idx + item.word.length);
-        }
-      }
-
-      // 2. 正規表現パターン検索
-      for (const pat of ANGER_PATTERNS) {
-        pat.regex.lastIndex = 0;
-        let match;
-        let count = 0;
-        while ((match = pat.regex.exec(text)) !== null) {
-          spans.push([match.index, match.index + match[0].length]);
-          if (count < 2) {
-            score += pat.weight;
-          }
-          count++;
-          if (match.index === pat.regex.lastIndex) pat.regex.lastIndex++;
-        }
-      }
-
-      // 複数の異なる要素が検出された場合は相乗ブースト
-      if (spans.length >= 3) score += 15;
-      if (spans.length >= 5) score += 15;
-
-      return {
-        score: Math.min(100, score),
-        spans: mergeSpans(spans)
-      };
-    }
-
-    function mergeSpans(spans) {
-      if (spans.length === 0) return [];
-      spans.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
-      const merged = [spans[0]];
-      for (let i = 1; i < spans.length; i++) {
-        const last = merged[merged.length - 1];
-        const cur = spans[i];
-        if (cur[0] <= last[1]) {
-          last[1] = Math.max(last[1], cur[1]);
-        } else {
-          merged.push(cur);
-        }
-      }
-      return merged;
-    }
-
-    function renderHighlightedHtml(text, mergedSpans) {
-      if (mergedSpans.length === 0) return escapeHtml(text);
-      let out = "";
-      let cursor = 0;
-      for (const [start, end] of mergedSpans) {
-        if (start > cursor) {
-          out += escapeHtml(text.slice(cursor, start));
-        }
-        out += `<span class="tag-angry">${escapeHtml(text.slice(start, end))}</span>`;
-        cursor = end;
-      }
-      if (cursor < text.length) {
-        out += escapeHtml(text.slice(cursor));
-      }
-      return out;
-    }
-
-    function escapeHtml(str) {
-      return str.replace(/[&<>"']/g, m => ({
-        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-      }[m]));
-    }
-
-    function analyzeAndLogText(text) {
-      lastSpeechTime = Date.now();
-      const result = analyzeTextDetail(text);
-      textAngerScore = Math.min(100, Math.max(textAngerScore, result.score));
-
-      const entry = document.createElement("div");
-      entry.className = "log-entry";
-      const timeStr = new Date().toLocaleTimeString("ja-JP", { hour12: false });
-      const highlighted = renderHighlightedHtml(text, result.spans);
-      entry.innerHTML = `<span style="color:var(--muted);font-size:0.8em;">[${timeStr}]</span> ${highlighted} <span style="color:var(--muted);font-size:0.8em;">(言葉スコア: ${result.score}%)</span>`;
-      transcriptBox.appendChild(entry);
-      transcriptBox.scrollTop = transcriptBox.scrollHeight;
-      return result.score;
-    }
-
-    // ====== 音響特徴量リアルタイム解析ループ ======
-    function loopAudioAnalysis() {
-      if (!isRunning || !analyser) return;
-
-      const bufferLength = analyser.fftSize;
-      const timeData = new Float32Array(bufferLength);
-      const freqData = new Uint8Array(analyser.frequencyBinCount);
-
-      analyser.getFloatTimeDomainData(timeData);
-      analyser.getByteFrequencyData(freqData);
-
-      let sumSq = 0;
-      for (let i = 0; i < bufferLength; i++) {
-        sumSq += timeData[i] * timeData[i];
-      }
-      const rms = Math.sqrt(sumSq / bufferLength);
-      const db = 20 * Math.log10(Math.max(rms, 1e-6));
-
-      const rawVolumeScore = Math.max(0, Math.min(100, ((db + 48) / 34) * 100 * sensitivity));
-
-      const deltaRms = Math.max(0, rms - prevRms);
-      prevRms = rms;
-      if (deltaRms * sensitivity > 0.015) {
-        attackIntensity = Math.min(100, attackIntensity + deltaRms * sensitivity * 900);
-      } else {
-        attackIntensity *= 0.94;
-      }
-
-      const sampleRate = audioCtx.sampleRate;
-      const nyquist = sampleRate / 2;
-      const binCount = freqData.length;
-
-      let weightedSum = 0;
-      let magSum = 0;
-      for (let i = 1; i < binCount; i++) {
-        const freq = (i / binCount) * nyquist;
-        if (freq < 80 || freq > 6000) continue;
-        const mag = freqData[i];
-        weightedSum += freq * mag;
-        magSum += mag;
-      }
-
-      const centroid = magSum > 200 ? weightedSum / magSum : 0;
-      const pitch = rms > 0.01 ? estimatePitch(timeData, sampleRate) : 0;
-
-      let rawTension = 0;
-      if (rawVolumeScore > 12) {
-        const centroidScore = Math.max(0, Math.min(100, ((centroid - 750) / 1700) * 100));
-        const pitchScore = pitch > 0 ? Math.max(0, Math.min(100, ((pitch - 130) / 220) * 100)) : 0;
-        rawTension = centroidScore * 0.65 + pitchScore * 0.35;
-      }
-
-      smoothVolume = smoothVolume * 0.78 + rawVolumeScore * 0.22;
-      smoothTension = smoothTension * 0.85 + rawTension * 0.15;
-      const rawEnergy = Math.min(100, attackIntensity * 0.7 + speechRateScore * 0.3);
-      smoothEnergy = smoothEnergy * 0.85 + rawEnergy * 0.15;
-
-      textAngerScore *= 0.994;
-      speechRateScore *= 0.985;
-
-      const voiceGate = Math.min(1, smoothVolume / 25);
-      const acousticAnger = (smoothVolume * 0.42 + smoothTension * 0.33 + smoothEnergy * 0.25) * voiceGate;
-
-      // 音響と言葉の統合（言葉の攻撃性が極めて高い場合はボソッと喋っても強く反応させる）
-      let combined = Math.max(
-        acousticAnger * 0.65 + textAngerScore * 0.45,
-        textAngerScore * 0.85
-      );
-      if (acousticAnger > 45 && textAngerScore > 35) {
-        combined += 15;
-      }
-      combined = Math.min(100, combined);
-
-      if (combined > smoothTotal) {
-        smoothTotal = smoothTotal * 0.65 + combined * 0.35;
-      } else {
-        smoothTotal = smoothTotal * 0.93 + combined * 0.07;
-      }
-
-      updateUI(smoothTotal, smoothVolume, smoothTension, smoothEnergy, textAngerScore, db, pitch, centroid);
-      drawWaveform(timeData, smoothTotal);
-
-      rafId = requestAnimationFrame(loopAudioAnalysis);
-    }
-
-    function estimatePitch(buf, sampleRate) {
-      const size = buf.length;
-      const maxLag = Math.floor(sampleRate / 70);
-      const minLag = Math.floor(sampleRate / 450);
-
-      let bestLag = -1;
-      let bestCorr = 0;
-
-      for (let lag = minLag; lag <= maxLag; lag++) {
-        let corr = 0;
-        for (let i = 0; i < size - lag; i += 2) {
-          corr += buf[i] * buf[i + lag];
-        }
-        if (corr > bestCorr) {
-          bestCorr = corr;
-          bestLag = lag;
-        }
-      }
-
-      if (bestLag > 0 && bestCorr > 0.01) {
-        return sampleRate / bestLag;
-      }
-      return 0;
-    }
-
-    // ====== UI更新 ======
-    function getLevelColor(score) {
-      if (score < 25) return "var(--low)";
-      if (score < 55) return "var(--mid)";
-      if (score < 80) return "var(--high)";
-      return "var(--rage)";
-    }
-
-    function updateUI(total, vol, tension, energy, textScore, db, pitch, centroid) {
-      const tRound = Math.round(total);
-      if (tRound > peakScore) {
-        peakScore = tRound;
-        peakScoreEl.textContent = peakScore + "%";
-      }
-
-      const color = getLevelColor(tRound);
-      totalScoreEl.textContent = tRound + "%";
-      totalScoreEl.style.color = color;
-
-      const deg = (tRound / 100) * 360;
-      scoreCircle.style.background = `conic-gradient(${color} ${deg}deg, var(--border) ${deg}deg)`;
-
-      if (tRound < 15) {
-        statusLabelEl.textContent = "😌 穏やか・平常";
-        statusDescEl.textContent = "落ち着いた話し方です。怒りの兆候は見られません。";
-      } else if (tRound < 35) {
-        statusLabelEl.textContent = "🙂 やや感情的";
-        statusDescEl.textContent = "少し声に力が入っています。通常の会話〜やや熱意のある状態です。";
-      } else if (tRound < 60) {
-        statusLabelEl.textContent = "😠 イライラ・不機嫌";
-        statusDescEl.textContent = "声の張りや言葉遣いに苛立ち・否定が混ざり始めています。";
-      } else if (tRound < 82) {
-        statusLabelEl.textContent = "😡 かなり怒っている";
-        statusDescEl.textContent = "強い口調、高い声圧、または攻撃的・侮辱的な言葉が検出されています！";
-      } else {
-        statusLabelEl.textContent = "🤬 激怒・限界突破";
-        statusDescEl.textContent = "怒鳴り声や非常に強い怒り・罵倒の表現を検出しました。";
-      }
-
-      setBar(barVolume, valVolume, vol);
-      setBar(barTension, valTension, tension);
-      setBar(barEnergy, valEnergy, energy);
-      setBar(barText, valText, textScore);
-
-      if (db !== null) {
-        statDb.textContent = db > -90 ? db.toFixed(1) + " dB" : "-∞";
-        statPitch.textContent = pitch > 0 ? Math.round(pitch) + " Hz" : "--- Hz";
-        statCentroid.textContent = centroid > 0 ? Math.round(centroid) + " Hz" : "--- Hz";
-      }
-    }
-
-    function setBar(barEl, valEl, value) {
-      const v = Math.round(Math.max(0, Math.min(100, value)));
-      barEl.style.width = v + "%";
-      barEl.style.backgroundColor = getLevelColor(v);
-      valEl.textContent = v + "%";
-    }
-
-    function drawWaveform(timeData, score) {
-      const w = waveCanvas.width;
-      const h = waveCanvas.height;
-      waveCtx.fillStyle = "#0b1120";
-      waveCtx.fillRect(0, 0, w, h);
-
-      waveCtx.lineWidth = 2;
-      if (score < 25) waveCtx.strokeStyle = "#22c55e";
-      else if (score < 55) waveCtx.strokeStyle = "#eab308";
-      else if (score < 80) waveCtx.strokeStyle = "#f97316";
-      else waveCtx.strokeStyle = "#ef4444";
-
-      waveCtx.beginPath();
-      const sliceWidth = w / timeData.length;
-      let x = 0;
-
-      for (let i = 0; i < timeData.length; i++) {
-        const v = timeData[i] * sensitivity;
-        const y = (h / 2) + v * (h / 2);
-        if (i === 0) waveCtx.moveTo(x, y);
-        else waveCtx.lineTo(x, y);
-        x += sliceWidth;
-      }
-      waveCtx.stroke();
-    }
-
-    // ====== テキスト単体テスト ======
-    demoBtn.addEventListener("click", () => {
-      const sample = "いい加減にしろ！ふざけんなよ、本当に最悪だ！！";
-      const input = prompt("テストしたいセリフを入力してください:", sample);
-      if (!input) return;
-
-      if (transcriptBox.textContent.includes("ここに認識された") || transcriptBox.textContent.includes("履歴をクリア")) {
-        transcriptBox.innerHTML = "";
-      }
-      const score = analyzeAndLogText(input);
-      smoothTotal = score;
-      updateUI(score, 0, 0, 0, score, null, 0, 0);
+    btn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      ensureAudio();
+      step();
+      timer = setTimeout(() => {
+        interval = setInterval(step, 55);
+      }, 260);
     });
-  </script>
+
+    btn.addEventListener('pointerup', stop);
+    btn.addEventListener('pointerleave', stop);
+    btn.addEventListener('pointercancel', stop);
+  }
+
+  // ===== UI Updates =====
+  function updatePegVisual(idx) {
+    pegWingEls[idx].style.transform = `rotate(${state.pegAngles[idx]}deg)`;
+    const badge = pegBadgeEls[idx];
+    if (state.practicePeek) {
+      const c = state.cents[idx];
+      const sign = c >= 0 ? '+' : '';
+      badge.style.display = 'block';
+      badge.textContent = `${sign}${c.toFixed(1)}¢`;
+      const abs = Math.abs(c);
+      badge.style.color = abs <= 2.5 ? 'var(--good)' : abs <= 8 ? 'var(--warn)' : 'var(--bad)';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  function updateFretVisual(idx) {
+    const el = fretCircleEls[idx];
+    if (!el) return;
+    if (state.fretted[idx]) {
+      el.circle.setAttribute('fill', '#d9a05b');
+      el.circle.setAttribute('stroke', '#fef08a');
+      el.txt.setAttribute('fill', '#14110f');
+    } else {
+      el.circle.setAttribute('fill', '#261e19');
+      el.circle.setAttribute('stroke', '#78716c');
+      el.txt.setAttribute('fill', '#d6d3d1');
+    }
+  }
+
+  function updateSelectionUI() {
+    STRINGS.forEach((_, idx) => {
+      const sel = idx === state.selectedIdx;
+      pegUnitEls[idx].classList.toggle('selected', sel);
+      pegKnobEls[idx].classList.toggle('selected', sel);
+    });
+    updateRefText();
+  }
+
+  function updateRefText() {
+    const info = document.getElementById('refInfo');
+    const btn = document.getElementById('playRefBtn');
+    const s = STRINGS[state.selectedIdx];
+
+    if (state.mode === 'easy') {
+      info.innerHTML = `<strong>選択中: ${s.full}</strong><br>お手本と聴き比べてペグを回そう`;
+      if (!refVoice) btn.textContent = `🔊 ${s.label} のお手本`;
+    } else if (state.mode === 'fret5') {
+      info.innerHTML = `<strong>5フレット相対法 (選択: ${s.full})</strong><br>6弦を基準に、5F(3弦は4F)でうなりを消そう`;
+      if (!refVoice) btn.textContent = `🔊 6弦基準音 (E2)`;
+    } else {
+      info.innerHTML = `<strong>Master (A440音叉のみ)</strong><br>440Hzの音叉を頼りに5弦(A)から合わせよう`;
+      if (!refVoice) btn.textContent = `🔔 音叉 440Hz`;
+    }
+  }
+
+  // ===== Game Flow & Grading =====
+  function shuffleStrings() {
+    muteAll();
+    state.practicePeek = false;
+    state.fretted.fill(false);
+
+    STRINGS.forEach((_, idx) => {
+      if (state.mode === 'fret5' && idx === 0) {
+        // In 5-fret mode, start 6th string close or slightly off? Let's detune it too since E2 ref is given!
+        // Actually giving E2 ref + detuned 6th string is full experience.
+      }
+      const sign = Math.random() < 0.5 ? -1 : 1;
+      const offset = sign * (30 + Math.random() * 95); // ±30 to ±125 cents
+      state.cents[idx] = offset;
+      state.pegAngles[idx] = Math.random() * 360;
+      updatePegVisual(idx);
+      updateFretVisual(idx);
+    });
+    updateSelectionUI();
+  }
+
+  function showResults() {
+    const list = document.getElementById('resultList');
+    list.innerHTML = '';
+
+    let totalAbs = 0;
+    STRINGS.forEach((s, idx) => {
+      const c = state.cents[idx];
+      const abs = Math.abs(c);
+      totalAbs += abs;
+
+      let status = 'ズレ';
+      let color = 'var(--bad)';
+      if (abs <= 2.0) { status = '神耳!!'; color = 'var(--good)'; }
+      else if (abs <= 5.0) { status = '合格!'; color = '#86efac'; }
+      else if (abs <= 12.0) { status = '惜しい'; color = 'var(--warn)'; }
+
+      const pct = Math.max(4, Math.min(96, 50 + (c / 60) * 50));
+      const sign = c >= 0 ? '+' : '';
+
+      const row = document.createElement('div');
+      row.className = 'result-row';
+      row.innerHTML = `
+        <strong style="color:var(--gold-bright)">${s.label}</strong>
+        <div class="meter-track">
+          <div class="meter-center"></div>
+          <div class="meter-dot" style="left:${pct}%; background:${color};"></div>
+        </div>
+        <span style="text-align:right; font-variant-numeric:tabular-nums;">${sign}${c.toFixed(1)} ¢</span>
+        <span style="text-align:right; font-weight:700; color:${color};">${status}</span>
+      `;
+      list.appendChild(row);
+    });
+
+    const avg = totalAbs / 6;
+    const score = Math.max(0, Math.round(100 - avg * 2.2));
+    let rank = 'C';
+    if (avg <= 2.0) rank = 'S+ (絶対音感級)';
+    else if (avg <= 4.5) rank = 'S (プロ級)';
+    else if (avg <= 8.5) rank = 'A (ナイス耳)';
+    else if (avg <= 16.0) rank = 'B (あと少し)';
+
+    document.getElementById('rankBadge').textContent = rank;
+    document.getElementById('scoreText').textContent = `平均誤差: ${avg.toFixed(1)} cents ／ スコア: ${score}点`;
+    document.getElementById('resultModal').classList.add('open');
+  }
+
+  // ===== String Vibration Animation Loop =====
+  function animateStrings() {
+    STRINGS.forEach((s, idx) => {
+      const amp = state.vibAmp[idx];
+      const midX = (s.nutX + s.bridgeX) / 2;
+      if (amp > 0.08) {
+        state.vibPhase[idx] += 0.75 + idx * 0.14;
+        const dx = Math.sin(state.vibPhase[idx]) * amp;
+        stringPathEls[idx].setAttribute('d', `M ${s.nutX} 233 Q ${midX + dx} 376 ${s.bridgeX} 520`);
+        state.vibAmp[idx] *= 0.965;
+      } else if (amp !== 0) {
+        state.vibAmp[idx] = 0;
+        stringPathEls[idx].setAttribute('d', `M ${s.nutX} 233 Q ${midX} 376 ${s.bridgeX} 520`);
+      }
+    });
+    requestAnimationFrame(animateStrings);
+  }
+
+  // ===== Event Bindings =====
+  document.getElementById('modeTabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('.mode-btn');
+    if (!btn) return;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.mode = btn.dataset.mode;
+    shuffleStrings();
+  });
+
+  document.getElementById('fineToggle').addEventListener('click', (e) => {
+    state.fineMode = !state.fineMode;
+    e.target.classList.toggle('active', state.fineMode);
+    e.target.textContent = `微調整モード: ${state.fineMode ? 'ON' : 'OFF'}`;
+  });
+
+  document.getElementById('timbreToggle').addEventListener('click', (e) => {
+    state.timbre = state.timbre === 'guitar' ? 'sine' : 'guitar';
+    e.target.classList.toggle('active', state.timbre === 'sine');
+    e.target.textContent = `音色: ${state.timbre === 'guitar' ? 'アコギ' : 'ピュア音(Sine)'}`;
+  });
+
+  document.getElementById('muteBtn').addEventListener('click', muteAll);
+  document.getElementById('playRefBtn').addEventListener('click', playReferenceTone);
+  document.getElementById('shuffleBtn').addEventListener('click', shuffleStrings);
+  document.getElementById('checkBtn').addEventListener('click', showResults);
+
+  document.getElementById('practiceBtn').addEventListener('click', () => {
+    state.practicePeek = true;
+    STRINGS.forEach((_, idx) => updatePegVisual(idx));
+    document.getElementById('resultModal').classList.remove('open');
+  });
+
+  document.getElementById('nextGameBtn').addEventListener('click', () => {
+    document.getElementById('resultModal').classList.remove('open');
+    shuffleStrings();
+  });
+
+  document.getElementById('resultModal').addEventListener('click', (e) => {
+    if (e.target.id === 'resultModal') {
+      e.target.classList.remove('open');
+    }
+  });
+
+  // Keyboard shortcuts (6~1 keys to pluck strings)
+  window.addEventListener('keydown', (e) => {
+    if (['6', '5', '4', '3', '2', '1'].includes(e.key)) {
+      const idx = 6 - parseInt(e.key, 10);
+      pluckString(idx);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      adjustCents(state.selectedIdx, state.fineMode ? 0.25 : 1.5);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      adjustCents(state.selectedIdx, state.fineMode ? -0.25 : -1.5);
+    }
+  });
+
+  // Start!
+  initBoard();
+  shuffleStrings();
+  requestAnimationFrame(animateStrings);
+})();
+</script>
 </body>
 </html>
