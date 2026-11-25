@@ -608,26 +608,22 @@
     </div>
   </header>
 
-  <!-- Instrument Switcher -->
   <div class="inst-tabs" id="instTabs">
     <button class="inst-btn active" data-inst="guitar">🎸 ギター</button>
     <button class="inst-btn" data-inst="koto">🎍 琴 (琴柱)</button>
     <button class="inst-btn" data-inst="drum">🥁 ドラム</button>
   </div>
 
-  <!-- Sub-mode & Toggles -->
   <div class="controls-bar">
     <div class="mode-tabs" id="modeTabs"></div>
     <div class="toggles-row" id="togglesRow"></div>
   </div>
 
-  <!-- Reference Bar -->
   <div class="ref-bar">
     <div class="ref-info" id="refInfo"></div>
     <button class="btn-ref" id="playRefBtn">🔊 お手本を鳴らす</button>
   </div>
 
-  <!-- Stage Box -->
   <div class="stage-box">
     <!-- 1. GUITAR STAGE -->
     <div class="inst-stage active" id="guitarStage">
@@ -739,7 +735,6 @@
   <div class="footer-hint" id="footerHint"></div>
 </div>
 
-<!-- Result Modal -->
 <div class="modal-backdrop" id="resultModal">
   <div class="modal">
     <div class="modal-header">
@@ -768,7 +763,6 @@
     { id: 5, stdLabel: '1E', stdFull: '1弦 (E4)', ebFull: '1弦 (E♭4)', targetFreq: 329.627557, gauge: 1.1, color: '#ffffff', post: [278, 185], nutX: 270, bridgeX: 325, pegPos: [358, 185], side: 'right', compareFret: 0 }
   ];
 
-  // Hirajoshi tuning (D base) - 13 strings
   const KOTO_STRINGS = [
     { id: 0,  kanji: '一', note: 'D4',  freq: 293.6648 },
     { id: 1,  kanji: '二', note: 'G3',  freq: 195.9977 },
@@ -784,7 +778,6 @@
     { id: 11, kanji: '為', note: 'G5',  freq: 783.9909 },
     { id: 12, kanji: '巾', note: 'A5',  freq: 880.0000 }
   ];
-  // 二,三,四,六,七,十 -> every target note has an octave/unison anchor among the remaining 7 strings!
   const KOTO_TARGETS = [1, 2, 3, 5, 6, 9];
 
   const DRUM_TYPES = {
@@ -802,9 +795,8 @@
     fineMode: false,
     practicePeek: false,
 
-    // Guitar
-    guitarMode: 'easy',     // 'easy' | 'fret5' | 'master'
-    guitarHalfStep: false,  // false = Standard E, true = Half-Step Down Eb
+    guitarMode: 'easy',
+    guitarHalfStep: false,
     guitarTimbre: 'guitar',
     guitarSel: 0,
     guitarCents: [0,0,0,0,0,0],
@@ -814,7 +806,6 @@
     guitarVibPhase: [0,0,0,0,0,0],
     guitarLastPluck: [0,0,0,0,0,0],
 
-    // Koto
     kotoMode: 'easy',
     kotoSel: 1,
     kotoCents: new Array(13).fill(0),
@@ -823,7 +814,6 @@
     kotoVibPhase: new Array(13).fill(0),
     kotoLastPluck: new Array(13).fill(0),
 
-    // Drum
     drumMode: 'easy',
     drumType: 'tom',
     snareOn: false,
@@ -832,7 +822,6 @@
     drumAngles: [0,0,0,0,0,0]
   };
 
-  // Guitar Tuning Labels & Target Frequency Helpers
   function getGuitarLabel(idx) {
     const base = GUITAR_STRINGS[idx].stdLabel;
     return state.guitarHalfStep ? base + '♭' : base;
@@ -846,7 +835,7 @@
   }
 
   // =========================================================
-  // 3. WEB AUDIO ENGINE
+  // 3. WEB AUDIO ENGINE (Zero-Leak Clean Audio Graph)
   // =========================================================
   let audioCtx = null;
   let masterGain = null;
@@ -860,17 +849,20 @@
       const AC = window.AudioContext || window.webkitAudioContext;
       audioCtx = new AC();
       masterGain = audioCtx.createGain();
-      masterGain.gain.value = 0.72;
+      masterGain.gain.value = 0.65;
 
       const bodyEQ = audioCtx.createBiquadFilter();
       bodyEQ.type = 'peaking';
       bodyEQ.frequency.value = 190;
       bodyEQ.Q.value = 1.1;
-      bodyEQ.gain.value = 3.0;
+      bodyEQ.gain.value = 2.8;
 
       const comp = audioCtx.createDynamicsCompressor();
-      comp.threshold.value = -10;
-      comp.ratio.value = 4;
+      comp.threshold.value = -12;
+      comp.knee.value = 12;
+      comp.ratio.value = 5;
+      comp.attack.value = 0.003;
+      comp.release.value = 0.15;
 
       masterGain.connect(bodyEQ);
       bodyEQ.connect(comp);
@@ -879,30 +871,66 @@
     if (audioCtx.state === 'suspended') audioCtx.resume();
   }
 
-  function stopVoice(voice, fadeSec = 0.03) {
-    if (!voice || !audioCtx) return;
+  function cleanupVoiceNodes(voice) {
+    if (!voice || voice.cleaned) return;
+    voice.cleaned = true;
+    voice.oscs.forEach(o => { try { o.disconnect(); } catch {} });
+    if (voice.extraNodes) {
+      voice.extraNodes.forEach(n => { try { n.disconnect(); } catch {} });
+    }
+    try { voice.gainNode.disconnect(); } catch {}
+  }
+
+  function stopVoice(voice, fadeSec = 0.025) {
+    if (!voice || !audioCtx || voice.cleaned) return;
     const now = audioCtx.currentTime;
     try {
-      voice.gainNode.gain.cancelScheduledValues(now);
-      voice.gainNode.gain.setValueAtTime(Math.max(voice.gainNode.gain.value, 0.0001), now);
-      voice.gainNode.gain.exponentialRampToValueAtTime(0.0001, now + fadeSec);
-      setTimeout(() => {
-        voice.oscs.forEach(o => { try { o.stop(); o.disconnect(); } catch {} });
-        try { voice.gainNode.disconnect(); } catch {}
-      }, fadeSec * 1000 + 30);
-    } catch {}
+      const g = voice.gainNode.gain;
+      if (typeof g.cancelAndHoldAtTime === 'function') {
+        g.cancelAndHoldAtTime(now);
+      } else {
+        g.cancelScheduledValues(now);
+        g.setValueAtTime(Math.max(g.value, 0.0001), now);
+      }
+      g.linearRampToValueAtTime(0, now + fadeSec);
+      setTimeout(() => cleanupVoiceNodes(voice), fadeSec * 1000 + 20);
+    } catch {
+      cleanupVoiceNodes(voice);
+    }
   }
 
   function muteAll() {
-    guitarVoices.forEach((v, i) => { if (v) { stopVoice(v, 0.04); guitarVoices[i] = null; } state.guitarVibAmp[i] = 0; });
-    kotoVoices.forEach((v, i) => { if (v) { stopVoice(v, 0.04); kotoVoices[i] = null; } state.kotoVibAmp[i] = 0; });
-    drumLugVoices.forEach((v, i) => { if (v) { stopVoice(v, 0.04); drumLugVoices[i] = null; } });
+    guitarVoices.forEach((v, i) => { if (v) { stopVoice(v, 0.03); guitarVoices[i] = null; } state.guitarVibAmp[i] = 0; });
+    kotoVoices.forEach((v, i) => { if (v) { stopVoice(v, 0.03); kotoVoices[i] = null; } state.kotoVibAmp[i] = 0; });
+    drumLugVoices.forEach((v, i) => { if (v) { stopVoice(v, 0.03); drumLugVoices[i] = null; } });
     if (refVoice) {
-      stopVoice(refVoice, 0.04);
+      stopVoice(refVoice, 0.03);
       refVoice = null;
       document.getElementById('playRefBtn').classList.remove('playing');
       updateRefUI();
     }
+  }
+
+  function playNoiseBurst(freq, dur, amp, type = 'bandpass') {
+    const now = audioCtx.currentTime;
+    const bufSize = Math.max(64, Math.floor(audioCtx.sampleRate * dur));
+    const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufSize * 0.32));
+    }
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    const f = audioCtx.createBiquadFilter();
+    f.type = type;
+    f.frequency.value = freq;
+    const g = audioCtx.createGain();
+    g.gain.value = amp;
+    src.connect(f); f.connect(g); g.connect(masterGain);
+    src.onended = () => {
+      try { src.disconnect(); f.disconnect(); g.disconnect(); } catch {}
+    };
+    src.start(now);
   }
 
   // --- Guitar Synth ---
@@ -927,8 +955,12 @@
     const filter = audioCtx.createBiquadFilter();
     filter.type = 'lowpass';
 
+    const dur = idx <= 2 ? 5.2 : 4.2;
+    const stopTime = now + dur + 0.04;
     const mults = state.guitarTimbre === 'sine' ? [1] : [1, 2, 3, 4, 5, 6];
-    const amps = state.guitarTimbre === 'sine' ? [0.65] : (idx <= 2 ? [0.48, 0.45, 0.30, 0.20, 0.10, 0.05] : [0.58, 0.38, 0.22, 0.12, 0.06, 0.02]);
+    const amps = state.guitarTimbre === 'sine' ? [0.60] : (idx <= 2 ? [0.46, 0.42, 0.28, 0.18, 0.09, 0.04] : [0.54, 0.36, 0.20, 0.11, 0.05, 0.02]);
+
+    const extraNodes = [filter];
     const pairs = mults.map((m, i) => {
       const osc = audioCtx.createOscillator();
       const g = audioCtx.createGain();
@@ -937,26 +969,31 @@
       g.gain.value = amps[i];
       osc.connect(g); g.connect(filter);
       osc.start(now);
+      osc.stop(stopTime);
+      extraNodes.push(g);
       return { osc, mult: m };
     });
 
     if (state.guitarTimbre === 'guitar') {
       filter.frequency.setValueAtTime(Math.min(f * 14, 4200), now);
       filter.frequency.exponentialRampToValueAtTime(Math.max(f * 2.8, 380), now + 0.75);
-      playNoiseBurst(1800, 0.018, 0.13);
+      playNoiseBurst(1800, 0.018, 0.12);
     } else {
       filter.frequency.value = 6000;
     }
 
-    const dur = idx <= 2 ? 5.6 : 4.5;
-    vGain.gain.setValueAtTime(0.001, now);
-    vGain.gain.linearRampToValueAtTime(0.48, now + 0.008);
-    vGain.gain.exponentialRampToValueAtTime(0.0008, now + dur);
+    vGain.gain.setValueAtTime(0.0001, now);
+    vGain.gain.linearRampToValueAtTime(0.42, now + 0.008);
+    vGain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    vGain.gain.linearRampToValueAtTime(0, stopTime - 0.01);
     filter.connect(vGain); vGain.connect(masterGain);
 
-    const voice = { oscs: pairs.map(p => p.osc), pairs, gainNode: vGain, expiresAt: now + dur };
+    const voice = { oscs: pairs.map(p => p.osc), pairs, gainNode: vGain, extraNodes, expiresAt: now + dur, cleaned: false };
     guitarVoices[idx] = voice;
-    setTimeout(() => { if (guitarVoices[idx] === voice) guitarVoices[idx] = null; }, dur * 1000 + 60);
+    pairs[0].osc.onended = () => {
+      cleanupVoiceNodes(voice);
+      if (guitarVoices[idx] === voice) guitarVoices[idx] = null;
+    };
   }
 
   // --- Koto Synth ---
@@ -972,11 +1009,12 @@
     osc.type = 'triangle';
     osc.frequency.setValueAtTime(520, now);
     osc.frequency.exponentialRampToValueAtTime(220, now + 0.045);
-    g.gain.setValueAtTime(0.35, now);
+    g.gain.setValueAtTime(0.32, now);
     g.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
     osc.connect(g); g.connect(masterGain);
+    osc.onended = () => { try { osc.disconnect(); g.disconnect(); } catch {} };
     osc.start(now); osc.stop(now + 0.06);
-    playNoiseBurst(1400, 0.02, 0.22);
+    playNoiseBurst(1400, 0.02, 0.20);
   }
 
   function pluckKoto(idx) {
@@ -995,11 +1033,12 @@
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(135, now);
       osc.frequency.exponentialRampToValueAtTime(65, now + 0.08);
-      g.gain.setValueAtTime(0.28, now);
+      g.gain.setValueAtTime(0.26, now);
       g.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
       osc.connect(g); g.connect(masterGain);
+      osc.onended = () => { try { osc.disconnect(); g.disconnect(); } catch {} };
       osc.start(now); osc.stop(now + 0.1);
-      playNoiseBurst(550, 0.03, 0.18);
+      playNoiseBurst(550, 0.03, 0.16);
       return;
     }
 
@@ -1008,34 +1047,43 @@
     const vGain = audioCtx.createGain();
     const filter = audioCtx.createBiquadFilter();
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(Math.min(f * 16, 6500), now);
-    filter.frequency.exponentialRampToValueAtTime(Math.max(f * 3.2, 520), now + 0.55);
+    filter.frequency.setValueAtTime(Math.min(f * 14, 6000), now);
+    filter.frequency.exponentialRampToValueAtTime(Math.max(f * 3.0, 500), now + 0.55);
 
-    const mults = [1, 2, 3, 4, 5, 6];
-    const amps = [0.46, 0.42, 0.32, 0.22, 0.12, 0.06];
+    const dur = 3.6;
+    const stopTime = now + dur + 0.04;
+    const mults = [1, 2, 3, 4, 5];
+    const amps = [0.46, 0.38, 0.28, 0.18, 0.09];
+    const extraNodes = [filter];
+
     const pairs = mults.map((m, i) => {
       const osc = audioCtx.createOscillator();
       const g = audioCtx.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(f * m * 1.003, now);
-      osc.frequency.exponentialRampToValueAtTime(f * m, now + 0.035);
+      osc.frequency.setValueAtTime(f * m * 1.0025, now);
+      osc.frequency.exponentialRampToValueAtTime(f * m, now + 0.032);
       g.gain.value = amps[i];
       osc.connect(g); g.connect(filter);
       osc.start(now);
+      osc.stop(stopTime);
+      extraNodes.push(g);
       return { osc, mult: m };
     });
 
-    playNoiseBurst(3200, 0.014, 0.16);
+    playNoiseBurst(3000, 0.014, 0.14);
 
-    const dur = 4.2;
-    vGain.gain.setValueAtTime(0.001, now);
-    vGain.gain.linearRampToValueAtTime(0.45, now + 0.005);
-    vGain.gain.exponentialRampToValueAtTime(0.0008, now + dur);
+    vGain.gain.setValueAtTime(0.0001, now);
+    vGain.gain.linearRampToValueAtTime(0.36, now + 0.005);
+    vGain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    vGain.gain.linearRampToValueAtTime(0, stopTime - 0.01);
     filter.connect(vGain); vGain.connect(masterGain);
 
-    const voice = { oscs: pairs.map(p => p.osc), pairs, gainNode: vGain, expiresAt: now + dur };
+    const voice = { oscs: pairs.map(p => p.osc), pairs, gainNode: vGain, extraNodes, expiresAt: now + dur, cleaned: false };
     kotoVoices[idx] = voice;
-    setTimeout(() => { if (kotoVoices[idx] === voice) kotoVoices[idx] = null; }, dur * 1000 + 60);
+    pairs[0].osc.onended = () => {
+      cleanupVoiceNodes(voice);
+      if (kotoVoices[idx] === voice) kotoVoices[idx] = null;
+    };
   }
 
   // --- Drum Synth ---
@@ -1055,8 +1103,12 @@
 
     const f = getDrumLugFreq(idx);
     const vGain = audioCtx.createGain();
+    const dur = 1.65;
+    const stopTime = now + dur + 0.04;
+    const extraNodes = [];
+
     const pairs = [
-      { mult: 1.0, amp: 0.58, decay: 1.5 },
+      { mult: 1.0, amp: 0.56, decay: 1.5 },
       { mult: 1.59, amp: 0.22, decay: 0.55 },
       { mult: 2.0, amp: 0.12, decay: 0.35 }
     ].map(spec => {
@@ -1069,21 +1121,26 @@
       g.gain.exponentialRampToValueAtTime(0.001, now + spec.decay);
       osc.connect(g); g.connect(vGain);
       osc.start(now);
+      osc.stop(stopTime);
+      extraNodes.push(g);
       return { osc, mult: spec.mult };
     });
 
-    playNoiseBurst(2600, 0.015, 0.22);
+    playNoiseBurst(2600, 0.015, 0.20);
     if (state.snareOn) playNoiseBurst(3400, 0.14, 0.12, 'highpass');
 
-    const dur = 1.65;
-    vGain.gain.setValueAtTime(0.001, now);
-    vGain.gain.linearRampToValueAtTime(0.62, now + 0.004);
-    vGain.gain.exponentialRampToValueAtTime(0.0008, now + dur);
+    vGain.gain.setValueAtTime(0.0001, now);
+    vGain.gain.linearRampToValueAtTime(0.58, now + 0.004);
+    vGain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    vGain.gain.linearRampToValueAtTime(0, stopTime - 0.01);
     vGain.connect(masterGain);
 
-    const voice = { oscs: pairs.map(p => p.osc), pairs, gainNode: vGain, expiresAt: now + dur };
+    const voice = { oscs: pairs.map(p => p.osc), pairs, gainNode: vGain, extraNodes, expiresAt: now + dur, cleaned: false };
     drumLugVoices[idx] = voice;
-    setTimeout(() => { if (drumLugVoices[idx] === voice) drumLugVoices[idx] = null; }, dur * 1000 + 50);
+    pairs[0].osc.onended = () => {
+      cleanupVoiceNodes(voice);
+      if (drumLugVoices[idx] === voice) drumLugVoices[idx] = null;
+    };
   }
 
   function strikeDrumCenter() {
@@ -1094,73 +1151,62 @@
     const vGain = audioCtx.createGain();
     const freqs = [0,1,2,3,4,5].map(i => getDrumLugFreq(i));
     const avgFreq = freqs.reduce((a, b) => a + b, 0) / 6;
+    const allOscs = [];
+    const extraNodes = [];
 
     const bodyOsc = audioCtx.createOscillator();
     const bodyGain = audioCtx.createGain();
     bodyOsc.type = 'sine';
     bodyOsc.frequency.setValueAtTime(avgFreq * 0.85 * 1.25, now);
     bodyOsc.frequency.exponentialRampToValueAtTime(avgFreq * 0.85, now + 0.045);
-    bodyGain.gain.setValueAtTime(0.5, now);
+    bodyGain.gain.setValueAtTime(0.48, now);
     bodyGain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
     bodyOsc.connect(bodyGain); bodyGain.connect(vGain);
     bodyOsc.start(now); bodyOsc.stop(now + 0.95);
+    allOscs.push(bodyOsc); extraNodes.push(bodyGain);
 
     freqs.forEach(lf => {
       const osc = audioCtx.createOscillator();
       const g = audioCtx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(lf, now);
-      g.gain.setValueAtTime(0.11, now);
+      g.gain.setValueAtTime(0.10, now);
       g.gain.exponentialRampToValueAtTime(0.001, now + 1.25);
       osc.connect(g); g.connect(vGain);
       osc.start(now); osc.stop(now + 1.3);
+      allOscs.push(osc); extraNodes.push(g);
     });
 
-    playNoiseBurst(1600, 0.025, 0.32);
-    if (state.snareOn) playNoiseBurst(2600, 0.28, 0.36, 'highpass');
+    playNoiseBurst(1600, 0.025, 0.30);
+    if (state.snareOn) playNoiseBurst(2600, 0.28, 0.34, 'highpass');
 
-    vGain.gain.setValueAtTime(0.75, now);
+    vGain.gain.setValueAtTime(0.70, now);
     vGain.connect(masterGain);
-  }
 
-  function playNoiseBurst(freq, dur, amp, type = 'bandpass') {
-    const bufSize = Math.max(64, Math.floor(audioCtx.sampleRate * dur));
-    const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < bufSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufSize * 0.32));
-    }
-    const src = audioCtx.createBufferSource();
-    src.buffer = buf;
-    const f = audioCtx.createBiquadFilter();
-    f.type = type;
-    f.frequency.value = freq;
-    const g = audioCtx.createGain();
-    g.gain.value = amp;
-    src.connect(f); f.connect(g); g.connect(masterGain);
-    src.start(audioCtx.currentTime);
+    const tempVoice = { oscs: allOscs, gainNode: vGain, extraNodes, cleaned: false };
+    allOscs[1].onended = () => cleanupVoiceNodes(tempVoice);
   }
 
   function updateRingingPitch(inst, idx) {
     if (!audioCtx) return;
     const now = audioCtx.currentTime;
-    if (inst === 'guitar' && guitarVoices[idx] && now < guitarVoices[idx].expiresAt) {
-      const f = getGuitarFreq(idx);
-      guitarVoices[idx].pairs.forEach(({ osc, mult }) => osc.frequency.setTargetAtTime(f * mult, now, 0.015));
-    } else if (inst === 'koto' && kotoVoices[idx] && now < kotoVoices[idx].expiresAt) {
-      const f = getKotoFreq(idx);
-      kotoVoices[idx].pairs.forEach(({ osc, mult }) => osc.frequency.setTargetAtTime(f * mult, now, 0.015));
-    } else if (inst === 'drum' && drumLugVoices[idx] && now < drumLugVoices[idx].expiresAt) {
-      const f = getDrumLugFreq(idx);
-      drumLugVoices[idx].pairs.forEach(({ osc, mult }) => osc.frequency.setTargetAtTime(f * mult, now, 0.015));
-    }
+    const apply = (voice, baseF) => {
+      if (!voice || voice.cleaned || now >= voice.expiresAt) return;
+      voice.pairs.forEach(({ osc, mult }) => {
+        osc.frequency.cancelScheduledValues(now);
+        osc.frequency.setTargetAtTime(baseF * mult, now, 0.015);
+      });
+    };
+    if (inst === 'guitar') apply(guitarVoices[idx], getGuitarFreq(idx));
+    else if (inst === 'koto') apply(kotoVoices[idx], getKotoFreq(idx));
+    else if (inst === 'drum') apply(drumLugVoices[idx], getDrumLugFreq(idx));
   }
 
   function playReferenceTone() {
     ensureAudio();
     const btn = document.getElementById('playRefBtn');
     if (refVoice) {
-      stopVoice(refVoice, 0.05);
+      stopVoice(refVoice, 0.04);
       refVoice = null;
       btn.classList.remove('playing');
       updateRefUI();
@@ -1183,48 +1229,53 @@
 
     const now = audioCtx.currentTime;
     const gain = audioCtx.createGain();
+    const dur = modeStyle === 'drum' ? 2.4 : 4.0;
+    const stopTime = now + dur + 0.04;
     const oscs = [];
+    const extraNodes = [];
 
     if (modeStyle === 'sine' || (state.instrument === 'guitar' && state.guitarTimbre === 'sine')) {
       const o = audioCtx.createOscillator();
       o.type = 'sine'; o.frequency.setValueAtTime(freq, now);
-      o.connect(gain); o.start(now); oscs.push(o);
+      o.connect(gain); o.start(now); o.stop(stopTime); oscs.push(o);
     } else if (modeStyle === 'drum') {
       [1, 1.59].forEach((m, i) => {
         const o = audioCtx.createOscillator();
         const g = audioCtx.createGain();
         o.type = 'sine'; o.frequency.setValueAtTime(freq * m, now);
-        g.gain.value = i === 0 ? 0.65 : 0.16;
-        o.connect(g); g.connect(gain); o.start(now); oscs.push(o);
+        g.gain.value = i === 0 ? 0.60 : 0.15;
+        o.connect(g); g.connect(gain); o.start(now); o.stop(stopTime);
+        oscs.push(o); extraNodes.push(g);
       });
     } else {
       [1, 2, 3, 4].forEach((m, i) => {
         const o = audioCtx.createOscillator();
         const g = audioCtx.createGain();
         o.type = 'sine'; o.frequency.setValueAtTime(freq * m, now);
-        g.gain.value = [0.55, 0.35, 0.18, 0.08][i];
-        o.connect(g); g.connect(gain); o.start(now); oscs.push(o);
+        g.gain.value = [0.52, 0.34, 0.17, 0.08][i];
+        o.connect(g); g.connect(gain); o.start(now); o.stop(stopTime);
+        oscs.push(o); extraNodes.push(g);
       });
     }
 
-    const dur = modeStyle === 'drum' ? 2.4 : 4.2;
-    gain.gain.setValueAtTime(0.001, now);
-    gain.gain.linearRampToValueAtTime(0.38, now + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0008, now + dur);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(0.36, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    gain.gain.linearRampToValueAtTime(0, stopTime - 0.01);
     gain.connect(masterGain);
 
-    refVoice = { oscs, gainNode: gain };
+    const voice = { oscs, gainNode: gain, extraNodes, cleaned: false };
+    refVoice = voice;
     btn.classList.add('playing');
     btn.textContent = '⏹ 基準音を止める';
-    setTimeout(() => {
-      if (refVoice && refVoice.gainNode === gain) {
-        oscs.forEach(o => { try { o.stop(); o.disconnect(); } catch {} });
-        try { gain.disconnect(); } catch {}
+    oscs[0].onended = () => {
+      cleanupVoiceNodes(voice);
+      if (refVoice === voice) {
         refVoice = null;
         btn.classList.remove('playing');
         updateRefUI();
       }
-    }, dur * 1000 + 50);
+    };
   }
 
   // =========================================================
@@ -1285,7 +1336,11 @@
     sLayer.innerHTML = fLayer.innerHTML = hLayer.innerHTML = overlay.innerHTML = '';
 
     let strumming = false;
-    window.addEventListener('pointerup', () => { strumming = false; });
+    const endStrum = () => { strumming = false; };
+    window.addEventListener('pointerup', endStrum);
+    window.addEventListener('pointercancel', endStrum);
+    window.addEventListener('touchend', endStrum);
+    window.addEventListener('touchcancel', endStrum);
 
     GUITAR_STRINGS.forEach((s, idx) => {
       const hl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -1425,7 +1480,11 @@
     sLayer.innerHTML = hLayer.innerHTML = overlay.innerHTML = '';
 
     let gliss = false;
-    window.addEventListener('pointerup', () => { gliss = false; });
+    const endGliss = () => { gliss = false; };
+    window.addEventListener('pointerup', endGliss);
+    window.addEventListener('pointercancel', endGliss);
+    window.addEventListener('touchend', endGliss);
+    window.addEventListener('touchcancel', endGliss);
 
     KOTO_STRINGS.forEach((ks, idx) => {
       const y = kotoY(idx);
@@ -1451,7 +1510,7 @@
       hit.setAttribute('fill', 'transparent'); hit.style.cursor = 'pointer';
       hit.addEventListener('pointerdown', (e) => { e.preventDefault(); gliss = true; pluckKoto(idx); });
       hit.addEventListener('pointerenter', () => {
-        if (gliss && performance.now() - state.kotoLastPluck[idx] > 90) pluckKoto(idx);
+        if (gliss && performance.now() - state.kotoLastPluck[idx] > 110) pluckKoto(idx);
       });
       hLayer.appendChild(hit);
 
@@ -1515,7 +1574,7 @@
       const sy = ((t.clientY - r.top) / r.height) * 430;
       if (sx < 320) return;
       const idx = Math.round((sy - 36) / 30);
-      if (idx >= 0 && idx < 13 && performance.now() - state.kotoLastPluck[idx] > 95) pluckKoto(idx);
+      if (idx >= 0 && idx < 13 && performance.now() - state.kotoLastPluck[idx] > 110) pluckKoto(idx);
     }, { passive: true });
 
     document.getElementById('kotoStandBtn').addEventListener('click', () => {
