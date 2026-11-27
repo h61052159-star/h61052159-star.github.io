@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CVR / ブラックボックス風 音声レコーダー</title>
+  <style>
+    :root {
+      --bg: #0b0f10;
+      --panel: #141a1c;
+      --border: #2a363b;
+      --amber: #ffb000;
+      --green: #33ff66;
+      --red: #ff3b30;
+      --text: #d8e2e6;
+      --muted: #7f9199;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Courier New", Consolas, "Hiragino Kaku Gothic ProN", Meiryo, monospace;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 920px;
+      margin: 0 auto;
+      background: var(--panel);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.7);
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 14px;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.25rem;
+      color: var(--amber);
+      letter-spacing: 1px;
+    }
+
+    .status-badge {
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      background: #1d2629;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .status-badge.recording {
+      color: #fff;
+      background: rgba(255, 59, 48, 0.25);
+      border-color: var(--red);
+      animation: blink 1s infinite;
+    }
+
+    .status-badge.standby {
+      color: var(--green);
+      border-color: var(--green);
+    }
+
+    @keyframes blink {
+      50% { opacity: 0.5; }
+    }
+
+    .visualizer-wrap {
+      position: relative;
+      background: #050809;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 120px;
+    }
+
+    .timer-overlay {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: var(--amber);
+      text-shadow: 0 0 6px rgba(255, 176, 0, 0.5);
+    }
+
+    .section {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 0.85rem;
+      color: var(--amber);
+      margin: 0 0 12px 0;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    button {
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: bold;
+      padding: 10px 16px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: #1e272b;
+      color: var(--text);
+      transition: 0.15s;
+    }
+
+    button:hover:not(:disabled) {
+      border-color: var(--amber);
+      color: var(--amber);
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    button.btn-rec {
+      background: #471414;
+      border-color: var(--red);
+      color: #ffd5d3;
+    }
+
+    button.btn-rec:hover:not(:disabled) {
+      background: #6b1a1a;
+      color: #fff;
+    }
+
+    button.btn-stop {
+      background: #2b3336;
+      border-color: var(--amber);
+      color: var(--amber);
+    }
+
+    button.btn-ptt {
+      background: #1c2c20;
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    button.preset-btn {
+      padding: 6px 12px;
+      font-size: 0.8rem;
+    }
+
+    .source-switch {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    label.inline {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .file-box {
+      display: none;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--border);
+    }
+
+    .file-box.active {
+      display: block;
+    }
+
+    .grid-sliders {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 14px;
+    }
+
+    .slider-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .slider-head {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+    }
+
+    .slider-val {
+      color: var(--green);
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--amber);
+      cursor: pointer;
+    }
+
+    .output-box {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .output-box.active {
+      display: flex;
+    }
+
+    audio {
+      width: 100%;
+      height: 40px;
+    }
+
+    .download-link {
+      display: inline-block;
+      text-align: center;
+      text-decoration: none;
+      padding: 10px 16px;
+      background: #17331e;
+      border: 1px solid var(--green);
+      color: var(--green);
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+
+    .download-link:hover {
+      background: #20492b;
+    }
+
+    .note {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+
+    .warn {
+      color: var(--amber);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>COCKPIT VOICE RECORDER // ブラックボックス再現機</h1>
+      <div id="statusBadge" class="status-badge">STANDBY (未接続)</div>
+    </header>
+
+    <div class="visualizer-wrap">
+      <canvas id="visualizer"></canvas>
+      <div id="timerDisplay" class="timer-overlay">REC 00:00.0</div>
+    </div>
+
+    <!-- 入力＆録音コントロール -->
+    <div class="section">
+      <div class="section-title">1. 入力ソース ＆ 録音コントロール</div>
+      <div class="source-switch">
+        <label class="inline">
+          <input type="radio" name="inputSource" value="mic" checked />
+          マイク入力（ライブ録音）
+        </label>
+        <label class="inline">
+          <input type="radio" name="inputSource" value="file" />
+          音声ファイル入力（手持ちの音声を加工）
+        </label>
+        <label class="inline" title="スピーカー使用時はハウリングに注意">
+          <input type="checkbox" id="monitorToggle" />
+          モニター出力（加工後の音を聴く）
+        </label>
+      </div>
+
+      <div id="fileBox" class="file-box">
+        <input type="file" id="audioFileInput" accept="audio/*" />
+        <div style="margin-top: 8px;">
+          <audio id="sourceAudioEl" controls></audio>
+        </div>
+        <div class="note">※「録音開始」を押してから上の再生ボタンを押すと、ファイル音声をブラックボックス風に加工録音できます。</div>
+      </div>
+
+      <div class="controls-row" style="margin-top: 12px;">
+        <button id="btnMonitorInit">音声エンジン起動 / 調整のみ</button>
+        <button id="btnRecStart" class="btn-rec">● 録音開始</button>
+        <button id="btnRecStop" class="btn-stop" disabled>■ 録音停止</button>
+        <button id="btnPttClick" class="btn-ptt" disabled>⚡ 無線クリック音 (ザッ)</button>
+      </div>
+      <div class="note warn">
+        ※ マイク使用時に「モニター出力」をONにする場合は、ハウリング防止のため必ずイヤホン/ヘッドホンを使用してください。
+      </div>
+    </div>
+
+    <!-- プリセット -->
+    <div class="section">
+      <div class="section-title">2. 音質プリセット</div>
+      <div class="controls-row">
+        <button class="preset-btn" data-preset="tapeCvr">磁気テープ式 CVR (1980s)</button>
+        <button class="preset-btn" data-preset="vhfRadio">航空無線 / 管制交信 (VHF)</button>
+        <button class="preset-btn" data-preset="damaged">重度劣化 / 電波障害</button>
+        <button class="preset-btn" data-preset="clean">素の音に近い状態</button>
+      </div>
+    </div>
+
+    <!-- パラメータ調整 -->
+    <div class="section">
+      <div class="section-title">3. 音響劣化・ノイズパラメータ</div>
+      <div class="grid-sliders">
+        <div class="slider-item">
+          <div class="slider-head">
+            <span>ハイパス (低音カット)</span>
+            <span id="valHighpass" class="slider-val">380 Hz</span>
+          </div>
+          <input type="range" id="paramHighpass" min="50" max="1000" step="10" value="380" />
+        </div>
+
+        <div class="slider-item">
+          <div class="slider-head">
+            <span>ローパス (高音カット)</span>
+            <span id="valLowpass" class="slider-val">2400 Hz</span>
+          </div>
+          <input type="range" id="paramLowpass" min="1000" max="8000" step="50" value="2400" />
+        </div>
+
+        <div class="slider-item">
+          <div class="slider-head">
+            <span>中音域の硬さ (1.2kHz強調)</span>
+            <span id="valMidBoost" class="slider-val">+7 dB</span>
+          </div>
+          <input type="range" id="paramMidBoost" min="0" max="15" step="1" value="7" />
+        </div>
+
+        <div class="slider-item">
+          <div class="slider-head">
+            <span>音の歪み・割れ (Saturation)</span>
+            <span id="valDrive" class="slider-val">40</span>
+          </div>
+          <input type="range" id="paramDrive" min="0" max="100" step="1" value="40" />
+        </div>
+
+        <div class="slider-item">
+          <div class="slider-head">
+            <span>ビット深度低下 (量子化ノイズ)</span>
+            <span id="valBitDepth" class="slider-val">10 bit</span>
+          </div>
+          <input type="range" id="paramBitDepth" min="4" max="16" step="1" value="10" />
+        </div>
+
+        <div class="slider-item">
+          <div class="slider-head">
+            <span>サンプル間引き (こもり・ザラつき)</span>
+            <span id="valDownsample" class="slider-val">5x</span>
+          </div>
+          <input type="range" id="paramDownsample" min="1" max="12" step="1" value="5" />
+        </div>
+
+        <div class="slider-item">
+          <div class="slider-head">
+            <span>コックピット暗騒音 (ノイズ量)</span>
+            <span id="valNoise" class="slider-val">35%</span>
+          </div>
+          <input type="range" id="paramNoise" min="0" max="100" step="1" value="35" />
+        </div>
+
+        <div class="slider-item">
+          <div class="slider-head">
+            <span>航空機 400Hz 電源ハム音</span>
+            <span id="valHum" class="slider-val">25%</span>
+          </div>
+          <input type="range" id="paramHum" min="0" max="100" step="1" value="25" />
+        </div>
+
+        <div class="slider-item">
+          <div class="slider-head">
+            <span>テープ回転ムラ (音程の揺れ)</span>
+            <span id="valWow" class="slider-val">30%</span>
+          </div>
+          <input type="range" id="paramWow" min="0" max="100" step="1" value="30" />
+        </div>
+
+        <div class="slider-item">
+          <div class="slider-head">
+            <span>電波乱れ・瞬間音切れ頻度</span>
+            <span id="valDropout" class="slider-val">20%</span>
+          </div>
+          <input type="range" id="paramDropout" min="0" max="100" step="1" value="20" />
+        </div>
+      </div>
+    </div>
+
+    <!-- 録音結果 -->
+    <div id="outputBox" class="section output-box">
+      <div class="section-title">4. 録音データ (WAV書き出し)</div>
+      <audio id="recordedAudioEl" controls></audio>
+      <a id="downloadLink" class="download-link" href="#" download="cvr_recording.wav">⬇ WAVファイルをダウンロード</a>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      // --- AudioWorklet コード (Blob URL用) ---
+      const workletCode = `
+        class CVRProcessor extends AudioWorkletProcessor {
+          constructor() {
+            super();
+            this.bitDepth = 10;
+            this.downsample = 5;
+            this.isRecording = false;
+            this.counter = 0;
+            this.heldSample = 0;
+
+            this.port.onmessage = (e) => {
+              const d = e.data;
+              if (d.type === 'params') {
+                this.bitDepth = d.bitDepth;
+                this.downsample = d.downsample;
+              } else if (d.type === 'record') {
+                this.isRecording = d.value;
+              }
+            };
+          }
+
+          process(inputs, outputs) {
+            const input = inputs[0];
+            const output = outputs[0];
+            if (!input || input.length === 0 || !output || output.length === 0) {
+              return true;
+            }
+
+            const inCh = input[0];
+            const len = inCh.length;
+            const levels = Math.pow(2, this.bitDepth - 1);
+            const recBuf = this.isRecording ? new Float32Array(len) : null;
+
+            for (let i = 0; i < len; i++) {
+              if (this.counter % this.downsample === 0) {
+                let s = inCh[i];
+                if (this.bitDepth < 16) {
+                  s = Math.round(s * levels) / levels;
+                }
+                this.heldSample = Math.max(-1, Math.min(1, s));
+              }
+              this.counter++;
+              const outSample = this.heldSample;
+
+              for (let ch = 0; ch < output.length; ch++) {
+                output[ch][i] = outSample;
+              }
+              if (recBuf) {
+                recBuf[i] = outSample;
+              }
+            }
+
+            if (recBuf) {
+              this.port.postMessage({ type: 'audio', samples: recBuf }, [recBuf.buffer]);
+            }
+            return true;
+          }
+        }
+        registerProcessor('cvr-processor', CVRProcessor);
+      `;
+
+      // --- 状態変数 ---
+      let audioCtx = null;
+      let micStream = null;
+      let micSource = null;
+      let fileSource = null;
+      let micGain = null;
+      let fileGain = null;
+
+      let noiseGain = null;
+      let humGain = null;
+      let hpFilter = null;
+      let lpFilter = null;
+      let midFilter = null;
+      let compressor = null;
+      let waveShaper = null;
+      let delayNode = null;
+      let wowGain = null;
+      let dropoutGain = null;
+      let monitorGain = null;
+      let analyser = null;
+
+      let loFiNode = null; // AudioWorkletNode または ScriptProcessorNode
+      let isWorklet = false;
+      let scriptFallbackState = { bitDepth: 10, downsample: 5, counter: 0, heldSample: 0 };
+
+      let isEngineReady = false;
+      let isRecording = false;
+      let recordedChunks = [];
+      let recStartTime = 0;
+      let timerInterval = null;
+      let dropoutInterval = null;
+      let currentObjectUrl = null;
+
+      // --- DOM要素 ---
+      const statusBadge = document.getElementById('statusBadge');
+      const timerDisplay = document.getElementById('timerDisplay');
+      const canvas = document.getElementById('visualizer');
+      const canvasCtx = canvas.getContext('2d');
+
+      const btnMonitorInit = document.getElementById('btnMonitorInit');
+      const btnRecStart = document.getElementById('btnRecStart');
+      const btnRecStop = document.getElementById('btnRecStop');
+      const btnPttClick = document.getElementById('btnPttClick');
+      const monitorToggle = document.getElementById('monitorToggle');
+      const sourceRadios = document.querySelectorAll('input[name="inputSource"]');
+      const fileBox = document.getElementById('fileBox');
+      const audioFileInput = document.getElementById('audioFileInput');
+      const sourceAudioEl = document.getElementById('sourceAudioEl');
+
+      const outputBox = document.getElementById('outputBox');
+      const recordedAudioEl = document.getElementById('recordedAudioEl');
+      const downloadLink = document.getElementById('downloadLink');
+
+      // パラメータDOM
+      const sliders = {
+        highpass: document.getElementById('paramHighpass'),
+        lowpass: document.getElementById('paramLowpass'),
+        midBoost: document.getElementById('paramMidBoost'),
+        drive: document.getElementById('paramDrive'),
+        bitDepth: document.getElementById('paramBitDepth'),
+        downsample: document.getElementById('paramDownsample'),
+        noise: document.getElementById('paramNoise'),
+        hum: document.getElementById('paramHum'),
+        wow: document.getElementById('paramWow'),
+        dropout: document.getElementById('paramDropout')
+      };
+
+      const valLabels = {
+        highpass: document.getElementById('valHighpass'),
+        lowpass: document.getElementById('valLowpass'),
+        midBoost: document.getElementById('valMidBoost'),
+        drive: document.getElementById('valDrive'),
+        bitDepth: document.getElementById('valBitDepth'),
+        downsample: document.getElementById('valDownsample'),
+        noise: document.getElementById('valNoise'),
+        hum: document.getElementById('valHum'),
+        wow: document.getElementById('valWow'),
+        dropout: document.getElementById('valDropout')
+      };
+
+      // --- 歪みカーブ生成 ---
+      function makeDistortionCurve(amount) {
+        const k = Number(amount);
+        const nSamples = 44100;
+        const curve = new Float32Array(nSamples);
+        const deg = Math.PI / 180;
+        for (let i = 0; i < nSamples; ++i) {
+          const x = (i * 2) / nSamples - 1;
+          if (k <= 0) {
+            curve[i] = x;
+          } else {
+            curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+          }
+        }
+        return curve;
+      }
+
+      // --- ピンク/ブラウン系コックピットノイズバッファ生成 ---
+      function createCockpitNoiseBuffer(ctx) {
+        const bufferSize = ctx.sampleRate * 4;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const output = buffer.getChannelData(0);
+        let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+        for (let i = 0; i < bufferSize; i++) {
+          const white = Math.random() * 2 - 1;
+          b0 = 0.99886 * b0 + white * 0.0555179;
+          b1 = 0.99332 * b1 + white * 0.0750759;
+          b2 = 0.96900 * b2 + white * 0.1538520;
+          b3 = 0.86650 * b3 + white * 0.3104856;
+          b4 = 0.55000 * b4 + white * 0.5329522;
+          b5 = -0.7616 * b5 - white * 0.0168980;
+          output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.06;
+          b6 = white * 0.115926;
+        }
+        return buffer;
+      }
+
+      // --- オーディオエンジン初期化 ---
+      async function initAudioEngine() {
+        if (isEngineReady) {
+          if (audioCtx.state === 'suspended') await audioCtx.resume();
+          return true;
+        }
+
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          audioCtx = new AudioCtx();
+
+          // 1. 入力バス (マイク + ファイル + ノイズ + ハム)
+          const preBus = audioCtx.createGain();
+
+          // マイク取得
+          const selectedSource = document.querySelector('input[name="inputSource"]:checked').value;
+          micGain = audioCtx.createGain();
+          fileGain = audioCtx.createGain();
+
+          try {
+            micStream = await navigator.mediaDevices.getUserMedia({
+              audio: {
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false
+              }
+            });
+            micSource = audioCtx.createMediaStreamSource(micStream);
+            micSource.connect(micGain);
+          } catch (micErr) {
+            if (selectedSource === 'mic') {
+              alert('マイクへのアクセスが拒否されたか、利用できない環境です。\n音声ファイル入力に切り替えて試すか、HTTPS / localhost 環境で開いてください。\n詳細: ' + micErr.message);
+              return false;
+            }
+          }
+
+          // 音声ファイルソース
+          fileSource = audioCtx.createMediaElementSource(sourceAudioEl);
+          fileSource.connect(fileGain);
+
+          micGain.connect(preBus);
+          fileGain.connect(preBus);
+
+          // コックピット暗騒音
+          const noiseSrc = audioCtx.createBufferSource();
+          noiseSrc.buffer = createCockpitNoiseBuffer(audioCtx);
+          noiseSrc.loop = true;
+          noiseGain = audioCtx.createGain();
+          noiseSrc.connect(noiseGain);
+          noiseGain.connect(preBus);
+          noiseSrc.start();
+
+          // 航空機 400Hz 電源ハム音 (400Hz + 微弱800Hz)
+          const humOsc1 = audioCtx.createOscillator();
+          humOsc1.type = 'sine';
+          humOsc1.frequency.value = 400;
+          const humOsc2 = audioCtx.createOscillator();
+          humOsc2.type = 'sine';
+          humOsc2.frequency.value = 800;
+          const hum2Sub = audioCtx.createGain();
+          hum2Sub.gain.value = 0.25;
+
+          humGain = audioCtx.createGain();
+          humOsc1.connect(humGain);
+          humOsc2.connect(hum2Sub);
+          hum2Sub.connect(humGain);
+          humGain.connect(preBus);
+          humOsc1.start();
+          humOsc2.start();
+
+          // 2. フィルタ＆歪みチェーン
+          hpFilter = audioCtx.createBiquadFilter();
+          hpFilter.type = 'highpass';
+          hpFilter.Q.value = 0.9;
+
+          midFilter = audioCtx.createBiquadFilter();
+          midFilter.type = 'peaking';
+          midFilter.frequency.value = 1200;
+          midFilter.Q.value = 1.4;
+
+          lpFilter = audioCtx.createBiquadFilter();
+          lpFilter.type = 'lowpass';
+          lpFilter.Q.value = 1.1;
+
+          compressor = audioCtx.createDynamicsCompressor();
+          compressor.threshold.value = -24;
+          compressor.knee.value = 12;
+          compressor.ratio.value = 8;
+          compressor.attack.value = 0.003;
+          compressor.release.value = 0.15;
+
+          waveShaper = audioCtx.createWaveShaper();
+          waveShaper.oversample = '2x';
+
+          // テープのワウ・フラッター (LFOで遅延時間を揺らす)
+          delayNode = audioCtx.createDelay(0.1);
+          delayNode.delayTime.value = 0.02;
+          const wowOsc = audioCtx.createOscillator();
+          wowOsc.type = 'sine';
+          wowOsc.frequency.value = 2.3;
+          wowGain = audioCtx.createGain();
+          wowOsc.connect(wowGain);
+          wowGain.connect(delayNode.delayTime);
+          wowOsc.start();
+
+          // ドロップアウト用ゲイン
+          dropoutGain = audioCtx.createGain();
+          dropoutGain.gain.value = 1.0;
+
+          // 3. ビットクラッシャー & PCMキャプチャノード
+          try {
+            const blob = new Blob([workletCode], { type: 'application/javascript' });
+            const workletUrl = URL.createObjectURL(blob);
+            await audioCtx.audioWorklet.addModule(workletUrl);
+            URL.revokeObjectURL(workletUrl);
+
+            loFiNode = new AudioWorkletNode(audioCtx, 'cvr-processor');
+            loFiNode.port.onmessage = (e) => {
+              if (e.data.type === 'audio' && isRecording) {
+                recordedChunks.push(e.data.samples);
+              }
+            };
+            isWorklet = true;
+          } catch (workletErr) {
+            // file:// 環境等でのフォールバック
+            console.warn('AudioWorklet fallback to ScriptProcessorNode:', workletErr);
+            loFiNode = audioCtx.createScriptProcessor(4096, 1, 1);
+            loFiNode.onaudioprocess = (e) => {
+              const inData = e.inputBuffer.getChannelData(0);
+              const outData = e.outputBuffer.getChannelData(0);
+              const len = inData.length;
+              const { bitDepth, downsample } = scriptFallbackState;
+              const levels = Math.pow(2, bitDepth - 1);
+              const recBuf = isRecording ? new Float32Array(len) : null;
+
+              for (let i = 0; i < len; i++) {
+                if (scriptFallbackState.counter % downsample === 0) {
+                  let s = inData[i];
+                  if (bitDepth < 16) {
+                    s = Math.round(s * levels) / levels;
+                  }
+                  scriptFallbackState.heldSample = Math.max(-1, Math.min(1, s));
+                }
+                scriptFallbackState.counter++;
+                outData[i] = scriptFallbackState.heldSample;
+                if (recBuf) recBuf[i] = scriptFallbackState.heldSample;
+              }
+              if (recBuf) recordedChunks.push(recBuf);
+            };
+            isWorklet = false;
+          }
+
+          // 4. モニター＆ビジュアライザー接続
+          analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 1024;
+
+          monitorGain = audioCtx.createGain();
+
+          // オーディオグラフの接続
+          preBus.connect(hpFilter);
+          hpFilter.connect(midFilter);
+          midFilter.connect(lpFilter);
+          lpFilter.connect(compressor);
+          compressor.connect(waveShaper);
+          waveShaper.connect(delayNode);
+          delayNode.connect(dropoutGain);
+          dropoutGain.connect(loFiNode);
+          loFiNode.connect(analyser);
+          analyser.connect(monitorGain);
+          monitorGain.connect(audioCtx.destination);
+
+          // 録音中だけ確実にScriptProcessorが動くように無音またはanalyserへ接続済み
+          window.__preBusRef = preBus;
+
+          isEngineReady = true;
+          updateSourceRouting();
+          updateMonitorState();
+          applyAllParams();
+          startDropoutLoop();
+          drawVisualizer();
+
+          statusBadge.textContent = 'STANDBY (待機中)';
+          statusBadge.className = 'status-badge standby';
+          btnPttClick.disabled = false;
+          btnMonitorInit.textContent = 'エンジン稼働中';
+          btnMonitorInit.disabled = true;
+
+          return true;
+        } catch (err) {
+          console.error(err);
+          alert('オーディオの初期化に失敗しました: ' + err.message);
+          return false;
+        }
+      }
+
+      // --- 入力ソース切り替え ---
+      function updateSourceRouting() {
+        if (!isEngineReady) return;
+        const src = document.querySelector('input[name="inputSource"]:checked').value;
+        const now = audioCtx.currentTime;
+        if (src === 'mic') {
+          micGain.gain.setTargetAtTime(1, now, 0.02);
+          fileGain.gain.setTargetAtTime(0, now, 0.02);
+        } else {
+          micGain.gain.setTargetAtTime(0, now, 0.02);
+          fileGain.gain.setTargetAtTime(1, now, 0.02);
+        }
+      }
+
+      // --- モニターON/OFF ---
+      function updateMonitorState() {
+        if (!isEngineReady) return;
+        const on = monitorToggle.checked;
+        monitorGain.gain.setTargetAtTime(on ? 0.9 : 0, audioCtx.currentTime, 0.02);
+      }
+
+      // --- パラメータ反映 ---
+      function applyAllParams() {
+        const hp = Number(sliders.highpass.value);
+        const lp = Number(sliders.lowpass.value);
+        const mid = Number(sliders.midBoost.value);
+        const drive = Number(sliders.drive.value);
+        const bit = Number(sliders.bitDepth.value);
+        const ds = Number(sliders.downsample.value);
+        const noise = Number(sliders.noise.value);
+        const hum = Number(sliders.hum.value);
+        const wow = Number(sliders.wow.value);
+        const drop = Number(sliders.dropout.value);
+
+        valLabels.highpass.textContent = `${hp} Hz`;
+        valLabels.lowpass.textContent = `${lp} Hz`;
+        valLabels.midBoost.textContent = `+${mid} dB`;
+        valLabels.drive.textContent = `${drive}`;
+        valLabels.bitDepth.textContent = `${bit} bit`;
+        valLabels.downsample.textContent = `${ds}x`;
+        valLabels.noise.textContent = `${noise}%`;
+        valLabels.hum.textContent = `${hum}%`;
+        valLabels.wow.textContent = `${wow}%`;
+        valLabels.dropout.textContent = `${drop}%`;
+
+        if (!isEngineReady) return;
+
+        const now = audioCtx.currentTime;
+        hpFilter.frequency.setTargetAtTime(hp, now, 0.02);
+        lpFilter.frequency.setTargetAtTime(lp, now, 0.02);
+        midFilter.gain.setTargetAtTime(mid, now, 0.02);
+        waveShaper.curve = makeDistortionCurve(drive * 1.5);
+
+        noiseGain.gain.setTargetAtTime((noise / 100) * 0.45, now, 0.03);
+        humGain.gain.setTargetAtTime((hum / 100) * 0.045, now, 0.03);
+        wowGain.gain.setTargetAtTime((wow / 100) * 0.0028, now, 0.03);
+
+        if (isWorklet) {
+          loFiNode.port.postMessage({ type: 'params', bitDepth: bit, downsample: ds });
+        } else {
+          scriptFallbackState.bitDepth = bit;
+          scriptFallbackState.downsample = ds;
+        }
+      }
+
+      // --- 電波乱れ（ドロップアウト）ループ ---
+      function startDropoutLoop() {
+        if (dropoutInterval) clearInterval(dropoutInterval);
+        dropoutInterval = setInterval(() => {
+          if (!isEngineReady) return;
+          const prob = Number(sliders.dropout.value) / 100;
+          if (prob > 0 && Math.random() < prob * 0.35) {
+            const now = audioCtx.currentTime;
+            const dip = 0.05 + Math.random() * 0.35;
+            const dur = 0.03 + Math.random() * 0.08;
+            dropoutGain.gain.setValueAtTime(dip, now);
+            dropoutGain.gain.setValueAtTime(1.0, now + dur);
+          }
+        }, 180);
+      }
+
+      // --- 無線クリック音 (ザッ・ピッ) ---
+      function triggerPttClick() {
+        if (!isEngineReady || !window.__preBusRef) return;
+        const now = audioCtx.currentTime;
+
+        // 短いノイズバースト
+        const len = Math.floor(audioCtx.sampleRate * 0.06);
+        const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < len; i++) {
+          data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+        }
+        const burst = audioCtx.createBufferSource();
+        burst.buffer = buf;
+        const burstGain = audioCtx.createGain();
+        burstGain.gain.value = 0.55;
+        burst.connect(burstGain);
+        burstGain.connect(window.__preBusRef);
+        burst.start(now);
+
+        // 極短いクリックトーン
+        const osc = audioCtx.createOscillator();
+        const oscGain = audioCtx.createGain();
+        osc.frequency.setValueAtTime(1350, now);
+        oscGain.gain.setValueAtTime(0.25, now);
+        oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+        osc.connect(oscGain);
+        oscGain.connect(window.__preBusRef);
+        osc.start(now);
+        osc.stop(now + 0.04);
+      }
+
+      // --- WAVエンコーダ (16bit Mono PCM) ---
+      function encodeWAV(chunks, sampleRate) {
+        let totalLength = 0;
+        for (const c of chunks) totalLength += c.length;
+
+        const buffer = new ArrayBuffer(44 + totalLength * 2);
+        const view = new DataView(buffer);
+
+        const writeString = (offset, str) => {
+          for (let i = 0; i < str.length; i++) {
+            view.setUint8(offset + i, str.charCodeAt(i));
+          }
+        };
+
+        writeString(0, 'RIFF');
+        view.setUint32(4, 36 + totalLength * 2, true);
+        writeString(8, 'WAVE');
+        writeString(12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true); // PCM
+        view.setUint16(22, 1, true); // Mono
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * 2, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        writeString(36, 'data');
+        view.setUint32(40, totalLength * 2, true);
+
+        let offset = 44;
+        for (const chunk of chunks) {
+          for (let i = 0; i < chunk.length; i++) {
+            const s = Math.max(-1, Math.min(1, chunk[i]));
+            view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+            offset += 2;
+          }
+        }
+
+        return new Blob([view], { type: 'audio/wav' });
+      }
+
+      // --- 録音開始・停止 ---
+      async function startRecording() {
+        const ok = await initAudioEngine();
+        if (!ok) return;
+
+        recordedChunks = [];
+        isRecording = true;
+        if (isWorklet) {
+          loFiNode.port.postMessage({ type: 'record', value: true });
+        }
+
+        recStartTime = performance.now();
+        timerInterval = setInterval(() => {
+          const elapsed = (performance.now() - recStartTime) / 1000;
+          const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+          const secs = (elapsed % 60).toFixed(1).padStart(4, '0');
+          timerDisplay.textContent = `REC ${mins}:${secs}`;
+        }, 100);
+
+        statusBadge.textContent = '● RECORDING (録音中)';
+        statusBadge.className = 'status-badge recording';
+        btnRecStart.disabled = true;
+        btnRecStop.disabled = false;
+      }
+
+      function stopRecording() {
+        if (!isRecording) return;
+        isRecording = false;
+        if (isWorklet) {
+          loFiNode.port.postMessage({ type: 'record', value: false });
+        }
+        clearInterval(timerInterval);
+
+        statusBadge.textContent = 'STANDBY (待機中)';
+        statusBadge.className = 'status-badge standby';
+        btnRecStart.disabled = false;
+        btnRecStop.disabled = true;
+
+        if (recordedChunks.length === 0) return;
+
+        const wavBlob = encodeWAV(recordedChunks, audioCtx.sampleRate);
+        if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
+        currentObjectUrl = URL.createObjectURL(wavBlob);
+
+        recordedAudioEl.src = currentObjectUrl;
+        const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        downloadLink.href = currentObjectUrl;
+        downloadLink.download = `blackbox_${ts}.wav`;
+        outputBox.classList.add('active');
+      }
+
+      // --- オシロスコープ描画 ---
+      function drawVisualizer() {
+        requestAnimationFrame(drawVisualizer);
+        if (!analyser) return;
+
+        const dpr = window.devicePixelRatio || 1;
+        const width = canvas.clientWidth;
+        const height = canvas.clientHeight;
+        if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
+          canvas.width = width * dpr;
+          canvas.height = height * dpr;
+        }
+
+        const bufLen = analyser.frequencyBinCount;
+        const data = new Uint8Array(bufLen);
+        analyser.getByteTimeDomainData(data);
+
+        canvasCtx.save();
+        canvasCtx.scale(dpr, dpr);
+
+        canvasCtx.fillStyle = '#050809';
+        canvasCtx.fillRect(0, 0, width, height);
+
+        // グリッド線
+        canvasCtx.strokeStyle = '#132024';
+        canvasCtx.lineWidth = 1;
+        canvasCtx.beginPath();
+        canvasCtx.moveTo(0, height / 2);
+        canvasCtx.lineTo(width, height / 2);
+        canvasCtx.stroke();
+
+        // 波形
+        canvasCtx.lineWidth = 2;
+        canvasCtx.strokeStyle = isRecording ? '#ff5247' : '#33ff66';
+        canvasCtx.beginPath();
+
+        const sliceWidth = width / bufLen;
+        let x = 0;
+        for (let i = 0; i < bufLen; i++) {
+          const v = data[i] / 128.0;
+          const y = (v * height) / 2;
+          if (i === 0) canvasCtx.moveTo(x, y);
+          else canvasCtx.lineTo(x, y);
+          x += sliceWidth;
+        }
+        canvasCtx.lineTo(width, height / 2);
+        canvasCtx.stroke();
+        canvasCtx.restore();
+      }
+
+      // --- プリセット定義 ---
+      const presets = {
+        tapeCvr: {
+          highpass: 380, lowpass: 2400, midBoost: 7, drive: 40,
+          bitDepth: 11, downsample: 4, noise: 40, hum: 30, wow: 35, dropout: 20
+        },
+        vhfRadio: {
+          highpass: 480, lowpass: 2900, midBoost: 10, drive: 55,
+          bitDepth: 9, downsample: 5, noise: 30, hum: 10, wow: 0, dropout: 30
+        },
+        damaged: {
+          highpass: 550, lowpass: 1850, midBoost: 11, drive: 85,
+          bitDepth: 6, downsample: 8, noise: 65, hum: 45, wow: 65, dropout: 65
+        },
+        clean: {
+          highpass: 60, lowpass: 8000, midBoost: 0, drive: 0,
+          bitDepth: 16, downsample: 1, noise: 0, hum: 0, wow: 0, dropout: 0
+        }
+      };
+
+      // --- イベント設定 ---
+      btnMonitorInit.addEventListener('click', initAudioEngine);
+      btnRecStart.addEventListener('click', startRecording);
+      btnRecStop.addEventListener('click', stopRecording);
+      btnPttClick.addEventListener('click', triggerPttClick);
+      monitorToggle.addEventListener('change', updateMonitorState);
+
+      sourceRadios.forEach((r) => {
+        r.addEventListener('change', (e) => {
+          if (e.target.value === 'file') {
+            fileBox.classList.add('active');
+            monitorToggle.checked = true;
+          } else {
+            fileBox.classList.remove('active');
+          }
+          updateSourceRouting();
+          updateMonitorState();
+        });
+      });
+
+      audioFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        sourceAudioEl.src = URL.createObjectURL(file);
+      });
+
+      Object.values(sliders).forEach((el) => {
+        el.addEventListener('input', applyAllParams);
+      });
+
+      document.querySelectorAll('.preset-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const p = presets[btn.dataset.preset];
+          if (!p) return;
+          for (const key of Object.keys(p)) {
+            sliders[key].value = p[key];
+          }
+          applyAllParams();
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
